@@ -14,7 +14,7 @@ import (
 var templateFS embed.FS
 
 func LoadTemplate() (*template.Template, error) {
-	
+
 	templates := template.New("")
 	err := fs.WalkDir(templateFS, ".", func(path string, d fs.DirEntry, err error) error {
 

@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ import (
 const UserIdSessionKey = "userId"
 
 func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
-	whitelist := []string {
+	whitelist := []string{
 		"/favicon.png",
 		"/favicon.ico",
 		"/health",
@@ -23,7 +23,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		if slices.Contains(whitelist, c.FullPath()){
+		if slices.Contains(whitelist, c.FullPath()) {
 			c.Next()
 
 			return
@@ -64,5 +64,3 @@ func getUserIdFromSession(c *gin.Context) (int, error) {
 
 	return userId, err
 }
-
-
