@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/view"
 )
@@ -28,13 +28,6 @@ func Run(path string) error {
 		panic(err)
 	}
 
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
-	db.AutoMigrate(&User{})
-
-	if err != nil {
-		panic(err)
-	}
-
 	// TODO: (Prod) read secret from file
 	cookieStore := cookie.NewStore([]byte("secret"))
 	cookieStore.Options(
@@ -43,21 +36,25 @@ func Run(path string) error {
 		},
 	)
 
+	dbManager := NewSessionDBMapper()
+
 	router.Use(sessions.Sessions("session", cookieStore))
-	router.Use(AuthMiddleware(db))
+	router.Use(dbManager.InjectDB())
 
 	router.SetHTMLTemplate(templates)
 
 	router.GET("/health", HealthHandler())
 
+	router.Static("/static", "./static")
+
 	router.GET("/favicon.png", FaviconHandler)
 	router.GET("/favicon.ico", FaviconHandler)
 
 	router.GET("/register", UsersNew())
-	router.POST("/register", UsersCreate(db))
+	// router.POST("/register", UsersCreate(db))
 
 	router.GET("/login", SessionsNew())
-	router.POST("/login", SessionsCreate(db))
+	// router.POST("/login", SessionsCreate(db))
 
 	router.GET("/index", IndexHandler())
 
@@ -183,7 +180,17 @@ func SessionsCreate(db *gorm.DB) gin.HandlerFunc {
 
 func IndexHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Fprintln(c.Writer, "Index")
+		conn, ok := GetDb(c)
+		if !ok {
+			fmt.Fprintln(c.Writer, "not ok")
+
+			return
+		}
+
+		var s Session
+		conn.First(&s)
+
+		fmt.Fprintln(c.Writer, s.SessionId)
 	}
 }
 
