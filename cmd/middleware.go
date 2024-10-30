@@ -24,7 +24,7 @@ func NewSessionDBMapper() SessionDBMapper {
 	return SessionDBMapper{dbMap: make(map[string]*gorm.DB, 0)}
 }
 
-func (d *SessionDBMapper) New(sessionId string) (*gorm.DB, error) {
+func (d *SessionDBMapper) NewDB(sessionId string) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file::memory:?%s", sessionId)), &gorm.Config{})
 
 	if err != nil {
@@ -32,7 +32,7 @@ func (d *SessionDBMapper) New(sessionId string) (*gorm.DB, error) {
 	}
 
 	d.dbMap[sessionId] = db
-	db.AutoMigrate(&Session{})
+	db.AutoMigrate(&Session{}, &Course{})
 	db.Create(&Session{SessionId: sessionId})
 
 	return db, err
@@ -86,14 +86,14 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		conn, err := d.New(newSessionId.String()) 
+		db, err := d.NewDB(newSessionId.String()) 
 
 		if err != nil {
 			slog.Error("Failed while opening new sqlite in-memory connection", "err", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		c.Set(dbKey, conn)
+		c.Set(dbKey, db)
 
 		c.Next()
 	}

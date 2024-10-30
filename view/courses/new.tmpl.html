@@ -1,0 +1,28 @@
+<!-- <!DOCTYPE html> -->
+<!---->
+<!-- <html lang="de"> -->
+<!---->
+<!-- 	{{ template "general/head" }} -->
+<!---->
+<!-- <body> -->
+<!-- 	<script src="/static/script.js"></script> -->
+<!---->
+<!-- 	<h1>Ass</h1> -->
+
+<div id="courses-new">
+	<h2>Neuer Kurs</h2>
+
+	<form hx-post="/courses" hx-target="#courses-new">
+		<label>Name</label>
+		<input type="text" name="name">
+		<label>Maximalbelegung</label>
+		<input type="number" name="max-capacity">
+		<label>Minimalbelegung</label>
+		<input type="number" name="min-capacity">
+
+		<input type="submit" value="Anlegen">
+	</form>
+</div>
+<!-- </body> -->
+<!---->
+<!-- </html> -->
