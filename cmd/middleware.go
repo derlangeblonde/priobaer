@@ -100,16 +100,11 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 
 }
 
-func GetDb(c *gin.Context) (*gorm.DB, bool) {
-	maybeDb, ok := c.Get(dbKey)
-
-	if !ok {
-		return nil, ok 
+func  GetDB(c *gin.Context) (db *gorm.DB) {
+	if val, ok := c.Get(dbKey); ok && val != nil {
+		db, _ = val.(*gorm.DB)
 	}
-
-	db, ok := maybeDb.(*gorm.DB)	
-
-	return db, ok
+	return
 }
 
 func getSessionId(c *gin.Context) (string, bool) {

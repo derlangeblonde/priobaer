@@ -57,8 +57,6 @@ func Run(path string) error {
 	// router.GET("/login", SessionsNew())
 	// router.POST("/login", SessionsCreate(db))
 
-	router.GET("/index", IndexHandler())
-
 	router.Run(":8080")
 
 	return nil
@@ -85,14 +83,7 @@ type Course struct {
 
 func CoursesIndex() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db, ok := GetDb(c)
-
-		if !ok {
-			slog.Error("Could not get db connection from context")
-			c.AbortWithStatus(http.StatusInternalServerError)
-
-			return
-		}
+		db := GetDB(c)
 
 		courses := make([]Course, 0)
 		result := db.Find(&courses)
@@ -126,14 +117,7 @@ func CoursesCreate() gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		db, ok := GetDb(c)
-
-		if !ok {
-			slog.Error("Could not get db connection from context")
-			c.AbortWithStatus(http.StatusInternalServerError)
-
-			return
-		}
+		db := GetDB(c)
 
 		var req request
 		err := c.Bind(&req)
@@ -168,14 +152,7 @@ func CoursesDelete() gin.HandlerFunc {
 		ID int `uri:"id" binding:"required"` 
 	}
 	return func(c *gin.Context) {
-		db, ok := GetDb(c)
-
-		if !ok {
-			slog.Error("Could not get db connection from context")
-			c.AbortWithStatus(http.StatusInternalServerError)
-
-			return
-		}
+		db := GetDB(c)
 
 		var req request
 		err := c.BindUri(&req)
@@ -251,22 +228,6 @@ func CoursesDelete() gin.HandlerFunc {
 // 		c.Redirect(http.StatusFound, "/index")
 // 	}
 // }
-
-func IndexHandler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		conn, ok := GetDb(c)
-		if !ok {
-			fmt.Fprintln(c.Writer, "not ok")
-
-			return
-		}
-
-		var s Session
-		conn.First(&s)
-
-		fmt.Fprintln(c.Writer, s.SessionId)
-	}
-}
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
