@@ -42,6 +42,7 @@ func Run() error {
 	router.SetHTMLTemplate(templates)
 
 	router.GET("/health", HealthHandler())
+	router.GET("/index", LandingPage)
 
 	router.Static("/static", "./static")
 
@@ -74,6 +75,10 @@ type Course struct {
 	Name string `gorm:"unique"`
 	MaxCapacity int
 	MinCapacity int
+}
+
+func LandingPage(c *gin.Context) {
+	fmt.Fprintf(c.Writer, "This is the landing page!")
 }
 
 func CoursesIndex() gin.HandlerFunc {
