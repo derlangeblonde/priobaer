@@ -18,7 +18,7 @@ import (
 //go:embed favicon.ico
 var faviconBytes []byte
 
-func Run(path string) error {
+func Run() error {
 	router := gin.Default()
 
 	templates, err := view.LoadTemplate()

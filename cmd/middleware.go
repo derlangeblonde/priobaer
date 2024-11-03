@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -53,6 +54,19 @@ type Session struct {
 func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
+		whitelist := []string{
+			"/health",
+			"/static/*filepath",
+			"favicon.png",
+			"favicon.ico",
+		}
+
+		if slices.Contains(whitelist, c.FullPath()) {
+			c.Next()
+
+			return
+		}
+
 		session := sessions.Default(c)
 		sessionId, ok := getSessionId(c)
 

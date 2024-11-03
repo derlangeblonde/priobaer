@@ -66,8 +66,7 @@ func TestFlow(t *testing.T) {
 }
 
 func StartupSystemUnderTest(t *testing.T) error {
-	db_path := fmt.Sprintf("%s/test.db", t.TempDir())
-	go cmd.Run(db_path)
+	go cmd.Run()
 	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
 }
 
