@@ -10,7 +10,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/view"
 )
@@ -35,10 +34,10 @@ func Run() error {
 		},
 	)
 
-	dbManager := NewSessionDBMapper()
+	sessionDBMapper := NewSessionDBMapper()
 
 	router.Use(sessions.Sessions("session", cookieStore))
-	router.Use(dbManager.InjectDB())
+	router.Use(sessionDBMapper.InjectDB())
 
 	router.SetHTMLTemplate(templates)
 
@@ -47,15 +46,11 @@ func Run() error {
 	router.Static("/static", "./static")
 
 	router.GET("/favicon.png", FaviconHandler)
-	router.GET("/favicon.ico", FaviconHandler)
 
 	router.GET("/courses/new", CoursesNew())
 	router.GET("/courses", CoursesIndex())
 	router.POST("/courses", CoursesCreate())
 	router.DELETE("/courses/:id", CoursesDelete())
-
-	// router.GET("/login", SessionsNew())
-	// router.POST("/login", SessionsCreate(db))
 
 	router.Run(":8080")
 
@@ -176,65 +171,4 @@ func CoursesDelete() gin.HandlerFunc {
 
 		c.Data(http.StatusOK, "text/html", []byte(""))
 	}
-}
-
-
-// func SessionsNew() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		c.HTML(http.StatusOK, "sessions/new", nil)
-// 	}
-// }
-//
-// func SessionsCreate(db *gorm.DB) gin.HandlerFunc {
-// 	type request struct {
-// 		Email    string `form:"email" binding:"required"`
-// 		Password string `form:"password" binding:"required"`
-// 	}
-//
-// 	return func(c *gin.Context) {
-// 		var req request
-// 		err := c.Bind(&req)
-//
-// 		if err != nil {
-// 			return
-// 		}
-//
-// 		var user User
-// 		result := db.Where("email = ?", req.Email).Find(&user)
-//
-// 		if result.Error != nil {
-// 			c.AbortWithError(http.StatusUnauthorized, errors.New("Password or Email wrong"))
-//
-// 			return
-// 		}
-//
-// 		ok := CheckPasswordHash(req.Password, user.PasswordHash)
-//
-// 		if !ok {
-// 			c.AbortWithError(http.StatusUnauthorized, errors.New("Password or Email wrong"))
-//
-// 			return
-// 		}
-//
-// 		session := sessions.Default(c)
-//
-// 		session.Set("userId", strconv.Itoa(user.ID))
-// 		err = session.Save()
-//
-// 		if err != nil {
-// 			c.AbortWithError(http.StatusInternalServerError, errors.New("Something went wrong internally with the login process"))
-// 		}
-//
-// 		c.Redirect(http.StatusFound, "/index")
-// 	}
-// }
-
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
-}
-
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
 }
