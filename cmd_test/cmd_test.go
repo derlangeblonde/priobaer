@@ -1,11 +1,14 @@
 package cmdtest
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -22,7 +25,7 @@ type TestContext struct {
 	baseUrl *url.URL
 }
 
-func TestFlow(t *testing.T) {
+func TestCreateAndRead(t *testing.T) {
 	is := is.New(t)
 
 	is.NoErr(StartupSystemUnderTest(t))
@@ -45,7 +48,12 @@ func TestFlow(t *testing.T) {
 
 	ctx.AcquireSessionCookie()
 	ctx.CoursesCreateAction("foo", 5, 25)
-	ctx.CoursesIndexAction()
+	courses := ctx.CoursesIndexAction()
+
+	is.Equal(len(courses), 1)
+	is.Equal(courses[0].Name, "foo")
+	is.Equal(courses[0].MinCapacity, 5)
+	is.Equal(courses[0].MaxCapacity, 25)
 }
 
 func (c *TestContext) AcquireSessionCookie() {
@@ -68,7 +76,7 @@ func (c *TestContext) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestContext) CoursesCreateAction(name string, maxCap, minCap int) {
+func (c *TestContext) CoursesCreateAction(name string, minCap, maxCap int) {
 	is := is.New(c.T)
 
 	form := url.Values{}
@@ -86,7 +94,7 @@ func (c *TestContext) CoursesCreateAction(name string, maxCap, minCap int) {
 	is.Equal(location.Path, "/courses")
 }
 
-func (c *TestContext) CoursesIndexAction() {
+func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	is := is.New(c.T)
 
 	resp, err := c.client.Get("http://localhost:8080/courses")
@@ -99,7 +107,47 @@ func (c *TestContext) CoursesIndexAction() {
 	divs := findCoursesDivs(doc)
 	is.Equal(len(divs), 1)
 
-	// nodeText := getNodeText(divs[0])
+	
+	courses := make([]cmd.Course, 0)
+
+	for _, div := range divs {
+		nodeText := getNodeText(div)
+		course, err := unmarshalCourse(nodeText)
+		is.NoErr(err) // could not unmarshal node text to course
+
+		courses = append(courses, course)
+	}
+
+	return courses 
+}
+
+func unmarshalCourse(text string) (result cmd.Course, err error) {
+	expression := regexp.MustCompile(`(?m)Name:\s*(.+?)\n\s*Minimale Belegung:\s*(\d+)\s*\n\s*Maximale Belegung:\s*(\d+)`)
+	matches := expression.FindStringSubmatch(text)
+
+	if len(matches) != 4 {
+		slog.Error("debug", "lenmatches", len(matches))
+		return result, errors.New("Not all required fields matched") 
+	}
+
+	result.Name = strings.TrimSpace(matches[1])
+
+	minCapacity, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return result, err
+	}
+
+	result.MinCapacity = minCapacity
+
+	maxCapacity, err := strconv.Atoi(matches[3])
+
+	if err != nil {
+		return result, err
+	}
+
+	result.MaxCapacity = maxCapacity
+
+	return result, nil 
 }
 
 
