@@ -1,14 +1,11 @@
 package cmdtest
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -20,19 +17,18 @@ import (
 )
 
 type TestContext struct {
-	T      *testing.T
-	client *http.Client
+	T       *testing.T
+	client  *http.Client
 	baseUrl *url.URL
 }
 
-func TestCreateAndRead(t *testing.T) {
+func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
 	is.NoErr(StartupSystemUnderTest(t))
 
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err) // create cookie jar failed
-
 
 	client := http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -70,7 +66,7 @@ func (c *TestContext) AcquireSessionCookie() {
 
 	// Workaround to send cookies along although we are testing with a non-secure local http-server
 	for _, cookie := range cookies {
-	    cookie.Secure = false 
+		cookie.Secure = false
 	}
 
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
@@ -107,49 +103,21 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	divs := findCoursesDivs(doc)
 	is.Equal(len(divs), 1)
 
-	
 	courses := make([]cmd.Course, 0)
 
 	for _, div := range divs {
-		nodeText := getNodeText(div)
-		course, err := unmarshalCourse(nodeText)
-		is.NoErr(err) // could not unmarshal node text to course
+		// nodeText := getNodeText(div)
+		// course, err := unmarshalCourse(nodeText)
+		// is.NoErr(err) // could not unmarshal node text to course
+		var course cmd.Course
+		err := unmarshal[cmd.Course](&course, div)
+		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
 
 		courses = append(courses, course)
 	}
 
-	return courses 
+	return courses
 }
-
-func unmarshalCourse(text string) (result cmd.Course, err error) {
-	expression := regexp.MustCompile(`(?m)Name:\s*(.+?)\n\s*Minimale Belegung:\s*(\d+)\s*\n\s*Maximale Belegung:\s*(\d+)`)
-	matches := expression.FindStringSubmatch(text)
-
-	if len(matches) != 4 {
-		slog.Error("debug", "lenmatches", len(matches))
-		return result, errors.New("Not all required fields matched") 
-	}
-
-	result.Name = strings.TrimSpace(matches[1])
-
-	minCapacity, err := strconv.Atoi(matches[2])
-	if err != nil {
-		return result, err
-	}
-
-	result.MinCapacity = minCapacity
-
-	maxCapacity, err := strconv.Atoi(matches[3])
-
-	if err != nil {
-		return result, err
-	}
-
-	result.MaxCapacity = maxCapacity
-
-	return result, nil 
-}
-
 
 func StartupSystemUnderTest(t *testing.T) error {
 	go cmd.Run()
@@ -189,36 +157,6 @@ func waitForReady(
 	}
 
 	return fmt.Errorf("timeout reached while waiting for endpoint")
-}
-
-func getNodeText(n *html.Node) string {
-	if n.Type == html.TextNode {
-		return n.Data
-	}
-
-	var text strings.Builder
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		text.WriteString(getNodeText(c))
-	}
-	return text.String()
-}
-
-
-func findCoursesDivs(current *html.Node) []*html.Node {
-	if current.Type == html.ElementNode && current.Data == "div" {
-		for _, attr := range current.Attr {
-			if attr.Key == "id" && strings.Contains(attr.Val, "course-"){
-				return []*html.Node{current} 
-			}
-		}
-	}
-
-	alreadyFound := make([]*html.Node, 0)
-	for c := current.FirstChild; c != nil; c = c.NextSibling {
-		alreadyFound = append(alreadyFound, findCoursesDivs(c)...)
-	}
-
-	return alreadyFound 
 }
 
 func (ctx *TestContext) AssertContains(r io.Reader, substr string) {

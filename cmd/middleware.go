@@ -16,7 +16,6 @@ import (
 const sessionIdKey = "session_id"
 const dbKey = "db"
 
-
 type SessionDBMapper struct {
 	dbMap map[string]*gorm.DB
 }
@@ -44,7 +43,6 @@ func (d *SessionDBMapper) Get(sessionId string) (*gorm.DB, bool) {
 
 	return db, ok
 }
-
 
 type Session struct {
 	gorm.Model
@@ -79,7 +77,7 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 			}
 
 			c.Set(dbKey, conn)
-			
+
 			c.Next()
 
 			return
@@ -100,7 +98,7 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		db, err := d.NewDB(newSessionId.String()) 
+		db, err := d.NewDB(newSessionId.String())
 
 		if err != nil {
 			slog.Error("Failed while opening new sqlite in-memory connection", "err", err)
@@ -114,7 +112,7 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 
 }
 
-func  GetDB(c *gin.Context) (db *gorm.DB) {
+func GetDB(c *gin.Context) (db *gorm.DB) {
 	if val, ok := c.Get(dbKey); ok && val != nil {
 		db, _ = val.(*gorm.DB)
 	}
@@ -132,5 +130,5 @@ func getSessionId(c *gin.Context) (string, bool) {
 
 	sessionId, ok := maybeSessionId.(string)
 
-	return sessionId, ok 
+	return sessionId, ok
 }

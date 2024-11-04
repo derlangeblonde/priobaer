@@ -70,9 +70,9 @@ func FaviconHandler(c *gin.Context) {
 
 type Course struct {
 	gorm.Model
-	ID           int
+	ID int
 	// TODO: unique constraint does not go well with soft delete
-	Name string `gorm:"unique"`
+	Name        string `gorm:"unique"`
 	MaxCapacity int
 	MinCapacity int
 }
@@ -100,7 +100,7 @@ func CoursesIndex() gin.HandlerFunc {
 		} else {
 			c.HTML(http.StatusOK, "courses/index", gin.H{"fullPage": true, "courses": courses})
 		}
-	} 
+	}
 }
 
 func CoursesNew() gin.HandlerFunc {
@@ -111,9 +111,9 @@ func CoursesNew() gin.HandlerFunc {
 
 func CoursesCreate() gin.HandlerFunc {
 	type request struct {
-		Name string `form:"name" binding:"required"`
-		MaxCapacity int `form:"max-capacity" binding:"required"`
-		MinCapacity int `form:"min-capacity" binding:"required"`
+		Name        string `form:"name" binding:"required"`
+		MaxCapacity int    `form:"max-capacity" binding:"required"`
+		MinCapacity int    `form:"min-capacity" binding:"required"`
 	}
 
 	return func(c *gin.Context) {
@@ -149,7 +149,7 @@ func CoursesCreate() gin.HandlerFunc {
 
 func CoursesDelete() gin.HandlerFunc {
 	type request struct {
-		ID int `uri:"id" binding:"required"` 
+		ID int `uri:"id" binding:"required"`
 	}
 	return func(c *gin.Context) {
 		db := GetDB(c)
