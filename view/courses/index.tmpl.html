@@ -15,9 +15,9 @@
 
 		{{ range .courses }}
 			<div id="course-{{ .ID }}">
-				Name: <data class="name"> {{ .Name }} </data> <br>
-				Minimale Belegung: <data class="mincapacity"> {{ .MinCapacity }} </data> <br>
-				Maximale Belegung: <data class="maxcapacity"> {{ .MaxCapacity }} </data> <br>
+				Name: {{ Field "Name" . }} <br>
+				Minimale Belegung: {{ Field "MinCapacity" . }} <br>
+				Maximale Belegung: {{ Field "MaxCapacity" . }}  <br>
 				<br>
 				<a hx-delete="courses/{{ .ID }}" hx-target="#course-{{ .ID }}" style="color: blue; text-decoration: underline; cursor: pointer;">Löschen</a>
 				<hr>

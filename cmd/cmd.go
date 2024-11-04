@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -126,7 +127,7 @@ func CoursesCreate() gin.HandlerFunc {
 			return
 		}
 
-		course := Course{Name: req.Name, MaxCapacity: req.MaxCapacity, MinCapacity: req.MinCapacity}
+		course := Course{Name: strings.TrimSpace(req.Name), MaxCapacity: req.MaxCapacity, MinCapacity: req.MinCapacity}
 		result := db.Create(&course)
 
 		if result.Error != nil {
