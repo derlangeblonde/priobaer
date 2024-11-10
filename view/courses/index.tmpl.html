@@ -1,0 +1,36 @@
+{{ if .fullPage}}
+<!DOCTYPE html>
+
+<html lang="de">
+
+	{{ template "general/head" }}
+
+<body>
+	<h1>Ass</h1>
+
+{{ end }}
+
+	<div id="courses-list">
+		<h2>Kurse</h2>
+
+		{{ range .courses }}
+			<div id="course-{{ .ID }}">
+				Name: {{ Field "Name" . }} <br>
+				Minimale Belegung: {{ Field "MinCapacity" . }} <br>
+				Maximale Belegung: {{ Field "MaxCapacity" . }}  <br>
+				<br>
+				<a hx-delete="courses/{{ .ID }}" hx-target="#course-{{ .ID }}" style="color: blue; text-decoration: underline; cursor: pointer;">Löschen</a>
+				<hr>
+			</div>
+		{{ else }}
+			<p> Keine Kurse </p>
+		{{ end }}
+
+		<button hx-get="courses/new" hx-target="#courses-list">Neuer Kurs</button>
+	</div>
+
+{{ if .fullPage}}
+</body>
+
+</html>
+{{ end }}

@@ -4,70 +4,123 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/matryer/is"
+	"golang.org/x/net/html"
 	"softbaer.dev/ass/cmd"
 )
 
 type TestContext struct {
-	T      *testing.T
-	client *http.Client
+	T       *testing.T
+	client  *http.Client
+	baseUrl *url.URL
 }
 
-func (c *TestContext) RegisterAction(email, password string) {
-	is := is.New(c.T)
-
-	form := url.Values{}
-	form.Add("email", email)
-	form.Add("password", password)
-	resp, err := c.client.PostForm("http://localhost:8080/register", form)
-
-	is.NoErr(err) // post request failed
-
-	is.Equal(resp.StatusCode, 302)
-
-	// c.AssertContains(resp.Body, "login")
-}
-
-func (c *TestContext) LoginAction(email, password string) {
-	is := is.New(c.T)
-
-	form := url.Values{}
-	form.Add("email", email)
-	form.Add("password", password)
-	resp, err := c.client.PostForm("http://localhost:8080/login", form)
-	is.NoErr(err)
-	is.Equal(len(resp.Cookies()), 1)
-
-	// is.NoErr(err) // post request failed
-	//
-	// is.Equal(resp.StatusCode, 200)
-	//
-	// c.AssertContains(resp.Body, "Index")
-}
-
-func TestFlow(t *testing.T) {
+func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
 	is.NoErr(StartupSystemUnderTest(t))
+
+	jar, err := cookiejar.New(nil)
+	is.NoErr(err) // create cookie jar failed
 
 	client := http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
+		Jar: jar,
 	}
-	ctx := TestContext{T: t, client: &client}
-	ctx.RegisterAction("user@example.com", "a$$word")
-	ctx.LoginAction("user@example.com", "a$$word")
+
+	baseUrl, err := url.Parse("http://localhost:8080")
+	is.NoErr(err) // could not parse baseUrl
+
+	ctx := TestContext{T: t, client: &client, baseUrl: baseUrl}
+
+	ctx.AcquireSessionCookie()
+	ctx.CoursesCreateAction("foo", 5, 25)
+	courses := ctx.CoursesIndexAction()
+
+	is.Equal(len(courses), 1)
+	is.Equal(courses[0].Name, "foo")
+	is.Equal(courses[0].MinCapacity, 5)
+	is.Equal(courses[0].MaxCapacity, 25)
+}
+
+func (c *TestContext) AcquireSessionCookie() {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get("http://localhost:8080/index")
+	is.NoErr(err) // post request failed
+	defer resp.Body.Close()
+
+	is.Equal(resp.StatusCode, 200)
+
+	cookies := resp.Cookies()
+	is.Equal(len(cookies), 1)
+
+	// Workaround to send cookies along although we are testing with a non-secure local http-server
+	for _, cookie := range cookies {
+		cookie.Secure = false
+	}
+
+	c.client.Jar.SetCookies(c.baseUrl, cookies)
+}
+
+func (c *TestContext) CoursesCreateAction(name string, minCap, maxCap int) {
+	is := is.New(c.T)
+
+	form := url.Values{}
+	form.Add("name", name)
+	form.Add("max-capacity", strconv.Itoa(maxCap))
+	form.Add("min-capacity", strconv.Itoa(minCap))
+	resp, err := c.client.PostForm("http://localhost:8080/courses", form)
+	is.NoErr(err) // post request failed
+	defer resp.Body.Close()
+
+	is.Equal(resp.StatusCode, 303)
+	location, err := resp.Location()
+	is.NoErr(err) // could not get location of the redirect response
+
+	is.Equal(location.Path, "/courses")
+}
+
+func (c *TestContext) CoursesIndexAction() []cmd.Course {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get("http://localhost:8080/courses")
+	is.NoErr(err) // get request failed
+	defer resp.Body.Close()
+
+	doc, err := html.Parse(resp.Body)
+	is.NoErr(err) // could not parse response html
+
+	divs := findCoursesDivs(doc)
+	is.Equal(len(divs), 1)
+
+	courses := make([]cmd.Course, 0)
+
+	for _, div := range divs {
+		// nodeText := getNodeText(div)
+		// course, err := unmarshalCourse(nodeText)
+		// is.NoErr(err) // could not unmarshal node text to course
+		var course cmd.Course
+		err := unmarshal[cmd.Course](&course, div)
+		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
+
+		courses = append(courses, course)
+	}
+
+	return courses
 }
 
 func StartupSystemUnderTest(t *testing.T) error {
-	db_path := fmt.Sprintf("%s/test.db", t.TempDir())
-	go cmd.Run(db_path)
+	go cmd.Run()
 	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
 }
 

@@ -14,8 +14,10 @@ import (
 var templateFS embed.FS
 
 func LoadTemplate() (*template.Template, error) {
-
-	templates := template.New("")
+	funcMap := map[string]any{
+		"Field": Field,
+	}
+	templates := template.New("").Funcs(funcMap)
 	err := fs.WalkDir(templateFS, ".", func(path string, d fs.DirEntry, err error) error {
 
 		if !d.IsDir() && strings.HasSuffix(path, ".tmpl.html") {
