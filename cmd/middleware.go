@@ -24,22 +24,22 @@ func NewSessionDBMapper() SessionDBMapper {
 	return SessionDBMapper{dbMap: make(map[string]*gorm.DB, 0)}
 }
 
-func (d *SessionDBMapper) NewDB(sessionId string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file::memory:?%s", sessionId)), &gorm.Config{})
+func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file::memory:?%s", dbId)), &gorm.Config{})
 
 	if err != nil {
 		return nil, err
 	}
 
-	d.dbMap[sessionId] = db
+	d.dbMap[dbId] = db
 	db.AutoMigrate(&Session{}, &Course{})
-	db.Create(&Session{SessionId: sessionId})
+	db.Create(&Session{SessionId: dbId})
 
 	return db, err
 }
 
-func (d *SessionDBMapper) Get(sessionId string) (*gorm.DB, bool) {
-	db, ok := d.dbMap[sessionId]
+func (d *SessionDBMapper) Get(dbId string) (*gorm.DB, bool) {
+	db, ok := d.dbMap[dbId]
 
 	return db, ok
 }
@@ -83,14 +83,14 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 			return
 		}
 
-		newSessionId, err := uuid.NewRandom()
+		newDbId, err := uuid.NewRandom()
 
 		if err != nil {
 			slog.Error("Failed while generating uuid", "err", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		session.Set(sessionIdKey, newSessionId.String())
+		session.Set(sessionIdKey, newDbId.String())
 		err = session.Save()
 
 		if err != nil {
@@ -98,7 +98,7 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		db, err := d.NewDB(newSessionId.String())
+		db, err := d.NewDB(newDbId.String())
 
 		if err != nil {
 			slog.Error("Failed while opening new sqlite in-memory connection", "err", err)
