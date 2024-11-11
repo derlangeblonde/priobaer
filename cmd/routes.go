@@ -1,0 +1,17 @@
+package cmd
+
+import "github.com/gin-gonic/gin"
+
+func RegisterRoutes(router *gin.Engine) {
+	router.GET("/health", HealthHandler())
+	router.GET("/index", LandingPage)
+
+	router.Static("/static", "./static")
+
+	router.GET("/favicon.png", FaviconHandler)
+
+	router.GET("/courses/new", CoursesNew())
+	router.GET("/courses", CoursesIndex())
+	router.POST("/courses", CoursesCreate())
+	router.DELETE("/courses/:id", CoursesDelete())
+}

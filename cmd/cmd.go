@@ -17,7 +17,7 @@ import (
 //go:embed favicon.ico
 var faviconBytes []byte
 
-func Run() error {
+func Run(getenv func(string) string) error {
 	router := gin.Default()
 
 	templates, err := view.LoadTemplate()
@@ -30,28 +30,32 @@ func Run() error {
 	cookieStore := cookie.NewStore([]byte("secret"))
 	cookieStore.Options(
 		sessions.Options{
-			Secure: true,
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   60 * 60 * 24,
 		},
 	)
 
-	sessionDBMapper := NewSessionDBMapper()
+	dbRootDir := getenv("DB_ROOT_DIR")
+
+	if dbRootDir == "" {
+		panic("DB_ROOT_DIR not set. Panic...")
+	}
+
+	sessionDBMapper := NewSessionDBMapper(dbRootDir)
+	err = sessionDBMapper.ReadExistingSessions()
+	
+	if err != nil {
+		panic(err)
+	}
 
 	router.Use(sessions.Sessions("session", cookieStore))
 	router.Use(sessionDBMapper.InjectDB())
 
 	router.SetHTMLTemplate(templates)
 
-	router.GET("/health", HealthHandler())
-	router.GET("/index", LandingPage)
-
-	router.Static("/static", "./static")
-
-	router.GET("/favicon.png", FaviconHandler)
-
-	router.GET("/courses/new", CoursesNew())
-	router.GET("/courses", CoursesIndex())
-	router.POST("/courses", CoursesCreate())
-	router.DELETE("/courses/:id", CoursesDelete())
+	RegisterRoutes(router)
 
 	router.Run(":8080")
 

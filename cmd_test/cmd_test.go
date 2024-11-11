@@ -3,9 +3,12 @@ package cmdtest
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"testing"
@@ -120,7 +123,23 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 }
 
 func StartupSystemUnderTest(t *testing.T) error {
-	go cmd.Run()
+	tempDir := t.TempDir()
+	dbDir := path.Join(tempDir, "db")
+
+	if err := os.Mkdir(dbDir, fs.ModePerm); err != nil {
+		t.Fatalf("Could not make db root dir: %v", err)
+	}
+
+	mockEnv := func(s string) string {
+		switch s {
+		case "DB_ROOT_DIR":
+			return dbDir
+		default:
+			return ""
+		}
+	}
+
+	go cmd.Run(mockEnv)
 	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
 }
 

@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"path"
 	"slices"
+	"strings"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -17,15 +21,18 @@ const sessionIdKey = "session_id"
 const dbKey = "db"
 
 type SessionDBMapper struct {
-	dbMap map[string]*gorm.DB
+	rootDir string
+	dbMap   map[string]*gorm.DB
 }
 
-func NewSessionDBMapper() SessionDBMapper {
-	return SessionDBMapper{dbMap: make(map[string]*gorm.DB, 0)}
+func NewSessionDBMapper(rootDir string) SessionDBMapper {
+	return SessionDBMapper{rootDir: rootDir, dbMap: make(map[string]*gorm.DB, 0)}
 }
 
 func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file::memory:?%s", dbId)), &gorm.Config{})
+
+	dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 
 	if err != nil {
 		return nil, err
@@ -33,9 +40,42 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 
 	d.dbMap[dbId] = db
 	db.AutoMigrate(&Session{}, &Course{})
-	db.Create(&Session{SessionId: dbId})
+	db.Create(&Session{ExpiresAt: time.Now().Add(time.Hour * 24)})
 
 	return db, err
+}
+
+func (d* SessionDBMapper) ReadExistingSessions() error {
+	fsEntries, err := os.ReadDir(d.rootDir)	
+
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range fsEntries {
+		if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".sqlite") {
+			continue
+		}
+
+		candidateUuid := strings.Replace(entry.Name(), ".sqlite", "", 1)
+		_, err := uuid.Parse(candidateUuid)
+
+		if err != nil {
+			slog.Info("There was a file with sqlite file-extension, which name was not parsable as uuid", "filname", entry.Name())
+			continue
+		}
+
+		dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", candidateUuid))
+		db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+
+		if err != nil {
+			return err
+		}
+
+		d.dbMap[candidateUuid] = db
+	}
+
+	return nil
 }
 
 func (d *SessionDBMapper) Get(dbId string) (*gorm.DB, bool) {
@@ -46,7 +86,7 @@ func (d *SessionDBMapper) Get(dbId string) (*gorm.DB, bool) {
 
 type Session struct {
 	gorm.Model
-	SessionId string
+	ExpiresAt time.Time
 }
 
 func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
