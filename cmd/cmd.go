@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -17,7 +18,7 @@ import (
 //go:embed favicon.ico
 var faviconBytes []byte
 
-func Run(getenv func(string) string) error {
+func Run(ctx context.Context, getenv func(string) string) error {
 	router := gin.Default()
 
 	templates, err := view.LoadTemplate()
@@ -57,7 +58,20 @@ func Run(getenv func(string) string) error {
 
 	RegisterRoutes(router)
 
-	router.Run(":8080")
+	server := &http.Server{
+		Addr: ":8080",
+		Handler: router.Handler(),
+	}
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("ListenAndServed errored", "err", err)
+		}
+	}()
+
+	<-ctx.Done()
+	slog.Warn("Received 'Done' signal---------------------------")
+	server.Shutdown(ctx)
 
 	return nil
 }

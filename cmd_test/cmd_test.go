@@ -1,6 +1,7 @@
 package cmdtest
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -28,7 +29,9 @@ type TestContext struct {
 func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
-	is.NoErr(StartupSystemUnderTest(t))
+	err, cancel := StartupSystemUnderTest(t)
+	defer cancel()
+	is.NoErr(err)
 
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err) // create cookie jar failed
@@ -109,9 +112,6 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	courses := make([]cmd.Course, 0)
 
 	for _, div := range divs {
-		// nodeText := getNodeText(div)
-		// course, err := unmarshalCourse(nodeText)
-		// is.NoErr(err) // could not unmarshal node text to course
 		var course cmd.Course
 		err := unmarshal[cmd.Course](&course, div)
 		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
@@ -122,7 +122,7 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	return courses
 }
 
-func StartupSystemUnderTest(t *testing.T) error {
+func StartupSystemUnderTest(t *testing.T) (error, context.CancelFunc) {
 	tempDir := t.TempDir()
 	dbDir := path.Join(tempDir, "db")
 
@@ -139,8 +139,11 @@ func StartupSystemUnderTest(t *testing.T) error {
 		}
 	}
 
-	go cmd.Run(mockEnv)
-	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go cmd.Run(ctx, mockEnv)
+
+	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health"), cancel
 }
 
 func waitForReady(
