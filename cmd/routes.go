@@ -14,4 +14,9 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/courses", CoursesIndex())
 	router.POST("/courses", CoursesCreate())
 	router.DELETE("/courses/:id", CoursesDelete())
+
+	router.GET("/participants/new", ParticipantsNew)
+	router.GET("/participants", ParticipantsIndex)
+	router.POST("/participants", ParticipantsCreate)
+	router.DELETE("/participants/:id", ParticipantsDelete)
 }

@@ -30,6 +30,25 @@ func NewSessionDBMapper(rootDir string, maxAgeMilliseconds int) SessionDBMapper 
 	return SessionDBMapper{rootDir: rootDir, maxAgeMilliseconds: maxAgeMilliseconds, dbMap: make(map[string]*gorm.DB, 0)}
 }
 
+func (d *SessionDBMapper) TryCloseAllDbs() []error {
+	errs := make([]error, 0)
+	for _, db := range d.dbMap {
+		conn, err := db.DB()
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		err = conn.Close()
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 
 	dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
@@ -40,7 +59,7 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 	}
 
 	d.dbMap[dbId] = db
-	db.AutoMigrate(&Session{}, &Course{})
+	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
 	// TODO: how positive am I that it is correct to do time.Duration(d.maxAge)???
 	db.Create(&Session{ExpiresAt: time.Now().Add(time.Millisecond * time.Duration(d.maxAgeMilliseconds))})
 
@@ -64,8 +83,8 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 	return db, err
 }
 
-func (d* SessionDBMapper) ReadExistingSessions() error {
-	fsEntries, err := os.ReadDir(d.rootDir)	
+func (d *SessionDBMapper) ReadExistingSessions() error {
+	fsEntries, err := os.ReadDir(d.rootDir)
 
 	if err != nil {
 		return err

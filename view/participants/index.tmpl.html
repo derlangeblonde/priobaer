@@ -1,0 +1,35 @@
+{{ if .fullPage}}
+<!DOCTYPE html>
+
+<html lang="de">
+
+	{{ template "general/head" }}
+
+<body>
+	<h1>Ass</h1>
+
+{{ end }}
+
+	<div id="participants-list">
+		<h2>Teilnehmende</h2>
+
+		{{ range .participants }}
+			<div id="participants-{{ .ID }}">
+				Vorname: {{ Field "Prename" . }} <br>
+				Nachname: {{ Field "Surname" . }} <br>
+				<br>
+				<a hx-delete="participants/{{ .ID }}" hx-target="#participants-{{ .ID }}" style="color: blue; text-decoration: underline; cursor: pointer;">Löschen</a>
+				<hr>
+			</div>
+		{{ else }}
+			<p> Keine Teilnehmenden </p>
+		{{ end }}
+
+		<button hx-get="participants/new" hx-target="#participants-list">Neuer Teilnehmende</button>
+	</div>
+
+{{ if .fullPage}}
+</body>
+
+</html>
+{{ end }}

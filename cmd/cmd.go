@@ -52,7 +52,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	sessionDBMapper := NewSessionDBMapper(config.DbRootDir, config.SessionMaxAgeMilliSeconds)
 	err = sessionDBMapper.ReadExistingSessions()
-	
+
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +65,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 	RegisterRoutes(router)
 
 	server := &http.Server{
-		Addr: ":8080",
+		Addr:    "localhost:8080",
 		Handler: router.Handler(),
 	}
 
@@ -77,6 +77,11 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	<-ctx.Done()
 	server.Shutdown(ctx)
+	errs := sessionDBMapper.TryCloseAllDbs()
+
+	if len(errs) != 0 {
+		slog.Error("Could not close all dbs", "errs", errs)
+	}
 
 	return nil
 }
