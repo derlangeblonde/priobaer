@@ -24,19 +24,24 @@ type TestContext struct {
 	baseUrl *url.URL
 }
 
+func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
+	is := is.New(t)
+
+	dbDir := MakeTestingDbDir(t)
+
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_SECONDS", "1")
+
+	err, cancel := StartupSystemUnderTest(t, mockEnv)
+	defer cancel()
+	is.NoErr(err)
+}
+
 func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	is := is.New(t)
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := func(s string) string {
-		switch s {
-		case "DB_ROOT_DIR":
-			return dbDir
-		default:
-			return ""
-		}
-	}
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_SECONDS", "3600")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -45,20 +50,12 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	err := waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
 	is.NoErr(err) // Service was not ready
 
-	jar, err := cookiejar.New(nil)
-	is.NoErr(err) // create cookie jar failed
-
-	client := http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-		Jar: jar,
-	}
+	client := CreateTestHttpClient(t)
 
 	baseUrl, err := url.Parse("http://localhost:8080")
 	is.NoErr(err) // could not parse baseUrl
 
-	testCtx := TestContext{T: t, client: &client, baseUrl: baseUrl}
+	testCtx := TestContext{T: t, client: client, baseUrl: baseUrl}
 
 	testCtx.AcquireSessionCookie()
 	testCtx.CoursesCreateAction("foo", 5, 25)
@@ -84,7 +81,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
-	err, cancel := StartupSystemUnderTest(t)
+	err, cancel := StartupSystemUnderTest(t, nil)
 	defer cancel()
 	is.NoErr(err)
 
@@ -177,21 +174,16 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	return courses
 }
 
-func StartupSystemUnderTest(t *testing.T) (error, context.CancelFunc) {
+func StartupSystemUnderTest(t *testing.T, env func (string) string) (error, context.CancelFunc) {
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := func(s string) string {
-		switch s {
-		case "DB_ROOT_DIR":
-			return dbDir
-		default:
-			return ""
-		}
+	if env == nil {
+		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_SECONDS", "3600")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, mockEnv)
+	go cmd.Run(ctx, env)
 
 	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health"), cancel
 }
@@ -205,6 +197,21 @@ func MakeTestingDbDir(t *testing.T) string {
 	}
 
 	return dbDir
+}
+
+func CreateTestHttpClient(t *testing.T) *http.Client{
+	is := is.New(t)
+	jar, err := cookiejar.New(nil)
+	is.NoErr(err) // create cookie jar failed
+
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Jar: jar,
+	}
+
+	return &client
 }
 
 func waitForReady(
@@ -279,3 +286,19 @@ func waitForTermination(
 	return fmt.Errorf("timeout reached while waiting for server to shut down")
 }
 
+func setupMockEnv(pairs ...string) func(string) string {
+	envMap := make(map[string]string)
+
+	for i := 0; i < len(pairs)-1; i += 2 {
+		key := pairs[i]
+		value := pairs[i+1]
+		envMap[key] = value
+	}
+
+	return func(s string) string {
+		if value, exists := envMap[s]; exists {
+			return value
+		}
+		return ""
+	}
+}

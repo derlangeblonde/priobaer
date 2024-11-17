@@ -27,6 +27,12 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		panic(err)
 	}
 
+	config, err := ParseConfig(getenv)
+
+	if err != nil{
+		panic(fmt.Sprintf("Could not parse config from env, Err: %v. Panic...", err))
+	}
+
 	// TODO: (Prod) read secret from file
 	cookieStore := cookie.NewStore([]byte("secret"))
 	cookieStore.Options(
@@ -34,17 +40,11 @@ func Run(ctx context.Context, getenv func(string) string) error {
 			Secure:   true,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
-			MaxAge:   60 * 60 * 24,
+			MaxAge:   config.SessionMaxAgeSeconds,
 		},
 	)
 
-	dbRootDir := getenv("DB_ROOT_DIR")
-
-	if dbRootDir == "" {
-		panic("DB_ROOT_DIR not set. Panic...")
-	}
-
-	sessionDBMapper := NewSessionDBMapper(dbRootDir)
+	sessionDBMapper := NewSessionDBMapper(config.DbRootDir)
 	err = sessionDBMapper.ReadExistingSessions()
 	
 	if err != nil {
