@@ -278,4 +278,3 @@ func waitForTermination(
 
 	return fmt.Errorf("timeout reached while waiting for server to shut down")
 }
-
