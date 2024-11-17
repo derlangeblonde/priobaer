@@ -1,13 +1,15 @@
 package cmdtest
 
 import (
+	"context"
 	"fmt"
-	"io"
+	"io/fs"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
+	"path"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -22,10 +24,69 @@ type TestContext struct {
 	baseUrl *url.URL
 }
 
+func TestDataIsPersistedBetweenDeployments(t *testing.T) {
+	is := is.New(t)
+
+	dbDir := MakeTestingDbDir(t)
+
+	mockEnv := func(s string) string {
+		switch s {
+		case "DB_ROOT_DIR":
+			return dbDir
+		default:
+			return ""
+		}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go cmd.Run(ctx, mockEnv)
+
+	err := waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+	is.NoErr(err) // Service was not ready
+
+	jar, err := cookiejar.New(nil)
+	is.NoErr(err) // create cookie jar failed
+
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Jar: jar,
+	}
+
+	baseUrl, err := url.Parse("http://localhost:8080")
+	is.NoErr(err) // could not parse baseUrl
+
+	testCtx := TestContext{T: t, client: &client, baseUrl: baseUrl}
+
+	testCtx.AcquireSessionCookie()
+	testCtx.CoursesCreateAction("foo", 5, 25)
+
+	cancel()
+	waitForTermination(time.Millisecond*200, 4, "http://localhost:8080/health")
+
+	ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+
+	go cmd.Run(ctx, mockEnv)
+	err = waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+	is.NoErr(err) // Service was not ready
+
+	courses := testCtx.CoursesIndexAction()
+
+	is.Equal(len(courses), 1)
+	is.Equal(courses[0].Name, "foo")
+	is.Equal(courses[0].MinCapacity, 5)
+	is.Equal(courses[0].MaxCapacity, 25)
+}
+
 func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
-	is.NoErr(StartupSystemUnderTest(t))
+	err, cancel := StartupSystemUnderTest(t)
+	defer cancel()
+	is.NoErr(err)
 
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err) // create cookie jar failed
@@ -106,9 +167,6 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	courses := make([]cmd.Course, 0)
 
 	for _, div := range divs {
-		// nodeText := getNodeText(div)
-		// course, err := unmarshalCourse(nodeText)
-		// is.NoErr(err) // could not unmarshal node text to course
 		var course cmd.Course
 		err := unmarshal[cmd.Course](&course, div)
 		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
@@ -119,9 +177,34 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	return courses
 }
 
-func StartupSystemUnderTest(t *testing.T) error {
-	go cmd.Run()
-	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+func StartupSystemUnderTest(t *testing.T) (error, context.CancelFunc) {
+	dbDir := MakeTestingDbDir(t)
+
+	mockEnv := func(s string) string {
+		switch s {
+		case "DB_ROOT_DIR":
+			return dbDir
+		default:
+			return ""
+		}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go cmd.Run(ctx, mockEnv)
+
+	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health"), cancel
+}
+
+func MakeTestingDbDir(t *testing.T) string {
+	tempDir := t.TempDir()
+	dbDir := path.Join(tempDir, "db")
+
+	if err := os.Mkdir(dbDir, fs.ModePerm); err != nil {
+		t.Fatalf("Could not make db root dir: %v", err)
+	}
+
+	return dbDir
 }
 
 func waitForReady(
@@ -159,11 +242,40 @@ func waitForReady(
 	return fmt.Errorf("timeout reached while waiting for endpoint")
 }
 
-func (ctx *TestContext) AssertContains(r io.Reader, substr string) {
-	is := is.New(ctx.T)
-	content, err := io.ReadAll(r)
-	is.NoErr(err)
-	if !strings.Contains(string(content), substr) {
-		ctx.T.Fatalf("%s does not contain %s", string(content), substr)
+func waitForTermination(
+	interval time.Duration,
+	retries int,
+	endpoint string,
+) error {
+	client := http.Client{}
+	for i := 0; i < retries; i++ {
+		timer := time.NewTimer(interval)
+		req, err := http.NewRequest(
+			http.MethodGet,
+			endpoint,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Printf("Request unsuccessful, server probably shutdown. Err :%v", err.Error())
+
+			return nil
+		}
+		if resp.StatusCode == http.StatusOK {
+			fmt.Println("Endpoint is still available!")
+			resp.Body.Close()
+
+			continue
+		}
+		resp.Body.Close()
+
+		<-timer.C
 	}
+
+	return fmt.Errorf("timeout reached while waiting for server to shut down")
 }
+
