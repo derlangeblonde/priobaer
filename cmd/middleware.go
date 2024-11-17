@@ -39,14 +39,14 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 	}
 
 	d.dbMap[dbId] = db
-	db.AutoMigrate(&Session{}, &Course{})
+	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
 	db.Create(&Session{ExpiresAt: time.Now().Add(time.Hour * 24)})
 
 	return db, err
 }
 
-func (d* SessionDBMapper) ReadExistingSessions() error {
-	fsEntries, err := os.ReadDir(d.rootDir)	
+func (d *SessionDBMapper) ReadExistingSessions() error {
+	fsEntries, err := os.ReadDir(d.rootDir)
 
 	if err != nil {
 		return err

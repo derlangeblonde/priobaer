@@ -46,7 +46,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	sessionDBMapper := NewSessionDBMapper(dbRootDir)
 	err = sessionDBMapper.ReadExistingSessions()
-	
+
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 	RegisterRoutes(router)
 
 	server := &http.Server{
-		Addr: ":8080",
+		Addr:    ":8080",
 		Handler: router.Handler(),
 	}
 
