@@ -50,12 +50,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	err := waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
 	is.NoErr(err) // Service was not ready
 
-	client := CreateTestHttpClient(t)
-
-	baseUrl, err := url.Parse("http://localhost:8080")
-	is.NoErr(err) // could not parse baseUrl
-
-	testCtx := TestContext{T: t, client: client, baseUrl: baseUrl}
+	testCtx := NewTestContext(t, "http://localhost:8080")
 
 	testCtx.AcquireSessionCookie()
 	testCtx.CoursesCreateAction("foo", 5, 25)
@@ -85,20 +80,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 	defer cancel()
 	is.NoErr(err)
 
-	jar, err := cookiejar.New(nil)
-	is.NoErr(err) // create cookie jar failed
-
-	client := http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-		Jar: jar,
-	}
-
-	baseUrl, err := url.Parse("http://localhost:8080")
-	is.NoErr(err) // could not parse baseUrl
-
-	ctx := TestContext{T: t, client: &client, baseUrl: baseUrl}
+	ctx := NewTestContext(t, "http://localhost:8080") 
 
 	ctx.AcquireSessionCookie()
 	ctx.CoursesCreateAction("foo", 5, 25)
@@ -199,7 +181,7 @@ func MakeTestingDbDir(t *testing.T) string {
 	return dbDir
 }
 
-func CreateTestHttpClient(t *testing.T) *http.Client{
+func NewTestContext(t *testing.T, baseUrl string) *TestContext{
 	is := is.New(t)
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err) // create cookie jar failed
@@ -211,7 +193,12 @@ func CreateTestHttpClient(t *testing.T) *http.Client{
 		Jar: jar,
 	}
 
-	return &client
+	baseUrlParsed, err := url.Parse(baseUrl)
+	is.NoErr(err) // could not parse baseUrl
+
+	testCtx := TestContext{T: t, client: &client, baseUrl: baseUrlParsed}
+
+	return &testCtx
 }
 
 func waitForReady(
