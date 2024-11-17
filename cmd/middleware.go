@@ -29,6 +29,25 @@ func NewSessionDBMapper(rootDir string) SessionDBMapper {
 	return SessionDBMapper{rootDir: rootDir, dbMap: make(map[string]*gorm.DB, 0)}
 }
 
+func (d *SessionDBMapper) TryCloseAllDbs() []error {
+	errs := make([]error, 0)
+	for _, db := range d.dbMap {
+		conn, err := db.DB()
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		err = conn.Close()
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 
 	dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
@@ -39,14 +58,14 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 	}
 
 	d.dbMap[dbId] = db
-	db.AutoMigrate(&Session{}, &Course{})
+	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
 	db.Create(&Session{ExpiresAt: time.Now().Add(time.Hour * 24)})
 
 	return db, err
 }
 
-func (d* SessionDBMapper) ReadExistingSessions() error {
-	fsEntries, err := os.ReadDir(d.rootDir)	
+func (d *SessionDBMapper) ReadExistingSessions() error {
+	fsEntries, err := os.ReadDir(d.rootDir)
 
 	if err != nil {
 		return err
