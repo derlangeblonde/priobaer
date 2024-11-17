@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -17,6 +18,8 @@ import (
 	"golang.org/x/net/html"
 	"softbaer.dev/ass/cmd"
 )
+
+const localhost8080 string = "http://localhost:8080"
 
 type TestContext struct {
 	T       *testing.T
@@ -29,11 +32,25 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_SECONDS", "1")
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "1")
 
 	err, cancel := StartupSystemUnderTest(t, mockEnv)
 	defer cancel()
 	is.NoErr(err)
+
+	testCtx := NewTestContext(t, localhost8080)
+
+	testCtx.AcquireSessionCookie()
+	
+	dbFilesCount, err := countSQLiteFiles(dbDir)
+	is.NoErr(err) // failure while counting sqlite files
+	is.Equal(dbFilesCount, 1)	
+
+	<-time.After(time.Millisecond * 2)
+
+	dbFilesCount, err = countSQLiteFiles(dbDir)
+	is.NoErr(err) // failure while counting sqlite files
+	is.Equal(dbFilesCount, 0)	
 }
 
 func TestDataIsPersistedBetweenDeployments(t *testing.T) {
@@ -41,7 +58,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_SECONDS", "3600")
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "3600000")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -160,7 +177,7 @@ func StartupSystemUnderTest(t *testing.T, env func (string) string) (error, cont
 	dbDir := MakeTestingDbDir(t)
 
 	if env == nil {
-		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_SECONDS", "3600")
+		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "3600000")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -288,4 +305,26 @@ func setupMockEnv(pairs ...string) func(string) string {
 		}
 		return ""
 	}
+}
+
+func countSQLiteFiles(dir string) (int, error) {
+	count := 0
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && filepath.Ext(info.Name()) == ".sqlite" {
+			count++
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

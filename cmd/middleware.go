@@ -22,11 +22,12 @@ const dbKey = "db"
 
 type SessionDBMapper struct {
 	rootDir string
+	maxAgeMilliseconds int
 	dbMap   map[string]*gorm.DB
 }
 
-func NewSessionDBMapper(rootDir string) SessionDBMapper {
-	return SessionDBMapper{rootDir: rootDir, dbMap: make(map[string]*gorm.DB, 0)}
+func NewSessionDBMapper(rootDir string, maxAgeMilliseconds int) SessionDBMapper {
+	return SessionDBMapper{rootDir: rootDir, maxAgeMilliseconds: maxAgeMilliseconds, dbMap: make(map[string]*gorm.DB, 0)}
 }
 
 func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
@@ -40,7 +41,25 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 
 	d.dbMap[dbId] = db
 	db.AutoMigrate(&Session{}, &Course{})
-	db.Create(&Session{ExpiresAt: time.Now().Add(time.Hour * 24)})
+	// TODO: how positive am I that it is correct to do time.Duration(d.maxAge)???
+	db.Create(&Session{ExpiresAt: time.Now().Add(time.Millisecond * time.Duration(d.maxAgeMilliseconds))})
+
+	go func() {
+		<-time.After(time.Millisecond * time.Duration(d.maxAgeMilliseconds))
+
+		var session Session
+		db.First(&session)
+
+		now := time.Now()
+
+		if now == session.ExpiresAt || now.After(session.ExpiresAt) {
+			// TODO: error handling
+			conn, _ := db.DB()
+			_ = conn.Close()
+
+			_ = os.Remove(dbPath)
+		}
+	}()
 
 	return db, err
 }

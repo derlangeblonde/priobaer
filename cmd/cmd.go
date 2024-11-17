@@ -33,6 +33,12 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		panic(fmt.Sprintf("Could not parse config from env, Err: %v. Panic...", err))
 	}
 
+	sessionMaxAgeSeconds := config.SessionMaxAgeMilliSeconds / 1000
+
+	if sessionMaxAgeSeconds == 0 {
+		sessionMaxAgeSeconds = 1
+	}
+
 	// TODO: (Prod) read secret from file
 	cookieStore := cookie.NewStore([]byte("secret"))
 	cookieStore.Options(
@@ -40,11 +46,11 @@ func Run(ctx context.Context, getenv func(string) string) error {
 			Secure:   true,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
-			MaxAge:   config.SessionMaxAgeSeconds,
+			MaxAge:   sessionMaxAgeSeconds,
 		},
 	)
 
-	sessionDBMapper := NewSessionDBMapper(config.DbRootDir)
+	sessionDBMapper := NewSessionDBMapper(config.DbRootDir, config.SessionMaxAgeMilliSeconds)
 	err = sessionDBMapper.ReadExistingSessions()
 	
 	if err != nil {
