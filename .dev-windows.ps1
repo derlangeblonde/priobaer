@@ -1,0 +1,1 @@
+$env:DB_ROOT_DIR="db"
