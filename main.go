@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"softbaer.dev/ass/cmd"
 )
 
 func main() {
-	err := cmd.Run(os.Getenv)
+	ctx := context.Background()
+	err := cmd.Run(ctx, os.Getenv)
 
 	if err != nil {
 		panic(err)

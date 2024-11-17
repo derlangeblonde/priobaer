@@ -70,7 +70,6 @@ func Run(ctx context.Context, getenv func(string) string) error {
 	}()
 
 	<-ctx.Done()
-	slog.Warn("Received 'Done' signal---------------------------")
 	server.Shutdown(ctx)
 
 	return nil
