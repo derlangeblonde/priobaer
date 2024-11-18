@@ -91,6 +91,8 @@ func (d *SessionDBMapper) scheduleDbRemovalAfterExpiration(dbId string) {
 
 			dbPath := d.formatDbPath(dbId)
 			_ = os.Remove(dbPath)
+
+			delete(d.dbMap, dbId)
 		}
 	}()
 }
