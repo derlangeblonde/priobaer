@@ -50,8 +50,8 @@ func (d *SessionDBMapper) TryCloseAllDbs() []error {
 }
 
 func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
+	dbPath := d.formatDbPath(dbId)
 
-	dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 
 	if err != nil {
@@ -62,8 +62,22 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
 	db.Create(&Session{ExpiresAt: time.Now().Add(d.maxAge)})
 
+	d.scheduleDbRemovalAfterExpiration(dbId)
+
+	return db, err
+}
+
+
+func (d *SessionDBMapper) formatDbPath(dbId string) string {
+	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
+}
+
+
+func (d *SessionDBMapper) scheduleDbRemovalAfterExpiration(dbId string) {
 	go func() {
 		<-time.After(d.maxAge)
+
+		db, _ := d.dbMap[dbId]
 
 		var session Session
 		db.First(&session)
@@ -75,11 +89,10 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 			conn, _ := db.DB()
 			_ = conn.Close()
 
+			dbPath := d.formatDbPath(dbId)
 			_ = os.Remove(dbPath)
 		}
 	}()
-
-	return db, err
 }
 
 func (d *SessionDBMapper) ReadExistingSessions() error {
