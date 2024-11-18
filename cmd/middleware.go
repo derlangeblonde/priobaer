@@ -22,12 +22,12 @@ const dbKey = "db"
 
 type SessionDBMapper struct {
 	rootDir string
-	maxAgeMilliseconds int
+	maxAge time.Duration 
 	dbMap   map[string]*gorm.DB
 }
 
-func NewSessionDBMapper(rootDir string, maxAgeMilliseconds int) SessionDBMapper {
-	return SessionDBMapper{rootDir: rootDir, maxAgeMilliseconds: maxAgeMilliseconds, dbMap: make(map[string]*gorm.DB, 0)}
+func NewSessionDBMapper(rootDir string, maxAge time.Duration) SessionDBMapper {
+	return SessionDBMapper{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0)}
 }
 
 func (d *SessionDBMapper) TryCloseAllDbs() []error {
@@ -60,11 +60,10 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 
 	d.dbMap[dbId] = db
 	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
-	// TODO: how positive am I that it is correct to do time.Duration(d.maxAge)???
-	db.Create(&Session{ExpiresAt: time.Now().Add(time.Millisecond * time.Duration(d.maxAgeMilliseconds))})
+	db.Create(&Session{ExpiresAt: time.Now().Add(d.maxAge)})
 
 	go func() {
-		<-time.After(time.Millisecond * time.Duration(d.maxAgeMilliseconds))
+		<-time.After(d.maxAge)
 
 		var session Session
 		db.First(&session)

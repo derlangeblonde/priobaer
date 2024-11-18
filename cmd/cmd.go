@@ -33,7 +33,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		panic(fmt.Sprintf("Could not parse config from env, Err: %v. Panic...", err))
 	}
 
-	sessionMaxAgeSeconds := config.SessionMaxAgeMilliSeconds / 1000
+	sessionMaxAgeSeconds := int(config.SessionMaxAge.Seconds())
 
 	if sessionMaxAgeSeconds == 0 {
 		sessionMaxAgeSeconds = 1
@@ -50,7 +50,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		},
 	)
 
-	sessionDBMapper := NewSessionDBMapper(config.DbRootDir, config.SessionMaxAgeMilliSeconds)
+	sessionDBMapper := NewSessionDBMapper(config.DbRootDir, config.SessionMaxAge)
 	err = sessionDBMapper.ReadExistingSessions()
 
 	if err != nil {
