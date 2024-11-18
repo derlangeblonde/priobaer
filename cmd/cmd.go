@@ -50,15 +50,15 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		},
 	)
 
-	sessionDBMapper := NewSessionDBMapper(config.DbRootDir, config.SessionMaxAge)
-	err = sessionDBMapper.ReadExistingSessions()
+	dbManager := NewDbManager(config.DbRootDir, config.SessionMaxAge)
+	err = dbManager.ReadExistingSessions()
 
 	if err != nil {
 		panic(err)
 	}
 
 	router.Use(sessions.Sessions("session", cookieStore))
-	router.Use(InjectDB(sessionDBMapper))
+	router.Use(InjectDB(dbManager))
 
 	router.SetHTMLTemplate(templates)
 
@@ -77,7 +77,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	<-ctx.Done()
 	server.Shutdown(ctx)
-	errs := sessionDBMapper.TryCloseAllDbs()
+	errs := dbManager.TryCloseAllDbs()
 
 	if len(errs) != 0 {
 		slog.Error("Could not close all dbs", "errs", errs)

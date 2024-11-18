@@ -13,17 +13,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type SessionDBMapper struct {
+type DbManager struct {
 	rootDir string
 	maxAge  time.Duration
 	dbMap   map[string]*gorm.DB
 }
 
-func NewSessionDBMapper(rootDir string, maxAge time.Duration) *SessionDBMapper {
-	return &SessionDBMapper{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0)}
+func NewDbManager(rootDir string, maxAge time.Duration) *DbManager {
+	return &DbManager{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0)}
 }
 
-func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
+func (d *DbManager) NewDB(dbId string) (*gorm.DB, error) {
 	dbPath := d.formatDbPath(dbId)
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
@@ -41,13 +41,13 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 	return db, err
 }
 
-func (d *SessionDBMapper) Get(dbId string) (*gorm.DB, bool) {
+func (d *DbManager) Get(dbId string) (*gorm.DB, bool) {
 	db, ok := d.dbMap[dbId]
 
 	return db, ok
 }
 
-func (d *SessionDBMapper) ReadExistingSessions() error {
+func (d *DbManager) ReadExistingSessions() error {
 	fsEntries, err := os.ReadDir(d.rootDir)
 
 	if err != nil {
@@ -80,7 +80,7 @@ func (d *SessionDBMapper) ReadExistingSessions() error {
 	return nil
 }
 
-func (d *SessionDBMapper) TryCloseAllDbs() []error {
+func (d *DbManager) TryCloseAllDbs() []error {
 	errs := make([]error, 0)
 	for _, db := range d.dbMap {
 		conn, err := db.DB()
@@ -99,11 +99,11 @@ func (d *SessionDBMapper) TryCloseAllDbs() []error {
 	return errs
 }
 
-func (d *SessionDBMapper) formatDbPath(dbId string) string {
+func (d *DbManager) formatDbPath(dbId string) string {
 	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 }
 
-func (d *SessionDBMapper) scheduleDbRemovalAfterExpiration(dbId string) {
+func (d *DbManager) scheduleDbRemovalAfterExpiration(dbId string) {
 	go func() {
 		<-time.After(d.maxAge)
 
@@ -124,7 +124,7 @@ func (d *SessionDBMapper) scheduleDbRemovalAfterExpiration(dbId string) {
 	}()
 }
 
-func (d *SessionDBMapper) removeDb(dbId string) error {
+func (d *DbManager) removeDb(dbId string) error {
 	db, ok := d.dbMap[dbId]
 
 	if !ok {
