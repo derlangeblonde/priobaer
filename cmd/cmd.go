@@ -58,7 +58,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 	}
 
 	router.Use(sessions.Sessions("session", cookieStore))
-	router.Use(sessionDBMapper.InjectDB())
+	router.Use(InjectDB(sessionDBMapper))
 
 	router.SetHTMLTemplate(templates)
 
