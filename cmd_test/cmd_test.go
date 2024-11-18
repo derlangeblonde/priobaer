@@ -41,16 +41,16 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	testCtx := NewTestContext(t, localhost8080)
 
 	testCtx.AcquireSessionCookie()
-	
+
 	dbFilesCount, err := countSQLiteFiles(dbDir)
 	is.NoErr(err) // failure while counting sqlite files
-	is.Equal(dbFilesCount, 1)	
+	is.Equal(dbFilesCount, 1)
 
 	<-time.After(time.Millisecond * 2)
 
 	dbFilesCount, err = countSQLiteFiles(dbDir)
 	is.NoErr(err) // failure while counting sqlite files
-	is.Equal(dbFilesCount, 0)	
+	is.Equal(dbFilesCount, 0)
 }
 
 func TestDataIsPersistedBetweenDeployments(t *testing.T) {
@@ -97,7 +97,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 	defer cancel()
 	is.NoErr(err)
 
-	ctx := NewTestContext(t, "http://localhost:8080") 
+	ctx := NewTestContext(t, "http://localhost:8080")
 
 	ctx.AcquireSessionCookie()
 	ctx.CoursesCreateAction("foo", 5, 25)
@@ -173,7 +173,7 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	return courses
 }
 
-func StartupSystemUnderTest(t *testing.T, env func (string) string) (error, context.CancelFunc) {
+func StartupSystemUnderTest(t *testing.T, env func(string) string) (error, context.CancelFunc) {
 	dbDir := MakeTestingDbDir(t)
 
 	if env == nil {
@@ -198,7 +198,7 @@ func MakeTestingDbDir(t *testing.T) string {
 	return dbDir
 }
 
-func NewTestContext(t *testing.T, baseUrl string) *TestContext{
+func NewTestContext(t *testing.T, baseUrl string) *TestContext {
 	is := is.New(t)
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err) // create cookie jar failed

@@ -22,7 +22,7 @@ const dbKey = "db"
 
 type SessionDBMapper struct {
 	rootDir string
-	maxAge time.Duration 
+	maxAge  time.Duration
 	dbMap   map[string]*gorm.DB
 }
 
@@ -67,11 +67,9 @@ func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
 	return db, err
 }
 
-
 func (d *SessionDBMapper) formatDbPath(dbId string) string {
 	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 }
-
 
 func (d *SessionDBMapper) scheduleDbRemovalAfterExpiration(dbId string) {
 	go func() {
@@ -85,8 +83,11 @@ func (d *SessionDBMapper) scheduleDbRemovalAfterExpiration(dbId string) {
 		now := time.Now()
 
 		if now == session.ExpiresAt || now.After(session.ExpiresAt) {
-			// TODO: error handling
-			_ = d.removeDb(dbId)
+			err := d.removeDb(dbId)
+
+			if err != nil {
+				slog.Error("Could not remove db :(", "err", err)
+			}
 		}
 	}()
 }
@@ -98,11 +99,24 @@ func (d *SessionDBMapper) removeDb(dbId string) error {
 		return fmt.Errorf("Tried to remove db, but dbId=%s was not in map", dbId)
 	}
 
-	conn, _ := db.DB()
-	_ = conn.Close()
+	conn, err := db.DB()
+
+	if err != nil {
+		return err
+	}
+
+	err = conn.Close()
+
+	if err != nil {
+		return err
+	}
 
 	dbPath := d.formatDbPath(dbId)
-	_ = os.Remove(dbPath)
+	err = os.Remove(dbPath)
+
+	if err != nil {
+		return err
+	}
 
 	delete(d.dbMap, dbId)
 

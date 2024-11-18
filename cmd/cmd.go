@@ -29,7 +29,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	config, err := ParseConfig(getenv)
 
-	if err != nil{
+	if err != nil {
 		panic(fmt.Sprintf("Could not parse config from env, Err: %v. Panic...", err))
 	}
 

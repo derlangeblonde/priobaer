@@ -7,8 +7,8 @@ import (
 )
 
 type Config struct {
-	DbRootDir string
-	SessionMaxAge time.Duration 
+	DbRootDir     string
+	SessionMaxAge time.Duration
 }
 
 func ParseConfig(getenv func(string) string) (Config, error) {
@@ -34,7 +34,7 @@ func ParseConfig(getenv func(string) string) (Config, error) {
 		return config, err
 	}
 
-	config.SessionMaxAge = time.Millisecond * time.Duration(sessionMaxAgeMilliSeconds) 
+	config.SessionMaxAge = time.Millisecond * time.Duration(sessionMaxAgeMilliSeconds)
 
 	return config, nil
 }
