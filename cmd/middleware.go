@@ -86,15 +86,27 @@ func (d *SessionDBMapper) scheduleDbRemovalAfterExpiration(dbId string) {
 
 		if now == session.ExpiresAt || now.After(session.ExpiresAt) {
 			// TODO: error handling
-			conn, _ := db.DB()
-			_ = conn.Close()
-
-			dbPath := d.formatDbPath(dbId)
-			_ = os.Remove(dbPath)
-
-			delete(d.dbMap, dbId)
+			_ = d.removeDb(dbId)
 		}
 	}()
+}
+
+func (d *SessionDBMapper) removeDb(dbId string) error {
+	db, ok := d.dbMap[dbId]
+
+	if !ok {
+		return fmt.Errorf("Tried to remove db, but dbId=%s was not in map", dbId)
+	}
+
+	conn, _ := db.DB()
+	_ = conn.Close()
+
+	dbPath := d.formatDbPath(dbId)
+	_ = os.Remove(dbPath)
+
+	delete(d.dbMap, dbId)
+
+	return nil
 }
 
 func (d *SessionDBMapper) ReadExistingSessions() error {
