@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/jonboulle/clockwork"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/view"
 )
@@ -50,7 +51,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		},
 	)
 
-	dbManager := NewDbManager(config.DbRootDir, config.SessionMaxAge)
+	dbManager := NewDbManager(config.DbRootDir, config.SessionMaxAge, clockwork.NewRealClock())
 	err = dbManager.ReadExistingSessions()
 
 	if err != nil {

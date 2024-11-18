@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jonboulle/clockwork"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -17,10 +18,11 @@ type DbManager struct {
 	rootDir string
 	maxAge  time.Duration
 	dbMap   map[string]*gorm.DB
+	clock clockwork.Clock
 }
 
-func NewDbManager(rootDir string, maxAge time.Duration) *DbManager {
-	return &DbManager{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0)}
+func NewDbManager(rootDir string, maxAge time.Duration, clock clockwork.Clock) *DbManager {
+	return &DbManager{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0), clock: clock}
 }
 
 func (d *DbManager) NewDB(dbId string) (*gorm.DB, error) {
@@ -34,7 +36,7 @@ func (d *DbManager) NewDB(dbId string) (*gorm.DB, error) {
 
 	d.dbMap[dbId] = db
 	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
-	db.Create(&Session{ExpiresAt: time.Now().Add(d.maxAge)})
+	db.Create(&Session{ExpiresAt: d.clock.Now().Add(d.maxAge)})
 
 	d.scheduleDbRemovalAfterExpiration(dbId)
 
@@ -68,6 +70,9 @@ func (d *DbManager) ReadExistingSessions() error {
 		}
 
 		dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", candidateUuid))
+		// TODO: Check if expired, and remove if that's the case
+		// Maybe we need to make it possible to mock time, by passing it in as a func-arg
+		// github.com/jonboulle/clockwork
 		db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 
 		if err != nil {
@@ -105,14 +110,14 @@ func (d *DbManager) formatDbPath(dbId string) string {
 
 func (d *DbManager) scheduleDbRemovalAfterExpiration(dbId string) {
 	go func() {
-		<-time.After(d.maxAge)
+		<-d.clock.After(d.maxAge)
 
 		db, _ := d.dbMap[dbId]
 
 		var session Session
 		db.First(&session)
 
-		now := time.Now()
+		now := d.clock.Now()
 
 		if now == session.ExpiresAt || now.After(session.ExpiresAt) {
 			err := d.removeDb(dbId)
