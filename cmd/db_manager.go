@@ -27,7 +27,7 @@ func NewDbManager(rootDir string, maxAge time.Duration, clock clockwork.Clock) *
 }
 
 func (d *DbManager) OpenDB(dbId string) (*gorm.DB, error) {
-	dbPath := d.formatDbPath(dbId)
+	dbPath := d.idToPath(dbId)
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 
@@ -154,7 +154,7 @@ func (d *DbManager) Remove(dbId string) error {
 		slog.Warn("Tried to close connection do db, but got an error", "err", err)
 	}
 
-	dbPath := d.formatDbPath(dbId)
+	dbPath := d.idToPath(dbId)
 	err = os.Remove(dbPath)
 
 	if err != nil {
@@ -165,7 +165,7 @@ func (d *DbManager) Remove(dbId string) error {
 }
 
 
-func (d *DbManager) formatDbPath(dbId string) string {
+func (d *DbManager) idToPath(dbId string) string {
 	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 }
 
@@ -178,7 +178,21 @@ func (d *DbManager) scheduleRemoval(dbId string) {
 		return
 	}
 
+	now := d.clock.Now()
+
+	if now == expirationDate || now.After(expirationDate) {
+		slog.Info("Called scheduleRemoval for DB that is already expired. Removing now")
+		err := d.Remove(dbId)
+
+		if err != nil {
+			slog.Error("Could not remove db :(", "err", err)
+		}
+
+		return
+	}
+
 	expireIn := expirationDate.Sub(d.clock.Now())
+
 	stopHandle := d.clock.AfterFunc(expireIn, func() {
 		err := d.Remove(dbId)
 

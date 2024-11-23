@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"path"
 	"testing"
@@ -12,6 +11,32 @@ import (
 	"github.com/jonboulle/clockwork"
 	"github.com/matryer/is"
 )
+
+func TestReadExistingDbs_IngnoresAlreadyExpired(t *testing.T) {
+	is := is.New(t)
+
+	testDir := t.TempDir()
+
+	dbName := uuid.New().String();
+
+	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
+
+	dbManagerPrevious := NewDbManager(testDir, time.Second * time.Duration(60), fakeClock)
+
+	dbManagerPrevious.OpenDB(dbName)
+
+	errs := dbManagerPrevious.Close()
+	is.Equal(len(errs), 0) // could not close dbs properly
+
+	fakeClock.Advance(time.Second * time.Duration(61))
+
+	dbManagerCurrent := NewDbManager(testDir, time.Second * time.Duration(60), fakeClock)
+	err := dbManagerCurrent.ReadExistingDbs()  
+	is.NoErr(err) // ReadExistingDbs failed
+
+	_, ok := dbManagerCurrent.Get(dbName)
+	is.True(!ok) // new db manager did not read existing instance
+}
 
 func TestReadExistingDbs_SchedulesRemoval(t *testing.T) {
 	is := is.New(t)
@@ -49,9 +74,7 @@ func TestReadExistingDbs_SchedulesRemoval(t *testing.T) {
 }
 
 func FileExists(path string) bool {
-	fileInfo, err := os.Stat(path)
-
-	slog.Info("File Exists", "fileInfo", fileInfo)
+	_, err := os.Stat(path)
 
 	return err == nil
 }
