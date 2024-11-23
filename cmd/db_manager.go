@@ -27,7 +27,7 @@ func NewDbManager(rootDir string, maxAge time.Duration, clock clockwork.Clock) *
 }
 
 func (d *DbManager) OpenDB(dbId string) (*gorm.DB, error) {
-	dbPath := d.idToPath(dbId)
+	dbPath := d.Path(dbId)
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 
@@ -154,7 +154,7 @@ func (d *DbManager) Remove(dbId string) error {
 		slog.Warn("Tried to close connection do db, but got an error", "err", err)
 	}
 
-	dbPath := d.idToPath(dbId)
+	dbPath := d.Path(dbId)
 	err = os.Remove(dbPath)
 
 	if err != nil {
@@ -165,7 +165,7 @@ func (d *DbManager) Remove(dbId string) error {
 }
 
 
-func (d *DbManager) idToPath(dbId string) string {
+func (d *DbManager) Path(dbId string) string {
 	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 }
 

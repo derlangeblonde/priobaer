@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"path"
 	"testing"
 	"time"
 
@@ -43,15 +41,13 @@ func TestReadExistingDbs_SchedulesRemoval(t *testing.T) {
 
 	testDir := t.TempDir()
 
-	dbName := uuid.New().String();
-
-	fullDbPath := path.Join(testDir, dbName)
+	dbId := uuid.New().String();
 
 	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
 
 	dbManagerPrevious := NewDbManager(testDir, time.Second * time.Duration(60), fakeClock)
 
-	dbManagerPrevious.OpenDB(dbName)
+	dbManagerPrevious.OpenDB(dbId)
 
 	errs := dbManagerPrevious.Close()
 	is.Equal(len(errs), 0) // could not close dbs properly
@@ -62,14 +58,15 @@ func TestReadExistingDbs_SchedulesRemoval(t *testing.T) {
 	err := dbManagerCurrent.ReadExistingDbs()
 	is.NoErr(err) // error during reading existing dbs
 
-	_, ok := dbManagerCurrent.Get(dbName)
+	_, ok := dbManagerCurrent.Get(dbId)
 	is.True(ok) // new db manager did not read existing instance
 
-	exists := FileExists(fmt.Sprintf("%s.sqlite", fullDbPath))
+	exists := FileExists(dbManagerCurrent.Path(dbId))
 	is.True(exists) // file did not exist but should have
 
 	fakeClock.Advance(31 * time.Second)
-	exists = FileExists(fullDbPath)
+	time.Sleep(10 * time.Microsecond)
+	exists = FileExists(dbManagerCurrent.Path(dbId))
 	is.True(!exists) // file did exist but should not have
 }
 
