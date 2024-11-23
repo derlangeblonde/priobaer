@@ -64,7 +64,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	go cmd.Run(ctx, mockEnv)
 
-	err := waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
+	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
 	testCtx := NewTestContext(t, "http://localhost:8080")
@@ -79,7 +79,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	defer cancel()
 
 	go cmd.Run(ctx, mockEnv)
-	err = waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
+	err = defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
 	courses := testCtx.CoursesIndexAction()
@@ -216,6 +216,10 @@ func NewTestContext(t *testing.T, baseUrl string) *TestContext {
 	testCtx := TestContext{T: t, client: &client, baseUrl: baseUrlParsed}
 
 	return &testCtx
+}
+
+func defaultWaitForReady() error {
+	return waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
 }
 
 func waitForReady(
