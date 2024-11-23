@@ -51,7 +51,7 @@ func (d *DbManager) OpenDB(dbId string) (*gorm.DB, error) {
 		panic(fmt.Sprintf("Critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count))
 	}
 
-	d.scheduleDbRemovalAfterExpiration(dbId)
+	d.scheduleRemoval(dbId)
 
 	return db, err
 }
@@ -66,7 +66,7 @@ func (d *DbManager) GetExpirationDate(dbId string) (time.Time, error) {
 	db, ok := d.Get(dbId)
 
 	if !ok {
-		return time.Time{}, fmt.Errorf("Requeste expiration date for db that is not known to dbManager. dbId=%s", dbId)
+		return time.Time{}, fmt.Errorf("Requested expiration date for db that is not known to dbManager. dbId=%s", dbId)
 	}
 
 	var session Session
@@ -104,19 +104,6 @@ func (d *DbManager) ReadExistingDbs() error {
 		if err != nil {
 			return err
 		}
-
-		// dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", candidateUuid))
-		// TODO: Check if expired, and remove if that's the case
-		// Maybe we need to make it possible to mock time, by passing it in as a func-arg
-		// github.com/jonboulle/clockwork
-		// db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
-		//
-		// if err != nil {
-		// 	return err
-		// }
-		//
-		// d.dbMap[candidateUuid] = db
-
 	}
 
 	return nil
@@ -149,11 +136,40 @@ func (d *DbManager) Close() []error {
 	return errs
 }
 
+func (d *DbManager) Remove(dbId string) error {
+	db, ok := d.dbMap[dbId] 
+	defer delete(d.dbMap, dbId)
+
+	if !ok {
+		slog.Warn("Tried to remove db, but was not in map", "dbId", dbId)
+	}
+
+	conn, err := db.DB()
+
+	if err == nil {
+		err = conn.Close()
+	}
+
+	if err != nil {
+		slog.Warn("Tried to close connection do db, but got an error", "err", err)
+	}
+
+	dbPath := d.formatDbPath(dbId)
+	err = os.Remove(dbPath)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 func (d *DbManager) formatDbPath(dbId string) string {
 	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 }
 
-func (d *DbManager) scheduleDbRemovalAfterExpiration(dbId string) {
+func (d *DbManager) scheduleRemoval(dbId string) {
 	expirationDate, err := d.GetExpirationDate(dbId)
 
 	if err != nil {
@@ -164,7 +180,7 @@ func (d *DbManager) scheduleDbRemovalAfterExpiration(dbId string) {
 
 	expireIn := expirationDate.Sub(d.clock.Now())
 	stopHandle := d.clock.AfterFunc(expireIn, func() {
-		err := d.remove(dbId)
+		err := d.Remove(dbId)
 
 		if err != nil {
 			slog.Error("Could not remove db :(", "err", err)
@@ -172,37 +188,5 @@ func (d *DbManager) scheduleDbRemovalAfterExpiration(dbId string) {
 	})
 
 	d.stopHandleMap[dbId] = stopHandle
-}
-
-func (d *DbManager) remove(dbId string) error {
-	db, ok := d.dbMap[dbId]
-
-	if !ok {
-		return fmt.Errorf("Tried to remove db, but dbId=%s was not in map", dbId)
-	}
-
-	conn, err := db.DB()
-
-	if err != nil {
-		return err
-	}
-
-	err = conn.Close()
-
-	if err != nil {
-		return err
-	}
-
-	dbPath := d.formatDbPath(dbId)
-	err = os.Remove(dbPath)
-	slog.Info("******** I did in fact Remove *************")
-
-	if err != nil {
-		return err
-	}
-
-	delete(d.dbMap, dbId)
-
-	return nil
 }
 
