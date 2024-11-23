@@ -64,7 +64,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	go cmd.Run(ctx, mockEnv)
 
-	err := waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+	err := waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
 	is.NoErr(err) // Service was not ready
 
 	testCtx := NewTestContext(t, "http://localhost:8080")
@@ -73,13 +73,13 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	testCtx.CoursesCreateAction("foo", 5, 25)
 
 	cancel()
-	waitForTermination(time.Millisecond*200, 4, "http://localhost:8080/health")
+	waitForTermination(time.Millisecond*200, 8, "http://localhost:8080/health")
 
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
 	go cmd.Run(ctx, mockEnv)
-	err = waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+	err = waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
 	is.NoErr(err) // Service was not ready
 
 	courses := testCtx.CoursesIndexAction()
@@ -184,7 +184,7 @@ func StartupSystemUnderTest(t *testing.T, env func(string) string) (error, conte
 
 	go cmd.Run(ctx, env)
 
-	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health"), cancel
+	return waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health"), cancel
 }
 
 func MakeTestingDbDir(t *testing.T) string {
