@@ -52,7 +52,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 	)
 
 	dbManager := NewDbManager(config.DbRootDir, config.SessionMaxAge, clockwork.NewRealClock())
-	err = dbManager.ReadExistingSessions()
+	err = dbManager.ReadExistingDbs()
 
 	if err != nil {
 		panic(err)
@@ -78,7 +78,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	<-ctx.Done()
 	server.Shutdown(ctx)
-	errs := dbManager.TryCloseAllDbs()
+	errs := dbManager.Close()
 
 	if len(errs) != 0 {
 		slog.Error("Could not close all dbs", "errs", errs)
