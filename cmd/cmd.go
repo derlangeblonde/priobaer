@@ -51,15 +51,15 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		},
 	)
 
-	dbManager := NewDbManager(config.DbRootDir, config.SessionMaxAge, clockwork.NewRealClock())
-	err = dbManager.ReadExistingDbs()
+	dbDirectory := NewDbDirectory(config.DbRootDir, config.SessionMaxAge, clockwork.NewRealClock())
+	err = dbDirectory.ReadExistingDbs()
 
 	if err != nil {
 		panic(err)
 	}
 
 	router.Use(sessions.Sessions("session", cookieStore))
-	router.Use(InjectDB(dbManager))
+	router.Use(InjectDB(dbDirectory))
 
 	router.SetHTMLTemplate(templates)
 
@@ -78,7 +78,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	<-ctx.Done()
 	server.Shutdown(ctx)
-	errs := dbManager.Close()
+	errs := dbDirectory.Close()
 
 	if len(errs) != 0 {
 		slog.Error("Could not close all dbs", "errs", errs)

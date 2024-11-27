@@ -21,7 +21,7 @@ type Session struct {
 	ExpiresAt time.Time
 }
 
-func InjectDB(dbManager *DbManager) gin.HandlerFunc {
+func InjectDB(dbDirectory *DbDirectory) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		whitelist := []string{
@@ -41,7 +41,7 @@ func InjectDB(dbManager *DbManager) gin.HandlerFunc {
 		sessionId, ok := getSessionId(c)
 
 		if ok {
-			conn, ok := dbManager.Get(sessionId)
+			conn, ok := dbDirectory.Get(sessionId)
 
 			if !ok {
 				slog.Error("SessionId existed, but no db-connection was found.")
@@ -70,7 +70,7 @@ func InjectDB(dbManager *DbManager) gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		db, err := dbManager.OpenDB(newDbId.String())
+		db, err := dbDirectory.OpenDB(newDbId.String())
 
 		if err != nil {
 			slog.Error("Failed while opening new sqlite in-memory connection", "err", err)

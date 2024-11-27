@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type DbManager struct {
+type DbDirectory struct {
 	rootDir string
 	maxAge  time.Duration
 	dbMap   map[string]*gorm.DB
@@ -22,11 +22,11 @@ type DbManager struct {
 	clock clockwork.Clock
 }
 
-func NewDbManager(rootDir string, maxAge time.Duration, clock clockwork.Clock) *DbManager {
-	return &DbManager{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0), stopHandleMap: make(map[string]clockwork.Timer), clock: clock}
+func NewDbDirectory(rootDir string, maxAge time.Duration, clock clockwork.Clock) *DbDirectory {
+	return &DbDirectory{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0), stopHandleMap: make(map[string]clockwork.Timer), clock: clock}
 }
 
-func (d *DbManager) OpenDB(dbId string) (*gorm.DB, error) {
+func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 	dbPath := d.Path(dbId)
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
@@ -56,17 +56,17 @@ func (d *DbManager) OpenDB(dbId string) (*gorm.DB, error) {
 	return db, err
 }
 
-func (d *DbManager) Get(dbId string) (*gorm.DB, bool) {
+func (d *DbDirectory) Get(dbId string) (*gorm.DB, bool) {
 	db, ok := d.dbMap[dbId]
 
 	return db, ok
 }
 
-func (d *DbManager) GetExpirationDate(dbId string) (time.Time, error) {
+func (d *DbDirectory) GetExpirationDate(dbId string) (time.Time, error) {
 	db, ok := d.Get(dbId)
 
 	if !ok {
-		return time.Time{}, fmt.Errorf("Requested expiration date for db that is not known to dbManager. dbId=%s", dbId)
+		return time.Time{}, fmt.Errorf("Requested expiration date for db that is not known to dbDirectory. dbId=%s", dbId)
 	}
 
 	var session Session
@@ -79,7 +79,7 @@ func (d *DbManager) GetExpirationDate(dbId string) (time.Time, error) {
 	return session.ExpiresAt, nil
 }
 
-func (d *DbManager) ReadExistingDbs() error {
+func (d *DbDirectory) ReadExistingDbs() error {
 	fsEntries, err := os.ReadDir(d.rootDir)
 
 	if err != nil {
@@ -99,7 +99,7 @@ func (d *DbManager) ReadExistingDbs() error {
 			continue
 		}
 
-		_, err = d.OpenDB(candidateUuid)
+		_, err = d.Open(candidateUuid)
 
 		if err != nil {
 			return err
@@ -109,7 +109,7 @@ func (d *DbManager) ReadExistingDbs() error {
 	return nil
 }
 
-func (d *DbManager) Close() []error {
+func (d *DbDirectory) Close() []error {
 	errs := make([]error, 0)
 	for dbId, db := range d.dbMap {
 		conn, err := db.DB()
@@ -136,7 +136,7 @@ func (d *DbManager) Close() []error {
 	return errs
 }
 
-func (d *DbManager) Remove(dbId string) error {
+func (d *DbDirectory) Remove(dbId string) error {
 	db, ok := d.dbMap[dbId] 
 	defer delete(d.dbMap, dbId)
 
@@ -165,11 +165,11 @@ func (d *DbManager) Remove(dbId string) error {
 }
 
 
-func (d *DbManager) Path(dbId string) string {
+func (d *DbDirectory) Path(dbId string) string {
 	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 }
 
-func (d *DbManager) scheduleRemoval(dbId string) {
+func (d *DbDirectory) scheduleRemoval(dbId string) {
 	expirationDate, err := d.GetExpirationDate(dbId)
 
 	if err != nil {
