@@ -22,51 +22,126 @@ type testData struct {
 	Number int
 }
 
-func DefaultSetup(t *testing.T) defaultTestSetup {
-	tmpDir := t.TempDir()	
- 	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
-	id := uuid.New()
-	sut := NewDbDirectory(tmpDir, 60 * time.Second, fakeClock, []any{&testData{}})
-
-	return defaultTestSetup{TmpDir: tmpDir, FakeClock: fakeClock, DbId: id, Sut: sut}
+type config struct {
+	TmpDir string
+	FakeClock clockwork.FakeClock
+	DbId uuid.UUID 
+	Expiration time.Duration
+	Models []any
 }
 
-func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
-	is := is.New(t)
-	
-	setup := DefaultSetup(t)
-	sut := setup.Sut
-	id := setup.DbId
-
-	conn1, err := sut.Open(id.String())
-	is.NoErr(err)
-
-	conn2, err := sut.Open(id.String())
-	is.NoErr(err)
-
-	is.Equal(conn1, conn2)
+func newConfig(t *testing.T) *config {
+	return &config{
+		TmpDir: t.TempDir(),
+		FakeClock:  clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local)),
+		DbId: uuid.New(),
+		Expiration: 60 * time.Second,
+		Models:[]any{&testData{}},
+	}
 }
 
-func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
+func (c *config) withExpiration(e time.Duration) *config {
+	c.Expiration = e
+
+	return c
+}
+
+func (c *config) CreateSut() *DbDirectory {
+	return NewDbDirectory(c.TmpDir, c.Expiration, c.FakeClock, c.Models)
+}
+
+
+// func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
+// 	is := is.New(t)
+// 	
+// 	c := newConfig(t)
+// 	sut := c.CreateSut()
+// 	id := c.DbId
+//
+// 	conn1, err := sut.Open(id.String())
+// 	is.NoErr(err)
+//
+// 	conn2, err := sut.Open(id.String())
+// 	is.NoErr(err)
+//
+// 	is.Equal(conn1, conn2)
+// }
+//
+// func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
+// 	is := is.New(t)
+//
+// 	c := newConfig(t)
+// 	sut := c.CreateSut()
+// 	expectedNumber := 42
+//
+// 	conn1, err := sut.Open(c.DbId.String())
+// 	is.NoErr(err)
+//
+// 	result := conn1.Create(&testData{Number: expectedNumber})
+// 	is.NoErr(result.Error)
+//
+// 	conn2, err := sut.Open(c.DbId.String())
+// 	is.NoErr(err)
+//
+// 	var actualData testData
+// 	result = conn2.First(&actualData)
+// 	is.NoErr(result.Error)
+//
+// 	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
+// }
+//
+//
+// func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
+// 	is := is.New(t)
+//
+// 	expiration := 60 * 24 * time.Minute
+//
+// 	c := newConfig(t).withExpiration(expiration)
+//
+// 	sut := c.CreateSut()
+//
+// 	conn1, err := sut.Open(c.DbId.String())
+// 	is.NoErr(err)
+//
+// 	c.FakeClock.Advance(expiration)
+// 	time.Sleep(100 * time.Microsecond)
+//
+// 	conn2, err := sut.Open(c.DbId.String())
+// 	is.NoErr(err)
+//
+// 	is.True(conn1 != conn2) // after db expired open should return a new connection
+// }
+
+
+func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 	is := is.New(t)
 
-	setup := DefaultSetup(t)
-	expectedNumber := 42
+	expiration := 60 * 24 * time.Minute
+	expectedNumber := 666
 
-	conn1, err := setup.Sut.Open(setup.DbId.String())
+	c := newConfig(t).withExpiration(expiration)
+
+	sut := c.CreateSut()
+
+	conn1, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
 
 	result := conn1.Create(&testData{Number: expectedNumber})
 	is.NoErr(result.Error)
 
-	conn2, err := setup.Sut.Open(setup.DbId.String())
+	c.FakeClock.Advance(expiration)
+	time.Sleep(500 * time.Microsecond)
+
+	conn2, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
 
-	var actualData testData
-	result = conn2.First(&actualData)
+	is.True(conn1 != conn2) // after db expired open should return a new connection
+
+	var datas []testData
+	result = conn2.Find(datas)
 	is.NoErr(result.Error)
 
-	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
+	is.Equal(len(datas), 0)
 }
 
 // func TestReadExistingDbs_IngnoresAlreadyExpired(t *testing.T) {

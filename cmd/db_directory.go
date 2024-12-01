@@ -178,7 +178,9 @@ func (d *DbDirectory) Path(dbId string) string {
 }
 
 func (d *DbDirectory) scheduleRemoval(dbId string) {
+	slog.Error("about to schedule")
 	expirationDate, err := d.GetExpirationDate(dbId)
+	slog.Error("determined exp", "exp", expirationDate)
 
 	if err != nil {
 		slog.Error("Could not get expiration date. This db will not be scheduled for removal", "err", err)	
