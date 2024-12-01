@@ -70,7 +70,7 @@ func InjectDB(dbDirectory *DbDirectory) gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		db, err := dbDirectory.OpenDB(newDbId.String())
+		db, err := dbDirectory.Open(newDbId.String())
 
 		if err != nil {
 			slog.Error("Failed while opening new sqlite in-memory connection", "err", err)

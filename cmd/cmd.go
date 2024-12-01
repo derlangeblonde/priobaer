@@ -51,7 +51,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		},
 	)
 
-	dbDirectory := NewDbDirectory(config.DbRootDir, config.SessionMaxAge, clockwork.NewRealClock())
+	dbDirectory := NewDbDirectory(config.DbRootDir, config.SessionMaxAge, clockwork.NewRealClock(), []any{&Course{}, &Participant{}})
 	err = dbDirectory.ReadExistingDbs()
 
 	if err != nil {

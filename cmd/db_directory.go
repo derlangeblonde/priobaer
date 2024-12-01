@@ -20,13 +20,20 @@ type DbDirectory struct {
 	dbMap   map[string]*gorm.DB
 	stopHandleMap map[string]clockwork.Timer
 	clock clockwork.Clock
+	models []any
 }
 
-func NewDbDirectory(rootDir string, maxAge time.Duration, clock clockwork.Clock) *DbDirectory {
-	return &DbDirectory{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0), stopHandleMap: make(map[string]clockwork.Timer), clock: clock}
+func NewDbDirectory(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) *DbDirectory {
+	return &DbDirectory{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0), stopHandleMap: make(map[string]clockwork.Timer), clock: clock, models: models}
 }
 
 func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
+	existingConn, ok := d.dbMap[dbId]
+
+	if ok {
+		return existingConn, nil
+	}
+
 	dbPath := d.Path(dbId)
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
@@ -36,7 +43,8 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 	}
 
 	d.dbMap[dbId] = db
-	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
+	db.AutoMigrate(d.models...)
+	db.AutoMigrate(&Session{})
 
 	var count int64
 	db.Model(&Session{}).Count(&count)

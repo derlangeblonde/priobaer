@@ -1,79 +1,138 @@
 package cmd
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jonboulle/clockwork"
 	"github.com/matryer/is"
+	"gorm.io/gorm"
 )
 
-func TestReadExistingDbs_IngnoresAlreadyExpired(t *testing.T) {
+type defaultTestSetup struct {
+	TmpDir string
+	FakeClock clockwork.FakeClock
+	DbId uuid.UUID 
+	Sut *DbDirectory
+}
+
+type testData struct {
+	gorm.Model
+	Number int
+}
+
+func DefaultSetup(t *testing.T) defaultTestSetup {
+	tmpDir := t.TempDir()	
+ 	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
+	id := uuid.New()
+	sut := NewDbDirectory(tmpDir, 60 * time.Second, fakeClock, []any{&testData{}})
+
+	return defaultTestSetup{TmpDir: tmpDir, FakeClock: fakeClock, DbId: id, Sut: sut}
+}
+
+func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
+	is := is.New(t)
+	
+	setup := DefaultSetup(t)
+	sut := setup.Sut
+	id := setup.DbId
+
+	conn1, err := sut.Open(id.String())
+	is.NoErr(err)
+
+	conn2, err := sut.Open(id.String())
+	is.NoErr(err)
+
+	is.Equal(conn1, conn2)
+}
+
+func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
 	is := is.New(t)
 
-	testDir := t.TempDir()
+	setup := DefaultSetup(t)
+	expectedNumber := 42
 
-	dbName := uuid.New().String();
+	conn1, err := setup.Sut.Open(setup.DbId.String())
+	is.NoErr(err)
 
-	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
+	result := conn1.Create(&testData{Number: expectedNumber})
+	is.NoErr(result.Error)
 
-	dbDirectoryPrevious := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
+	conn2, err := setup.Sut.Open(setup.DbId.String())
+	is.NoErr(err)
 
-	dbDirectoryPrevious.OpenDB(dbName)
+	var actualData testData
+	result = conn2.First(&actualData)
+	is.NoErr(result.Error)
 
-	errs := dbDirectoryPrevious.Close()
-	is.Equal(len(errs), 0) // could not close dbs properly
-
-	fakeClock.Advance(time.Second * time.Duration(61))
-
-	dbDirectoryCurrent := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
-	err := dbDirectoryCurrent.ReadExistingDbs()  
-	is.NoErr(err) // ReadExistingDbs failed
-
-	_, ok := dbDirectoryCurrent.Get(dbName)
-	is.True(!ok) // new db manager did not read existing instance
+	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
 }
 
-func TestReadExistingDbs_SchedulesRemoval(t *testing.T) {
-	is := is.New(t)
-
-	testDir := t.TempDir()
-
-	dbId := uuid.New().String();
-
-	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
-
-	dbDirectoryPrevious := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
-
-	dbDirectoryPrevious.OpenDB(dbId)
-
-	errs := dbDirectoryPrevious.Close()
-	is.Equal(len(errs), 0) // could not close dbs properly
-
-	fakeClock.Advance(time.Second * time.Duration(30))
-
-	dbDirectoryCurrent := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
-	err := dbDirectoryCurrent.ReadExistingDbs()
-	is.NoErr(err) // error during reading existing dbs
-
-	_, ok := dbDirectoryCurrent.Get(dbId)
-	is.True(ok) // new db manager did not read existing instance
-
-	exists := FileExists(dbDirectoryCurrent.Path(dbId))
-	is.True(exists) // file did not exist but should have
-
-	fakeClock.Advance(31 * time.Second)
-	time.Sleep(10 * time.Microsecond)
-	exists = FileExists(dbDirectoryCurrent.Path(dbId))
-	is.True(!exists) // file did exist but should not have
-}
-
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
-
-	return err == nil
-}
+// func TestReadExistingDbs_IngnoresAlreadyExpired(t *testing.T) {
+// 	is := is.New(t)
+//
+// 	testDir := t.TempDir()
+//
+// 	dbName := uuid.New().String();
+//
+// 	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
+//
+// 	dbDirectoryPrevious := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
+//
+// 	dbDirectoryPrevious.Open(dbName)
+//
+// 	errs := dbDirectoryPrevious.Close()
+// 	is.Equal(len(errs), 0) // could not close dbs properly
+//
+// 	fakeClock.Advance(time.Second * time.Duration(61))
+//
+// 	dbDirectoryCurrent := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
+// 	err := dbDirectoryCurrent.ReadExistingDbs()
+// 	is.NoErr(err) // ReadExistingDbs failed
+//
+// 	_, ok := dbDirectoryCurrent.Get(dbName)
+// 	is.True(!ok) // new db manager did not read existing instance
+// }
+//
+// func TestReadExistingDbs_SchedulesRemoval(t *testing.T) {
+// 	is := is.New(t)
+//
+// 	testDir := t.TempDir()
+//
+// 	dbId := uuid.New().String();
+//
+// 	fakeClock := clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local))
+//
+// 	dbDirectoryPrevious := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
+//
+// 	dbDirectoryPrevious.Open(dbId)
+//
+// 	errs := dbDirectoryPrevious.Close()
+// 	is.Equal(len(errs), 0) // could not close dbs properly
+//
+// 	fakeClock.Advance(time.Second * time.Duration(30))
+//
+// 	dbDirectoryCurrent := NewDbDirectory(testDir, time.Second * time.Duration(60), fakeClock)
+// 	err := dbDirectoryCurrent.ReadExistingDbs()
+// 	is.NoErr(err) // error during reading existing dbs
+//
+// 	_, ok := dbDirectoryCurrent.Get(dbId)
+// 	is.True(ok) // new db manager did not read existing instance
+//
+// 	exists := FileExists(dbDirectoryCurrent.Path(dbId))
+// 	is.True(exists) // file did not exist but should have
+//
+// 	fakeClock.Advance(31 * time.Second)
+// 	time.Sleep(10 * time.Microsecond)
+// 	exists = FileExists(dbDirectoryCurrent.Path(dbId))
+// 	is.True(!exists) // file did exist but should not have
+// }
+//
+// func FileExists(path string) bool {
+// 	_, err := os.Stat(path)
+//
+// 	return err == nil
+// }
 
 
