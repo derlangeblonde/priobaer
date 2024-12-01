@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,21 +18,28 @@ import (
 type DbDirectory struct {
 	rootDir string
 	maxAge  time.Duration
-	dbMap   map[string]*gorm.DB
-	stopHandleMap map[string]clockwork.Timer
+	entries   map[string]*dbEntry
 	clock clockwork.Clock
 	models []any
+	bigLock sync.Mutex
+}
+
+type dbEntry struct {
+	conn *gorm.DB
+	expirationTimer clockwork.Timer
 }
 
 func NewDbDirectory(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) *DbDirectory {
-	return &DbDirectory{rootDir: rootDir, maxAge: maxAge, dbMap: make(map[string]*gorm.DB, 0), stopHandleMap: make(map[string]clockwork.Timer), clock: clock, models: models}
+	return &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: make(map[string]*dbEntry, 0), clock: clock, models: models}
 }
 
 func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
-	existingConn, ok := d.dbMap[dbId]
+	d.bigLock.Lock()
+	defer d.bigLock.Unlock()
+	existingEntry, ok := d.entries[dbId]
 
 	if ok {
-		return existingConn, nil
+		return existingEntry.conn, nil
 	}
 
 	dbPath := d.Path(dbId)
@@ -42,7 +50,7 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	d.dbMap[dbId] = db
+	d.entries[dbId] = &dbEntry{conn: db}
 	db.AutoMigrate(d.models...)
 	db.AutoMigrate(&Session{})
 
@@ -65,12 +73,12 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 }
 
 func (d *DbDirectory) Get(dbId string) (*gorm.DB, bool) {
-	db, ok := d.dbMap[dbId]
+	entry, ok := d.entries[dbId]
 
-	return db, ok
+	return entry.conn, ok
 }
 
-func (d *DbDirectory) GetExpirationDate(dbId string) (time.Time, error) {
+func (d *DbDirectory) getExpirationDate(dbId string) (time.Time, error) {
 	db, ok := d.Get(dbId)
 
 	if !ok {
@@ -118,9 +126,11 @@ func (d *DbDirectory) ReadExistingDbs() error {
 }
 
 func (d *DbDirectory) Close() []error {
+	d.bigLock.Lock()
+	defer d.bigLock.Unlock()
 	errs := make([]error, 0)
-	for dbId, db := range d.dbMap {
-		conn, err := db.DB()
+	for dbId, entry := range d.entries {
+		conn, err := entry.conn.DB()
 
 		if err != nil {
 			errs = append(errs, err)
@@ -132,27 +142,28 @@ func (d *DbDirectory) Close() []error {
 			errs = append(errs, err)
 		}
 
-		stopHandle, ok := d.stopHandleMap[dbId]
-
-		if !ok {
-			errs = append(errs, fmt.Errorf("No stop handle found for %s.", dbId))
+		if entry.expirationTimer == nil {
+			errs = append(errs, fmt.Errorf("No expiration timer found for %s.", dbId))
 		}
 
-		stopHandle.Stop()
+		entry.expirationTimer.Stop()
 	}
 
 	return errs
 }
 
 func (d *DbDirectory) Remove(dbId string) error {
-	db, ok := d.dbMap[dbId] 
-	defer delete(d.dbMap, dbId)
+	d.bigLock.Lock()
+	defer d.bigLock.Unlock()
+	entry, ok := d.entries[dbId] 
 
 	if !ok {
 		slog.Warn("Tried to remove db, but was not in map", "dbId", dbId)
 	}
 
-	conn, err := db.DB()
+	defer delete(d.entries, dbId)
+
+	conn, err := entry.conn.DB()
 
 	if err == nil {
 		err = conn.Close()
@@ -179,7 +190,7 @@ func (d *DbDirectory) Path(dbId string) string {
 
 func (d *DbDirectory) scheduleRemoval(dbId string) {
 	slog.Error("about to schedule")
-	expirationDate, err := d.GetExpirationDate(dbId)
+	expirationDate, err := d.getExpirationDate(dbId)
 	slog.Error("determined exp", "exp", expirationDate)
 
 	if err != nil {
@@ -203,7 +214,7 @@ func (d *DbDirectory) scheduleRemoval(dbId string) {
 
 	expireIn := expirationDate.Sub(d.clock.Now())
 
-	stopHandle := d.clock.AfterFunc(expireIn, func() {
+	expirationTimer := d.clock.AfterFunc(expireIn, func() {
 		err := d.Remove(dbId)
 
 		if err != nil {
@@ -211,6 +222,6 @@ func (d *DbDirectory) scheduleRemoval(dbId string) {
 		}
 	})
 
-	d.stopHandleMap[dbId] = stopHandle
+	d.entries[dbId].expirationTimer = expirationTimer
 }
 

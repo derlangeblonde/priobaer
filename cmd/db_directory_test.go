@@ -51,66 +51,66 @@ func (c *config) CreateSut() *DbDirectory {
 }
 
 
-// func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
-// 	is := is.New(t)
-// 	
-// 	c := newConfig(t)
-// 	sut := c.CreateSut()
-// 	id := c.DbId
-//
-// 	conn1, err := sut.Open(id.String())
-// 	is.NoErr(err)
-//
-// 	conn2, err := sut.Open(id.String())
-// 	is.NoErr(err)
-//
-// 	is.Equal(conn1, conn2)
-// }
-//
-// func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
-// 	is := is.New(t)
-//
-// 	c := newConfig(t)
-// 	sut := c.CreateSut()
-// 	expectedNumber := 42
-//
-// 	conn1, err := sut.Open(c.DbId.String())
-// 	is.NoErr(err)
-//
-// 	result := conn1.Create(&testData{Number: expectedNumber})
-// 	is.NoErr(result.Error)
-//
-// 	conn2, err := sut.Open(c.DbId.String())
-// 	is.NoErr(err)
-//
-// 	var actualData testData
-// 	result = conn2.First(&actualData)
-// 	is.NoErr(result.Error)
-//
-// 	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
-// }
-//
-//
-// func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
-// 	is := is.New(t)
-//
-// 	expiration := 60 * 24 * time.Minute
-//
-// 	c := newConfig(t).withExpiration(expiration)
-//
-// 	sut := c.CreateSut()
-//
-// 	conn1, err := sut.Open(c.DbId.String())
-// 	is.NoErr(err)
-//
-// 	c.FakeClock.Advance(expiration)
-// 	time.Sleep(100 * time.Microsecond)
-//
-// 	conn2, err := sut.Open(c.DbId.String())
-// 	is.NoErr(err)
-//
-// 	is.True(conn1 != conn2) // after db expired open should return a new connection
-// }
+func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
+	is := is.New(t)
+	
+	c := newConfig(t)
+	sut := c.CreateSut()
+	id := c.DbId
+
+	conn1, err := sut.Open(id.String())
+	is.NoErr(err)
+
+	conn2, err := sut.Open(id.String())
+	is.NoErr(err)
+
+	is.Equal(conn1, conn2)
+}
+
+func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
+	is := is.New(t)
+
+	c := newConfig(t)
+	sut := c.CreateSut()
+	expectedNumber := 42
+
+	conn1, err := sut.Open(c.DbId.String())
+	is.NoErr(err)
+
+	result := conn1.Create(&testData{Number: expectedNumber})
+	is.NoErr(result.Error)
+
+	conn2, err := sut.Open(c.DbId.String())
+	is.NoErr(err)
+
+	var actualData testData
+	result = conn2.First(&actualData)
+	is.NoErr(result.Error)
+
+	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
+}
+
+
+func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
+	is := is.New(t)
+
+	expiration := 60 * 24 * time.Minute
+
+	c := newConfig(t).withExpiration(expiration)
+
+	sut := c.CreateSut()
+
+	conn1, err := sut.Open(c.DbId.String())
+	is.NoErr(err)
+
+	c.FakeClock.Advance(expiration)
+	time.Sleep(100 * time.Microsecond)
+
+	conn2, err := sut.Open(c.DbId.String())
+	is.NoErr(err)
+
+	is.True(conn1 != conn2) // after db expired open should return a new connection
+}
 
 
 func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
@@ -138,7 +138,7 @@ func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 	is.True(conn1 != conn2) // after db expired open should return a new connection
 
 	var datas []testData
-	result = conn2.Find(datas)
+	result = conn2.Find(&datas)
 	is.NoErr(result.Error)
 
 	is.Equal(len(datas), 0)
