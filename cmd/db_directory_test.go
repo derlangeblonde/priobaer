@@ -144,6 +144,39 @@ func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 	is.Equal(len(datas), 0)
 }
 
+func TestNewDbDirectory_RestoresDataFromExistingDbFiles(t *testing.T) {
+	is := is.New(t)
+
+	expectedNumber := 282 
+
+	c := newConfig(t)
+
+	sutOld := c.CreateSut()
+
+	conn1, err := sutOld.Open(c.DbId.String())
+	is.NoErr(err)
+
+	result := conn1.Create(&testData{Number: expectedNumber})
+	is.NoErr(result.Error)
+
+	errs := sutOld.Close()
+	is.Equal(len(errs), 0) // closing sut yielded some errors
+	
+	sutNew := c.CreateSut()
+
+	conn2, err := sutNew.Open(c.DbId.String())
+	is.NoErr(err)
+
+	is.True(conn1 != conn2) // because conn's were retrieved from different sut, they should be different
+
+	var actualData testData
+	result = conn2.First(&actualData)
+	is.NoErr(result.Error)
+
+	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
+
+}
+
 // func TestReadExistingDbs_IngnoresAlreadyExpired(t *testing.T) {
 // 	is := is.New(t)
 //
