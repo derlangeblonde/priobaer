@@ -28,6 +28,7 @@ type config struct {
 	DbId uuid.UUID 
 	Expiration time.Duration
 	Models []any
+	T *testing.T
 }
 
 func newConfig(t *testing.T) *config {
@@ -37,6 +38,7 @@ func newConfig(t *testing.T) *config {
 		DbId: uuid.New(),
 		Expiration: 60 * time.Second,
 		Models:[]any{&testData{}},
+		T: t ,
 	}
 }
 
@@ -47,7 +49,13 @@ func (c *config) withExpiration(e time.Duration) *config {
 }
 
 func (c *config) CreateSut() *DbDirectory {
-	return NewDbDirectory(c.TmpDir, c.Expiration, c.FakeClock, c.Models)
+	sut, err := NewDbDirectory(c.TmpDir, c.Expiration, c.FakeClock, c.Models)
+
+	if err != nil {
+		c.T.Fatalf("Could not create sut, err: %v", err)
+	}
+
+	return sut
 }
 
 
@@ -104,7 +112,7 @@ func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
 	is.NoErr(err)
 
 	c.FakeClock.Advance(expiration)
-	time.Sleep(100 * time.Microsecond)
+	time.Sleep(40 * time.Microsecond)
 
 	conn2, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
@@ -130,26 +138,23 @@ func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 	is.NoErr(result.Error)
 
 	c.FakeClock.Advance(expiration)
-	time.Sleep(500 * time.Microsecond)
+	time.Sleep(40 * time.Microsecond)
 
 	conn2, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
 
 	is.True(conn1 != conn2) // after db expired open should return a new connection
 
-	var datas []testData
-	result = conn2.Find(&datas)
-	is.NoErr(result.Error)
-
-	is.Equal(len(datas), 0)
+	connHasNoRows(conn2, is)
 }
 
-func TestNewDbDirectory_RestoresDataFromExistingDbFiles(t *testing.T) {
+func TestNewDbDirectory_RestoresDataAndExpirationFromExistingDbFiles(t *testing.T) {
 	is := is.New(t)
 
 	expectedNumber := 282 
 
-	c := newConfig(t)
+	expiration := 60 * time.Second
+	c := newConfig(t).withExpiration(expiration)
 
 	sutOld := c.CreateSut()
 
@@ -175,7 +180,57 @@ func TestNewDbDirectory_RestoresDataFromExistingDbFiles(t *testing.T) {
 
 	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
 
+	c.FakeClock.Advance(expiration)
+	time.Sleep(40 * time.Microsecond)
+
+	conn3, err := sutNew.Open(c.DbId.String())
+	is.NoErr(err)
+
+	is.True(conn2 != conn3) //conn2 should be expired by now, therefore conn3 should be a new connection
+
+	connHasNoRows(conn3, is)
 }
+
+func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T) {
+	is := is.New(t)
+
+	expectedNumber := 282 
+
+	expiration := 60 * time.Second
+	c := newConfig(t).withExpiration(expiration)
+
+	sutOld := c.CreateSut()
+
+	conn1, err := sutOld.Open(c.DbId.String())
+	is.NoErr(err)
+
+	result := conn1.Create(&testData{Number: expectedNumber})
+	is.NoErr(result.Error)
+
+	errs := sutOld.Close()
+	is.Equal(len(errs), 0) // closing sut yielded some errors
+	
+	sutNew := c.CreateSut()
+
+	c.FakeClock.Advance(expiration)
+	time.Sleep(40 * time.Microsecond)
+
+	conn3, err := sutNew.Open(c.DbId.String())
+	is.NoErr(err)
+
+	is.True(conn1 != conn3) //conn2 should be expired by now, therefore conn3 should be a new connection
+
+	connHasNoRows(conn3, is)
+}
+
+func connHasNoRows(conn *gorm.DB, is *is.I) {
+	var datas []testData
+	result := conn.Find(&datas)
+	is.NoErr(result.Error)
+
+	is.Equal(len(datas), 0)
+}
+
 
 // func TestReadExistingDbs_IngnoresAlreadyExpired(t *testing.T) {
 // 	is := is.New(t)

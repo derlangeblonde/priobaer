@@ -29,8 +29,12 @@ type dbEntry struct {
 	expirationTimer clockwork.Timer
 }
 
-func NewDbDirectory(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) *DbDirectory {
-	return &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: make(map[string]*dbEntry, 0), clock: clock, models: models}
+func NewDbDirectory(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) (*DbDirectory, error) {
+	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: make(map[string]*dbEntry, 0), clock: clock, models: models}
+
+	err := dbdir.ReadExistingDbs()
+
+	return dbdir, err
 }
 
 func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
