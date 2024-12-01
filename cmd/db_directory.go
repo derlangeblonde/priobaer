@@ -32,7 +32,7 @@ type dbEntry struct {
 func NewDbDirectory(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) (*DbDirectory, error) {
 	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: make(map[string]*dbEntry, 0), clock: clock, models: models}
 
-	err := dbdir.ReadExistingDbs()
+	err := dbdir.restoreExistingDbs()
 
 	return dbdir, err
 }
@@ -46,7 +46,7 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 		return existingEntry.conn, nil
 	}
 
-	dbPath := d.Path(dbId)
+	dbPath := d.path(dbId)
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 
@@ -76,21 +76,42 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 	return db, err
 }
 
-func (d *DbDirectory) Get(dbId string) (*gorm.DB, bool) {
-	entry, ok := d.entries[dbId]
+func (d *DbDirectory) Close() []error {
+	d.bigLock.Lock()
+	defer d.bigLock.Unlock()
+	errs := make([]error, 0)
+	for dbId, entry := range d.entries {
+		conn, err := entry.conn.DB()
 
-	return entry.conn, ok
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		err = conn.Close()
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		if entry.expirationTimer == nil {
+			errs = append(errs, fmt.Errorf("No expiration timer found for %s.", dbId))
+		}
+
+		entry.expirationTimer.Stop()
+	}
+
+	return errs
 }
 
 func (d *DbDirectory) getExpirationDate(dbId string) (time.Time, error) {
-	db, ok := d.Get(dbId)
+	entry, ok := d.entries[dbId] 
 
 	if !ok {
 		return time.Time{}, fmt.Errorf("Requested expiration date for db that is not known to dbDirectory. dbId=%s", dbId)
 	}
 
 	var session Session
-	result := db.First(&session)
+	result := entry.conn.First(&session)
 
 	if result.Error != nil {
 		return time.Time{}, result.Error
@@ -99,7 +120,7 @@ func (d *DbDirectory) getExpirationDate(dbId string) (time.Time, error) {
 	return session.ExpiresAt, nil
 }
 
-func (d *DbDirectory) ReadExistingDbs() error {
+func (d *DbDirectory) restoreExistingDbs() error {
 	fsEntries, err := os.ReadDir(d.rootDir)
 
 	if err != nil {
@@ -129,34 +150,8 @@ func (d *DbDirectory) ReadExistingDbs() error {
 	return nil
 }
 
-func (d *DbDirectory) Close() []error {
-	d.bigLock.Lock()
-	defer d.bigLock.Unlock()
-	errs := make([]error, 0)
-	for dbId, entry := range d.entries {
-		conn, err := entry.conn.DB()
 
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		err = conn.Close()
-
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		if entry.expirationTimer == nil {
-			errs = append(errs, fmt.Errorf("No expiration timer found for %s.", dbId))
-		}
-
-		entry.expirationTimer.Stop()
-	}
-
-	return errs
-}
-
-func (d *DbDirectory) Remove(dbId string) error {
+func (d *DbDirectory) remove(dbId string) error {
 	d.bigLock.Lock()
 	defer d.bigLock.Unlock()
 	entry, ok := d.entries[dbId] 
@@ -177,7 +172,7 @@ func (d *DbDirectory) Remove(dbId string) error {
 		slog.Warn("Tried to close connection do db, but got an error", "err", err)
 	}
 
-	dbPath := d.Path(dbId)
+	dbPath := d.path(dbId)
 	err = os.Remove(dbPath)
 
 	if err != nil {
@@ -188,7 +183,7 @@ func (d *DbDirectory) Remove(dbId string) error {
 }
 
 
-func (d *DbDirectory) Path(dbId string) string {
+func (d *DbDirectory) path(dbId string) string {
 	return path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
 }
 
@@ -207,7 +202,7 @@ func (d *DbDirectory) scheduleRemoval(dbId string) {
 
 	if now == expirationDate || now.After(expirationDate) {
 		slog.Info("Called scheduleRemoval for DB that is already expired. Removing now")
-		err := d.Remove(dbId)
+		err := d.remove(dbId)
 
 		if err != nil {
 			slog.Error("Could not remove db :(", "err", err)
@@ -219,7 +214,7 @@ func (d *DbDirectory) scheduleRemoval(dbId string) {
 	expireIn := expirationDate.Sub(d.clock.Now())
 
 	expirationTimer := d.clock.AfterFunc(expireIn, func() {
-		err := d.Remove(dbId)
+		err := d.remove(dbId)
 
 		if err != nil {
 			slog.Error("Could not remove db :(", "err", err)

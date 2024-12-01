@@ -41,10 +41,10 @@ func InjectDB(dbDirectory *DbDirectory) gin.HandlerFunc {
 		sessionId, ok := getSessionId(c)
 
 		if ok {
-			conn, ok := dbDirectory.Get(sessionId)
+			conn, err := dbDirectory.Open(sessionId)
 
-			if !ok {
-				slog.Error("SessionId existed, but no db-connection was found.")
+			if err != nil {
+				slog.Error("SessionId existed, but there was an error when opening db-conn", "err", err)
 				c.AbortWithStatus(http.StatusInternalServerError)
 			}
 
