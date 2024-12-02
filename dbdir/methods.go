@@ -1,0 +1,84 @@
+package dbdir
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/jonboulle/clockwork"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
+
+func New(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) (*DbDirectory, error) {
+	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: make(map[string]*entry, 0), clock: clock, models: models}
+
+	err := dbdir.restoreExistingDbs()
+
+	return dbdir, err
+}
+
+func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
+	d.bigLock.Lock()
+	defer d.bigLock.Unlock()
+
+	existingEntry, ok := d.entries[dbId]
+
+	if ok {
+		return existingEntry.conn, nil
+	}
+
+	dbPath := d.path(dbId)
+
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	d.entries[dbId] = &entry{conn: db}
+	db.AutoMigrate(d.models...)
+	db.AutoMigrate(&session{})
+
+	var count int64
+	db.Model(&session{}).Count(&count)
+
+	if count == 0 {
+		db.Create(&session{ExpiresAt: d.clock.Now().Add(d.maxAge)})
+	}
+
+	if count > 1 {
+		return nil, fmt.Errorf("Critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count)
+	}
+
+	d.scheduleRemoval(dbId)
+
+	return db, err
+}
+
+func (d *DbDirectory) Close() []error {
+	d.bigLock.Lock()
+	defer d.bigLock.Unlock()
+
+	errs := make([]error, 0)
+	for dbId, entry := range d.entries {
+		conn, err := entry.conn.DB()
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		err = conn.Close()
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		if entry.expirationTimer == nil {
+			errs = append(errs, fmt.Errorf("No expiration timer found for %s.", dbId))
+		}
+
+		entry.expirationTimer.Stop()
+	}
+
+	return errs
+}

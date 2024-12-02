@@ -1,69 +1,17 @@
-package cmd
+package dbdir_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jonboulle/clockwork"
 	"github.com/matryer/is"
-	"gorm.io/gorm"
 )
-
-type defaultTestSetup struct {
-	TmpDir string
-	FakeClock clockwork.FakeClock
-	DbId uuid.UUID 
-	Sut *DbDirectory
-}
-
-type testData struct {
-	gorm.Model
-	Number int
-}
-
-type config struct {
-	TmpDir string
-	FakeClock clockwork.FakeClock
-	DbId uuid.UUID 
-	Expiration time.Duration
-	Models []any
-	T *testing.T
-}
-
-func newConfig(t *testing.T) *config {
-	return &config{
-		TmpDir: t.TempDir(),
-		FakeClock:  clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local)),
-		DbId: uuid.New(),
-		Expiration: 60 * time.Second,
-		Models:[]any{&testData{}},
-		T: t ,
-	}
-}
-
-func (c *config) withExpiration(e time.Duration) *config {
-	c.Expiration = e
-
-	return c
-}
-
-func (c *config) CreateSut() *DbDirectory {
-	sut, err := NewDbDirectory(c.TmpDir, c.Expiration, c.FakeClock, c.Models)
-
-	if err != nil {
-		c.T.Fatalf("Could not create sut, err: %v", err)
-	}
-
-	return sut
-}
-
 
 func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
 	is := is.New(t)
-	
+
 	c := newConfig(t)
-	sut := c.CreateSut()
+	sut := c.createSut()
 	id := c.DbId
 
 	conn1, err := sut.Open(id.String())
@@ -79,7 +27,7 @@ func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
 	is := is.New(t)
 
 	c := newConfig(t)
-	sut := c.CreateSut()
+	sut := c.createSut()
 	expectedNumber := 42
 
 	conn1, err := sut.Open(c.DbId.String())
@@ -98,7 +46,6 @@ func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
 	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
 }
 
-
 func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
 	is := is.New(t)
 
@@ -106,7 +53,7 @@ func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
 
 	c := newConfig(t).withExpiration(expiration)
 
-	sut := c.CreateSut()
+	sut := c.createSut()
 
 	conn1, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
@@ -120,7 +67,6 @@ func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
 	is.True(conn1 != conn2) // after db expired open should return a new connection
 }
 
-
 func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 	is := is.New(t)
 
@@ -129,7 +75,7 @@ func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 
 	c := newConfig(t).withExpiration(expiration)
 
-	sut := c.CreateSut()
+	sut := c.createSut()
 
 	conn1, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
@@ -151,12 +97,12 @@ func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 func TestNewDbDirectory_RestoresDataAndExpirationFromExistingDbFiles(t *testing.T) {
 	is := is.New(t)
 
-	expectedNumber := 282 
+	expectedNumber := 282
 
 	expiration := 60 * time.Second
 	c := newConfig(t).withExpiration(expiration)
 
-	sutOld := c.CreateSut()
+	sutOld := c.createSut()
 
 	conn1, err := sutOld.Open(c.DbId.String())
 	is.NoErr(err)
@@ -166,8 +112,8 @@ func TestNewDbDirectory_RestoresDataAndExpirationFromExistingDbFiles(t *testing.
 
 	errs := sutOld.Close()
 	is.Equal(len(errs), 0) // closing sut yielded some errors
-	
-	sutNew := c.CreateSut()
+
+	sutNew := c.createSut()
 
 	conn2, err := sutNew.Open(c.DbId.String())
 	is.NoErr(err)
@@ -194,12 +140,12 @@ func TestNewDbDirectory_RestoresDataAndExpirationFromExistingDbFiles(t *testing.
 func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T) {
 	is := is.New(t)
 
-	expectedNumber := 282 
+	expectedNumber := 282
 
 	expiration := 60 * time.Second
 	c := newConfig(t).withExpiration(expiration)
 
-	sutOld := c.CreateSut()
+	sutOld := c.createSut()
 
 	conn1, err := sutOld.Open(c.DbId.String())
 	is.NoErr(err)
@@ -209,8 +155,8 @@ func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T)
 
 	errs := sutOld.Close()
 	is.Equal(len(errs), 0) // closing sut yielded some errors
-	
-	sutNew := c.CreateSut()
+
+	sutNew := c.createSut()
 
 	c.FakeClock.Advance(expiration)
 	time.Sleep(40 * time.Microsecond)
@@ -222,12 +168,3 @@ func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T)
 
 	connHasNoRows(conn3, is)
 }
-
-func connHasNoRows(conn *gorm.DB, is *is.I) {
-	var datas []testData
-	result := conn.Find(&datas)
-	is.NoErr(result.Error)
-
-	is.Equal(len(datas), 0)
-}
-

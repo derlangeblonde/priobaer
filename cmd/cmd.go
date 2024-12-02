@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jonboulle/clockwork"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/dbdir"
 	"softbaer.dev/ass/view"
 )
 
@@ -51,7 +52,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		},
 	)
 
-	dbDirectory, err := NewDbDirectory(config.DbRootDir, config.SessionMaxAge, clock, []any{&Course{}, &Participant{}})
+	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&Course{}, &Participant{}})
 
 	if err != nil {
 		panic(err)

@@ -51,15 +51,15 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 
 	dbFilesCount, err := countSQLiteFiles(dbDir)
 	is.NoErr(err) // failure while counting sqlite files
-	is.Equal(dbFilesCount, 1)
+	is.Equal(dbFilesCount, 1) // there should be exactly *one* db-file after first user request
 
 	fakeClock.Advance(aDayInSeconds * time.Second)
-	time.Sleep(40 * time.Microsecond)
+	time.Sleep(50 * time.Microsecond)
 
 	dbFilesCount, err = countSQLiteFiles(dbDir)
 	is.NoErr(err) // failure while counting sqlite files
-	is.Equal(dbFilesCount, 0)
-}
+	is.Equal(dbFilesCount, 0) // there should be *no* db-file after expiration period
+} 
 
 func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	is := is.New(t)

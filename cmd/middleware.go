@@ -4,24 +4,19 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
-	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/dbdir"
 )
 
 const sessionIdKey = "session_id"
 const dbKey = "db"
 
 
-type Session struct {
-	gorm.Model
-	ExpiresAt time.Time
-}
-
-func InjectDB(dbDirectory *DbDirectory) gin.HandlerFunc {
+func InjectDB(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		whitelist := []string{
