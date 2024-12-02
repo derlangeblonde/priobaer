@@ -63,12 +63,10 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 
 	if count == 0 {
 		db.Create(&Session{ExpiresAt: d.clock.Now().Add(d.maxAge)})
-	} else {
-		slog.Info("Session already set, this seems to be an existing db", "dbId", dbId)
-	}
+	} 
 
 	if count > 1 {
-		panic(fmt.Sprintf("Critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count))
+		return nil, fmt.Errorf("Critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count)
 	}
 
 	d.scheduleRemoval(dbId)
@@ -188,9 +186,7 @@ func (d *DbDirectory) path(dbId string) string {
 }
 
 func (d *DbDirectory) scheduleRemoval(dbId string) {
-	slog.Error("about to schedule")
 	expirationDate, err := d.getExpirationDate(dbId)
-	slog.Error("determined exp", "exp", expirationDate)
 
 	if err != nil {
 		slog.Error("Could not get expiration date. This db will not be scheduled for removal", "err", err)	

@@ -19,7 +19,7 @@ import (
 //go:embed favicon.ico
 var faviconBytes []byte
 
-func Run(ctx context.Context, getenv func(string) string) error {
+func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock) error {
 	router := gin.Default()
 
 	templates, err := view.LoadTemplate()
@@ -51,7 +51,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 		},
 	)
 
-	dbDirectory, err := NewDbDirectory(config.DbRootDir, config.SessionMaxAge, clockwork.NewRealClock(), []any{&Course{}, &Participant{}})
+	dbDirectory, err := NewDbDirectory(config.DbRootDir, config.SessionMaxAge, clock, []any{&Course{}, &Participant{}})
 
 	if err != nil {
 		panic(err)

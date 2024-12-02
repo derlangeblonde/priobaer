@@ -14,12 +14,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jonboulle/clockwork"
 	"github.com/matryer/is"
 	"golang.org/x/net/html"
 	"softbaer.dev/ass/cmd"
 )
 
 const localhost8080 string = "http://localhost:8080"
+
+func defaultFakeClock() clockwork.FakeClock {
+	return clockwork.NewFakeClockAt(time.Date(2001, 1, 1, 12, 5, 0, 0, time.Local))
+}
 
 type TestContext struct {
 	T       *testing.T
@@ -29,12 +34,13 @@ type TestContext struct {
 
 func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	is := is.New(t)
+	fakeClock := defaultFakeClock()
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "1")
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "10000")
 
-	err, cancel := StartupSystemUnderTest(t, mockEnv)
+	err, cancel := StartupSystemUnderTestWithFakeClock(t, mockEnv, fakeClock)
 	defer cancel()
 	is.NoErr(err)
 
@@ -46,7 +52,8 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	is.NoErr(err) // failure while counting sqlite files
 	is.Equal(dbFilesCount, 1)
 
-	<-time.After(time.Millisecond * 2)
+	fakeClock.Advance(10000 * time.Millisecond)
+	time.Sleep(40 * time.Microsecond)
 
 	dbFilesCount, err = countSQLiteFiles(dbDir)
 	is.NoErr(err) // failure while counting sqlite files
@@ -62,7 +69,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, mockEnv)
+	go cmd.Run(ctx, mockEnv, defaultFakeClock())
 
 	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
@@ -78,7 +85,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	go cmd.Run(ctx, mockEnv)
+	go cmd.Run(ctx, mockEnv, defaultFakeClock())
 	err = defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
@@ -174,6 +181,10 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 }
 
 func StartupSystemUnderTest(t *testing.T, env func(string) string) (error, context.CancelFunc) {
+	return StartupSystemUnderTestWithFakeClock(t, env, defaultFakeClock())
+}
+
+func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, fakeClock clockwork.Clock) (error, context.CancelFunc) {
 	dbDir := MakeTestingDbDir(t)
 
 	if env == nil {
@@ -182,7 +193,7 @@ func StartupSystemUnderTest(t *testing.T, env func(string) string) (error, conte
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, env)
+	go cmd.Run(ctx, env, fakeClock)
 
 	return waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health"), cancel
 }
@@ -219,7 +230,7 @@ func NewTestContext(t *testing.T, baseUrl string) *TestContext {
 }
 
 func defaultWaitForReady() error {
-	return waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
+	return waitForReady(time.Millisecond*200, 20, "http://localhost:8080/health")
 }
 
 func waitForReady(
