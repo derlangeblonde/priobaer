@@ -21,6 +21,7 @@ import (
 )
 
 const localhost8080 string = "http://localhost:8080"
+const aDayInSeconds = 60 * 60 * 24
 
 func defaultFakeClock() clockwork.FakeClock {
 	return clockwork.NewFakeClockAt(time.Date(2001, 1, 1, 12, 5, 0, 0, time.Local))
@@ -38,7 +39,7 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "10000")
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
 
 	err, cancel := StartupSystemUnderTestWithFakeClock(t, mockEnv, fakeClock)
 	defer cancel()
@@ -52,7 +53,7 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	is.NoErr(err) // failure while counting sqlite files
 	is.Equal(dbFilesCount, 1)
 
-	fakeClock.Advance(10000 * time.Millisecond)
+	fakeClock.Advance(aDayInSeconds * time.Second)
 	time.Sleep(40 * time.Microsecond)
 
 	dbFilesCount, err = countSQLiteFiles(dbDir)
@@ -65,7 +66,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "3600000")
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -188,7 +189,7 @@ func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, 
 	dbDir := MakeTestingDbDir(t)
 
 	if env == nil {
-		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE_MILLI_SECONDS", "3600000")
+		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

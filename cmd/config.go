@@ -22,19 +22,19 @@ func ParseConfig(getenv func(string) string) (Config, error) {
 
 	config.DbRootDir = dbRootDir
 
-	sessionMaxAgeString := getenv("SESSION_MAX_AGE_MILLI_SECONDS")
+	sessionMaxAgeString := getenv("SESSION_MAX_AGE")
 
 	if sessionMaxAgeString == "" {
-		return config, errors.New("SESSION_MAX_AGE_MILLI_SECONDS not set")
+		return config, errors.New("SESSION_MAX_AGE not set")
 	}
 
-	sessionMaxAgeMilliSeconds, err := strconv.Atoi(sessionMaxAgeString)
+	sessionMaxAge, err := strconv.Atoi(sessionMaxAgeString)
 
 	if err != nil {
 		return config, err
 	}
 
-	config.SessionMaxAge = time.Millisecond * time.Duration(sessionMaxAgeMilliSeconds)
+	config.SessionMaxAge = time.Second * time.Duration(sessionMaxAge)
 
 	return config, nil
 }
