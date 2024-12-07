@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,6 +32,29 @@ type TestContext struct {
 	T       *testing.T
 	client  *http.Client
 	baseUrl *url.URL
+}
+
+func TestConcurrentRequests(t *testing.T) {
+	requestCount := 10
+
+	is := is.New(t)
+
+	err, cancel := StartupSystemUnderTest(t, nil)
+	defer cancel()
+	is.NoErr(err)
+
+	wg := sync.WaitGroup{}
+	wg.Add(requestCount)
+
+	testCtx := NewTestContext(t, localhost8080)
+
+	testCtx.AcquireSessionCookie()
+
+	for i := 0; i < requestCount; i++ {
+		go testCtx.CoursesCreateAction(fmt.Sprintf("test%d", i), 5, 10, &wg)	
+	}
+	
+	wg.Wait()
 }
 
 func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
@@ -78,7 +102,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	testCtx := NewTestContext(t, "http://localhost:8080")
 
 	testCtx.AcquireSessionCookie()
-	testCtx.CoursesCreateAction("foo", 5, 25)
+	testCtx.CoursesCreateAction("foo", 5, 25, nil)
 
 	cancel()
 	waitForTermination(time.Millisecond*200, 8, "http://localhost:8080/health")
@@ -108,7 +132,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 	ctx := NewTestContext(t, "http://localhost:8080")
 
 	ctx.AcquireSessionCookie()
-	ctx.CoursesCreateAction("foo", 5, 25)
+	ctx.CoursesCreateAction("foo", 5, 25, nil)
 	courses := ctx.CoursesIndexAction()
 
 	is.Equal(len(courses), 1)
@@ -137,7 +161,11 @@ func (c *TestContext) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestContext) CoursesCreateAction(name string, minCap, maxCap int) {
+func (c *TestContext) CoursesCreateAction(name string, minCap, maxCap int, finish *sync.WaitGroup) {
+	if finish != nil {
+		defer finish.Done()
+	}
+
 	is := is.New(c.T)
 
 	form := url.Values{}
@@ -172,7 +200,7 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 
 	for _, div := range divs {
 		var course cmd.Course
-		err := unmarshal[cmd.Course](&course, div)
+		err := unmarshal(&course, div)
 		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
 
 		courses = append(courses, course)
