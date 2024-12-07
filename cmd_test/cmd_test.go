@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"sync"
 	"testing"
@@ -36,32 +37,55 @@ type TestContext struct {
 }
 
 func TestConcurrentRequests(t *testing.T) {
-	requestCount := 10
+	clientCount := 10
+	requestCount := 5 
 
 	is := is.New(t)
 
-	err, cancel := StartupSystemUnderTest(t, nil)
-	defer cancel()
+	dbDir := MakeTestingDbDir(t)
+
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
+
+	err, cancel := StartupSystemUnderTest(t, mockEnv)
+	defer waitForTerminationDefault(cancel)
 	is.NoErr(err)
 
-	wg := sync.WaitGroup{}
-	wg.Add(requestCount)
+	outerWg := sync.WaitGroup{}
+	outerWg.Add(clientCount)
+	for i := 0; i < clientCount; i++ {
+		go func() {
+			wg := sync.WaitGroup{}
+			wg.Add(requestCount)
 
-	testCtx := NewTestContext(t, localhost8080)
+			testCtx := NewTestContext(t, localhost8080)
 
-	testCtx.AcquireSessionCookie()
+			testCtx.AcquireSessionCookie()
 
-	var expectedCourses []cmd.Course
+			var expectedCourses []cmd.Course
 
-	for i := 0; i < requestCount; i++ {
-		expectedCourses = append(expectedCourses, RandomCourse())
+			for i := 0; i < requestCount; i++ {
+				expectedCourses = append(expectedCourses, RandomCourse())
+			}
+
+			for _, course := range expectedCourses {
+				go testCtx.CoursesCreateAction(course, &wg)	
+			}
+			
+			wg.Wait()
+
+			actualCourses := testCtx.CoursesIndexAction()
+
+			is.Equal(len(actualCourses), len(expectedCourses)) // all courses were created
+
+			for _, actualCourse := range actualCourses {
+				is.True(slices.Contains(expectedCourses, actualCourse)) // actualCourse not in expectedCourses
+			}
+			
+			outerWg.Done()
+		}()
 	}
 
-	for _, course := range expectedCourses {
-		go testCtx.CoursesCreateAction(course, &wg)	
-	}
-	
-	wg.Wait()
+	outerWg.Wait()
 }
 
 func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
@@ -73,7 +97,7 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
 
 	err, cancel := StartupSystemUnderTestWithFakeClock(t, mockEnv, fakeClock)
-	defer cancel()
+	defer waitForTerminationDefault(cancel)
 	is.NoErr(err)
 
 	testCtx := NewTestContext(t, localhost8080)
@@ -113,11 +137,10 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	expectedCourse := RandomCourse()
 	testCtx.CoursesCreateAction(expectedCourse, nil)
 
-	cancel()
-	waitForTermination(time.Millisecond*200, 8, "http://localhost:8080/health")
+	waitForTerminationDefault(cancel)
 
 	ctx, cancel = context.WithCancel(context.Background())
-	defer cancel()
+	defer waitForTerminationDefault(cancel)
 
 	go cmd.Run(ctx, mockEnv, defaultFakeClock())
 	err = defaultWaitForReady()
@@ -135,7 +158,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
 	err, cancel := StartupSystemUnderTest(t, nil)
-	defer cancel()
+	defer waitForTerminationDefault(cancel)
 	is.NoErr(err)
 
 	ctx := NewTestContext(t, "http://localhost:8080")
@@ -202,7 +225,6 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	is.NoErr(err) // could not parse response html
 
 	divs := findCoursesDivs(doc)
-	is.Equal(len(divs), 1)
 
 	courses := make([]cmd.Course, 0)
 
@@ -305,11 +327,17 @@ func waitForReady(
 	return fmt.Errorf("timeout reached while waiting for endpoint")
 }
 
+func waitForTerminationDefault(cancel context.CancelFunc) error {
+	return waitForTermination(time.Millisecond*200, 8, "http://localhost:8080/health", cancel)
+}
+
 func waitForTermination(
 	interval time.Duration,
 	retries int,
 	endpoint string,
+	cancel context.CancelFunc,
 ) error {
+	cancel()
 	client := http.Client{}
 	for i := 0; i < retries; i++ {
 		timer := time.NewTimer(interval)
