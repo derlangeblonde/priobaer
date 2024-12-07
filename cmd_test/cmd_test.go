@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"sync"
 	"testing"
@@ -50,8 +51,14 @@ func TestConcurrentRequests(t *testing.T) {
 
 	testCtx.AcquireSessionCookie()
 
+	var expectedCourses []cmd.Course
+
 	for i := 0; i < requestCount; i++ {
-		go testCtx.CoursesCreateAction(fmt.Sprintf("test%d", i), 5, 10, &wg)	
+		expectedCourses = append(expectedCourses, RandomCourse())
+	}
+
+	for _, course := range expectedCourses {
+		go testCtx.CoursesCreateAction(course, &wg)	
 	}
 	
 	wg.Wait()
@@ -102,7 +109,9 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	testCtx := NewTestContext(t, "http://localhost:8080")
 
 	testCtx.AcquireSessionCookie()
-	testCtx.CoursesCreateAction("foo", 5, 25, nil)
+
+	expectedCourse := RandomCourse()
+	testCtx.CoursesCreateAction(expectedCourse, nil)
 
 	cancel()
 	waitForTermination(time.Millisecond*200, 8, "http://localhost:8080/health")
@@ -117,9 +126,9 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	courses := testCtx.CoursesIndexAction()
 
 	is.Equal(len(courses), 1)
-	is.Equal(courses[0].Name, "foo")
-	is.Equal(courses[0].MinCapacity, 5)
-	is.Equal(courses[0].MaxCapacity, 25)
+	is.Equal(courses[0].Name, expectedCourse.Name)
+	is.Equal(courses[0].MinCapacity, expectedCourse.MinCapacity)
+	is.Equal(courses[0].MaxCapacity, expectedCourse.MaxCapacity)
 }
 
 func TestCreateAndReadCourse(t *testing.T) {
@@ -132,13 +141,12 @@ func TestCreateAndReadCourse(t *testing.T) {
 	ctx := NewTestContext(t, "http://localhost:8080")
 
 	ctx.AcquireSessionCookie()
-	ctx.CoursesCreateAction("foo", 5, 25, nil)
+	expectedCourse := RandomCourse()
+	ctx.CoursesCreateAction(expectedCourse, nil)
 	courses := ctx.CoursesIndexAction()
 
 	is.Equal(len(courses), 1)
-	is.Equal(courses[0].Name, "foo")
-	is.Equal(courses[0].MinCapacity, 5)
-	is.Equal(courses[0].MaxCapacity, 25)
+	is.True(reflect.DeepEqual(courses[0] , expectedCourse)) // created and retrieved course should be the same
 }
 
 func (c *TestContext) AcquireSessionCookie() {
@@ -161,7 +169,7 @@ func (c *TestContext) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestContext) CoursesCreateAction(name string, minCap, maxCap int, finish *sync.WaitGroup) {
+func (c *TestContext) CoursesCreateAction(course cmd.Course, finish *sync.WaitGroup) {
 	if finish != nil {
 		defer finish.Done()
 	}
@@ -169,9 +177,9 @@ func (c *TestContext) CoursesCreateAction(name string, minCap, maxCap int, finis
 	is := is.New(c.T)
 
 	form := url.Values{}
-	form.Add("name", name)
-	form.Add("max-capacity", strconv.Itoa(maxCap))
-	form.Add("min-capacity", strconv.Itoa(minCap))
+	form.Add("name", course.Name)
+	form.Add("max-capacity", strconv.Itoa(course.MaxCapacity))
+	form.Add("min-capacity", strconv.Itoa(course.MinCapacity))
 	resp, err := c.client.PostForm("http://localhost:8080/courses", form)
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
