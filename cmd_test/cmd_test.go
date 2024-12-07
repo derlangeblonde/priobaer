@@ -41,9 +41,9 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 	wg := sync.WaitGroup{}
 	wg.Add(requestCount)
 
-	testCtx := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost8080)
 
-	testCtx.AcquireSessionCookie()
+	testClient.AcquireSessionCookie()
 
 	var expectedCourses []cmd.Course
 
@@ -52,12 +52,12 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 	}
 
 	for _, course := range expectedCourses {
-		go testCtx.CoursesCreateAction(course, &wg)
+		go testClient.CoursesCreateAction(course, &wg)
 	}
 
 	wg.Wait()
 
-	actualCourses := testCtx.CoursesIndexAction()
+	actualCourses := testClient.CoursesIndexAction()
 
 	is.Equal(len(actualCourses), len(expectedCourses)) // all courses were created
 
@@ -76,9 +76,9 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	defer waitForTerminationDefault(sut.cancel)
 	is.NoErr(err)
 
-	testCtx := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost8080)
 
-	testCtx.AcquireSessionCookie()
+	testClient.AcquireSessionCookie()
 
 	dbFilesCount, err := countSQLiteFiles(sut.dbDir)
 	is.NoErr(err)             // failure while counting sqlite files
@@ -106,12 +106,12 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
-	testCtx := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost8080)
 
-	testCtx.AcquireSessionCookie()
+	testClient.AcquireSessionCookie()
 
 	expectedCourse := RandomCourse()
-	testCtx.CoursesCreateAction(expectedCourse, nil)
+	testClient.CoursesCreateAction(expectedCourse, nil)
 
 	waitForTerminationDefault(cancel)
 
@@ -122,7 +122,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	err = defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
-	courses := testCtx.CoursesIndexAction()
+	courses := testClient.CoursesIndexAction()
 
 	is.Equal(len(courses), 1)
 	is.Equal(courses[0].Name, expectedCourse.Name)
