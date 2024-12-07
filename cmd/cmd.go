@@ -141,8 +141,8 @@ func CoursesNew() gin.HandlerFunc {
 func CoursesCreate() gin.HandlerFunc {
 	type request struct {
 		Name        string `form:"name" binding:"required"`
-		MaxCapacity int    `form:"max-capacity" binding:"required"`
-		MinCapacity int    `form:"min-capacity" binding:"required"`
+		MaxCapacity *int    `form:"max-capacity" binding:"required"`
+		MinCapacity *int    `form:"min-capacity" binding:"required"`
 	}
 
 	return func(c *gin.Context) {
@@ -152,10 +152,11 @@ func CoursesCreate() gin.HandlerFunc {
 		err := c.Bind(&req)
 
 		if err != nil {
+			slog.Error("Could not bind request to when creating course", "err", err)
 			return
 		}
 
-		course := Course{Name: req.Name, MaxCapacity: req.MaxCapacity, MinCapacity: req.MinCapacity}
+		course := Course{Name: req.Name, MaxCapacity: *req.MaxCapacity, MinCapacity: *req.MinCapacity}
 		result := db.Create(&course)
 
 		if result.Error != nil {

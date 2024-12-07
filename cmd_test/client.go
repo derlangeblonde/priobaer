@@ -1,0 +1,117 @@
+package cmdtest
+
+import (
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
+	"strconv"
+	"sync"
+	"testing"
+
+	"github.com/matryer/is"
+	"golang.org/x/net/html"
+	"softbaer.dev/ass/cmd"
+)
+
+type TestClient struct {
+	T       *testing.T
+	client  *http.Client
+	baseUrl *url.URL
+}
+
+func NewTestClient(t *testing.T, baseUrl string) *TestClient {
+	is := is.New(t)
+	jar, err := cookiejar.New(nil)
+	is.NoErr(err) // create cookie jar failed
+
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Jar: jar,
+	}
+
+	baseUrlParsed, err := url.Parse(baseUrl)
+	is.NoErr(err) // could not parse baseUrl
+
+	testClient := TestClient{T: t, client: &client, baseUrl: baseUrlParsed}
+
+	return &testClient
+}
+
+func (c *TestClient) AcquireSessionCookie() {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get(c.Endpoint("index"))
+	is.NoErr(err) // post request failed
+	defer resp.Body.Close()
+
+	is.Equal(resp.StatusCode, 200)
+
+	cookies := resp.Cookies()
+	is.Equal(len(cookies), 1)
+
+	// Workaround to send cookies along although we are testing with a non-secure local http-server
+	for _, cookie := range cookies {
+		cookie.Secure = false
+	}
+
+	c.client.Jar.SetCookies(c.baseUrl, cookies)
+}
+
+func (c *TestClient) CoursesCreateAction(course cmd.Course, finish *sync.WaitGroup) {
+	if finish != nil {
+		defer finish.Done()
+	}
+
+	is := is.New(c.T)
+
+	form := url.Values{}
+	form.Add("name", course.Name)
+	form.Add("max-capacity", strconv.Itoa(course.MaxCapacity))
+	form.Add("min-capacity", strconv.Itoa(course.MinCapacity))
+	resp, err := c.client.PostForm(c.Endpoint("courses"), form)
+	is.NoErr(err) // post request failed
+	defer resp.Body.Close()
+
+	is.Equal(resp.StatusCode, 303)
+	location, err := resp.Location()
+	is.NoErr(err) // could not get location of the redirect response
+
+	is.Equal(location.Path, "/courses")
+}
+
+func (c *TestClient) CoursesIndexAction() []cmd.Course {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get(c.Endpoint("courses"))
+	is.NoErr(err) // get request failed
+	defer resp.Body.Close()
+
+	doc, err := html.Parse(resp.Body)
+	is.NoErr(err) // could not parse response html
+
+	divs := findCoursesDivs(doc)
+
+	courses := make([]cmd.Course, 0)
+
+	for _, div := range divs {
+		var course cmd.Course
+		err := unmarshal(&course, div)
+		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
+
+		courses = append(courses, course)
+	}
+
+	return courses
+}
+
+func (c *TestClient) Endpoint(path string) string {
+	url := url.URL{
+		Scheme: c.baseUrl.Scheme,
+		Host: c.baseUrl.Host,
+		Path: path,
+	}
+
+	return url.String()
+}
