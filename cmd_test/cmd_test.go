@@ -106,7 +106,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
-	testCtx := NewTestClient(t, "http://localhost:8080")
+	testCtx := NewTestClient(t, localhost8080)
 
 	testCtx.AcquireSessionCookie()
 

@@ -42,7 +42,7 @@ func NewTestClient(t *testing.T, baseUrl string) *TestClient {
 func (c *TestClient) AcquireSessionCookie() {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get("http://localhost:8080/index")
+	resp, err := c.client.Get(c.Endpoint("index"))
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
@@ -70,7 +70,7 @@ func (c *TestClient) CoursesCreateAction(course cmd.Course, finish *sync.WaitGro
 	form.Add("name", course.Name)
 	form.Add("max-capacity", strconv.Itoa(course.MaxCapacity))
 	form.Add("min-capacity", strconv.Itoa(course.MinCapacity))
-	resp, err := c.client.PostForm("http://localhost:8080/courses", form)
+	resp, err := c.client.PostForm(c.Endpoint("courses"), form)
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
@@ -84,7 +84,7 @@ func (c *TestClient) CoursesCreateAction(course cmd.Course, finish *sync.WaitGro
 func (c *TestClient) CoursesIndexAction() []cmd.Course {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get("http://localhost:8080/courses")
+	resp, err := c.client.Get(c.Endpoint("courses"))
 	is.NoErr(err) // get request failed
 	defer resp.Body.Close()
 
@@ -104,4 +104,14 @@ func (c *TestClient) CoursesIndexAction() []cmd.Course {
 	}
 
 	return courses
+}
+
+func (c *TestClient) Endpoint(path string) string {
+	url := url.URL{
+		Scheme: c.baseUrl.Scheme,
+		Host: c.baseUrl.Host,
+		Path: path,
+	}
+
+	return url.String()
 }
