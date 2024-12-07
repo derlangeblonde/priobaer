@@ -11,20 +11,34 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/jonboulle/clockwork"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/dbdir"
 	"softbaer.dev/ass/view"
 )
 
 //go:embed favicon.ico
 var faviconBytes []byte
 
-func Run(ctx context.Context, getenv func(string) string) error {
+func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock) error {
 	router := gin.Default()
 
 	templates, err := view.LoadTemplate()
 
 	if err != nil {
 		panic(err)
+	}
+
+	config, err := ParseConfig(getenv)
+
+	if err != nil {
+		panic(fmt.Sprintf("Could not parse config from env, Err: %v. Panic...", err))
+	}
+
+	sessionMaxAgeSeconds := int(config.SessionMaxAge.Seconds())
+
+	if sessionMaxAgeSeconds == 0 {
+		sessionMaxAgeSeconds = 1
 	}
 
 	// TODO: (Prod) read secret from file
@@ -34,25 +48,18 @@ func Run(ctx context.Context, getenv func(string) string) error {
 			Secure:   true,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
-			MaxAge:   60 * 60 * 24,
+			MaxAge:   sessionMaxAgeSeconds,
 		},
 	)
 
-	dbRootDir := getenv("DB_ROOT_DIR")
-
-	if dbRootDir == "" {
-		panic("DB_ROOT_DIR not set. Panic...")
-	}
-
-	sessionDBMapper := NewSessionDBMapper(dbRootDir)
-	err = sessionDBMapper.ReadExistingSessions()
+	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&Course{}, &Participant{}})
 
 	if err != nil {
 		panic(err)
 	}
 
 	router.Use(sessions.Sessions("session", cookieStore))
-	router.Use(sessionDBMapper.InjectDB())
+	router.Use(InjectDB(dbDirectory))
 
 	router.SetHTMLTemplate(templates)
 
@@ -71,7 +78,7 @@ func Run(ctx context.Context, getenv func(string) string) error {
 
 	<-ctx.Done()
 	server.Shutdown(ctx)
-	errs := sessionDBMapper.TryCloseAllDbs()
+	errs := dbDirectory.Close()
 
 	if len(errs) != 0 {
 		slog.Error("Could not close all dbs", "errs", errs)

@@ -1,114 +1,22 @@
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
-	"path"
 	"slices"
-	"strings"
-	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/dbdir"
 )
 
 const sessionIdKey = "session_id"
 const dbKey = "db"
 
-type SessionDBMapper struct {
-	rootDir string
-	dbMap   map[string]*gorm.DB
-}
 
-func NewSessionDBMapper(rootDir string) SessionDBMapper {
-	return SessionDBMapper{rootDir: rootDir, dbMap: make(map[string]*gorm.DB, 0)}
-}
-
-func (d *SessionDBMapper) TryCloseAllDbs() []error {
-	errs := make([]error, 0)
-	for _, db := range d.dbMap {
-		conn, err := db.DB()
-
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		err = conn.Close()
-
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errs
-}
-
-func (d *SessionDBMapper) NewDB(dbId string) (*gorm.DB, error) {
-
-	dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", dbId))
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	d.dbMap[dbId] = db
-	db.AutoMigrate(&Session{}, &Course{}, &Participant{})
-	db.Create(&Session{ExpiresAt: time.Now().Add(time.Hour * 24)})
-
-	return db, err
-}
-
-func (d *SessionDBMapper) ReadExistingSessions() error {
-	fsEntries, err := os.ReadDir(d.rootDir)
-
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range fsEntries {
-		if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".sqlite") {
-			continue
-		}
-
-		candidateUuid := strings.Replace(entry.Name(), ".sqlite", "", 1)
-		_, err := uuid.Parse(candidateUuid)
-
-		if err != nil {
-			slog.Info("There was a file with sqlite file-extension, which name was not parsable as uuid", "filname", entry.Name())
-			continue
-		}
-
-		dbPath := path.Join(d.rootDir, fmt.Sprintf("%s.sqlite", candidateUuid))
-		db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
-
-		if err != nil {
-			return err
-		}
-
-		d.dbMap[candidateUuid] = db
-	}
-
-	return nil
-}
-
-func (d *SessionDBMapper) Get(dbId string) (*gorm.DB, bool) {
-	db, ok := d.dbMap[dbId]
-
-	return db, ok
-}
-
-type Session struct {
-	gorm.Model
-	ExpiresAt time.Time
-}
-
-func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
+func InjectDB(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		whitelist := []string{
@@ -128,10 +36,10 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 		sessionId, ok := getSessionId(c)
 
 		if ok {
-			conn, ok := d.Get(sessionId)
+			conn, err := dbDirectory.Open(sessionId)
 
-			if !ok {
-				slog.Error("SessionId existed, but no db-connection was found.")
+			if err != nil {
+				slog.Error("SessionId existed, but there was an error when opening db-conn", "err", err)
 				c.AbortWithStatus(http.StatusInternalServerError)
 			}
 
@@ -157,7 +65,7 @@ func (d *SessionDBMapper) InjectDB() gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		db, err := d.NewDB(newDbId.String())
+		db, err := dbDirectory.Open(newDbId.String())
 
 		if err != nil {
 			slog.Error("Failed while opening new sqlite in-memory connection", "err", err)

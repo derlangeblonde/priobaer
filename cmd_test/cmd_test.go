@@ -9,14 +9,23 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/jonboulle/clockwork"
 	"github.com/matryer/is"
 	"golang.org/x/net/html"
 	"softbaer.dev/ass/cmd"
 )
+
+const localhost8080 string = "http://localhost:8080"
+const aDayInSeconds = 60 * 60 * 24
+
+func defaultFakeClock() clockwork.FakeClock {
+	return clockwork.NewFakeClockAt(time.Date(2001, 1, 1, 12, 5, 0, 0, time.Local))
+}
 
 type TestContext struct {
 	T       *testing.T
@@ -24,53 +33,61 @@ type TestContext struct {
 	baseUrl *url.URL
 }
 
+func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
+	is := is.New(t)
+	fakeClock := defaultFakeClock()
+
+	dbDir := MakeTestingDbDir(t)
+
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
+
+	err, cancel := StartupSystemUnderTestWithFakeClock(t, mockEnv, fakeClock)
+	defer cancel()
+	is.NoErr(err)
+
+	testCtx := NewTestContext(t, localhost8080)
+
+	testCtx.AcquireSessionCookie()
+
+	dbFilesCount, err := countSQLiteFiles(dbDir)
+	is.NoErr(err) // failure while counting sqlite files
+	is.Equal(dbFilesCount, 1) // there should be exactly *one* db-file after first user request
+
+	fakeClock.Advance(aDayInSeconds * time.Second)
+	time.Sleep(50 * time.Microsecond)
+
+	dbFilesCount, err = countSQLiteFiles(dbDir)
+	is.NoErr(err) // failure while counting sqlite files
+	is.Equal(dbFilesCount, 0) // there should be *no* db-file after expiration period
+} 
+
 func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	is := is.New(t)
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := func(s string) string {
-		switch s {
-		case "DB_ROOT_DIR":
-			return dbDir
-		default:
-			return ""
-		}
-	}
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, mockEnv)
+	go cmd.Run(ctx, mockEnv, defaultFakeClock())
 
-	err := waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
-	jar, err := cookiejar.New(nil)
-	is.NoErr(err) // create cookie jar failed
-
-	client := http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-		Jar: jar,
-	}
-
-	baseUrl, err := url.Parse("http://localhost:8080")
-	is.NoErr(err) // could not parse baseUrl
-
-	testCtx := TestContext{T: t, client: &client, baseUrl: baseUrl}
+	testCtx := NewTestContext(t, "http://localhost:8080")
 
 	testCtx.AcquireSessionCookie()
 	testCtx.CoursesCreateAction("foo", 5, 25)
 
 	cancel()
-	waitForTermination(time.Millisecond*200, 4, "http://localhost:8080/health")
+	waitForTermination(time.Millisecond*200, 8, "http://localhost:8080/health")
 
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	go cmd.Run(ctx, mockEnv)
-	err = waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health")
+	go cmd.Run(ctx, mockEnv, defaultFakeClock())
+	err = defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
 	courses := testCtx.CoursesIndexAction()
@@ -84,24 +101,11 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
-	err, cancel := StartupSystemUnderTest(t)
+	err, cancel := StartupSystemUnderTest(t, nil)
 	defer cancel()
 	is.NoErr(err)
 
-	jar, err := cookiejar.New(nil)
-	is.NoErr(err) // create cookie jar failed
-
-	client := http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-		Jar: jar,
-	}
-
-	baseUrl, err := url.Parse("http://localhost:8080")
-	is.NoErr(err) // could not parse baseUrl
-
-	ctx := TestContext{T: t, client: &client, baseUrl: baseUrl}
+	ctx := NewTestContext(t, "http://localhost:8080")
 
 	ctx.AcquireSessionCookie()
 	ctx.CoursesCreateAction("foo", 5, 25)
@@ -177,23 +181,22 @@ func (c *TestContext) CoursesIndexAction() []cmd.Course {
 	return courses
 }
 
-func StartupSystemUnderTest(t *testing.T) (error, context.CancelFunc) {
+func StartupSystemUnderTest(t *testing.T, env func(string) string) (error, context.CancelFunc) {
+	return StartupSystemUnderTestWithFakeClock(t, env, defaultFakeClock())
+}
+
+func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, fakeClock clockwork.Clock) (error, context.CancelFunc) {
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := func(s string) string {
-		switch s {
-		case "DB_ROOT_DIR":
-			return dbDir
-		default:
-			return ""
-		}
+	if env == nil {
+		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(aDayInSeconds))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, mockEnv)
+	go cmd.Run(ctx, env, fakeClock)
 
-	return waitForReady(time.Millisecond*200, 4, "http://localhost:8080/health"), cancel
+	return waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health"), cancel
 }
 
 func MakeTestingDbDir(t *testing.T) string {
@@ -205,6 +208,30 @@ func MakeTestingDbDir(t *testing.T) string {
 	}
 
 	return dbDir
+}
+
+func NewTestContext(t *testing.T, baseUrl string) *TestContext {
+	is := is.New(t)
+	jar, err := cookiejar.New(nil)
+	is.NoErr(err) // create cookie jar failed
+
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Jar: jar,
+	}
+
+	baseUrlParsed, err := url.Parse(baseUrl)
+	is.NoErr(err) // could not parse baseUrl
+
+	testCtx := TestContext{T: t, client: &client, baseUrl: baseUrlParsed}
+
+	return &testCtx
+}
+
+func defaultWaitForReady() error {
+	return waitForReady(time.Millisecond*200, 20, "http://localhost:8080/health")
 }
 
 func waitForReady(
@@ -277,4 +304,43 @@ func waitForTermination(
 	}
 
 	return fmt.Errorf("timeout reached while waiting for server to shut down")
+}
+
+func setupMockEnv(pairs ...string) func(string) string {
+	envMap := make(map[string]string)
+
+	for i := 0; i < len(pairs)-1; i += 2 {
+		key := pairs[i]
+		value := pairs[i+1]
+		envMap[key] = value
+	}
+
+	return func(s string) string {
+		if value, exists := envMap[s]; exists {
+			return value
+		}
+		return ""
+	}
+}
+
+func countSQLiteFiles(dir string) (int, error) {
+	count := 0
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && filepath.Ext(info.Name()) == ".sqlite" {
+			count++
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
