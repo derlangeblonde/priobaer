@@ -36,7 +36,7 @@ type TestContext struct {
 	baseUrl *url.URL
 }
 
-func TestConcurrentRequests(t *testing.T) {
+func TestConcurrentRequestsDontCorruptData(t *testing.T) {
 	clientCount := 10
 	requestCount := 5 
 
@@ -50,42 +50,47 @@ func TestConcurrentRequests(t *testing.T) {
 	defer waitForTerminationDefault(cancel)
 	is.NoErr(err)
 
-	outerWg := sync.WaitGroup{}
-	outerWg.Add(clientCount)
+	wg := sync.WaitGroup{}
+	wg.Add(clientCount)
+
 	for i := 0; i < clientCount; i++ {
-		go func() {
-			wg := sync.WaitGroup{}
-			wg.Add(requestCount)
-
-			testCtx := NewTestContext(t, localhost8080)
-
-			testCtx.AcquireSessionCookie()
-
-			var expectedCourses []cmd.Course
-
-			for i := 0; i < requestCount; i++ {
-				expectedCourses = append(expectedCourses, RandomCourse())
-			}
-
-			for _, course := range expectedCourses {
-				go testCtx.CoursesCreateAction(course, &wg)	
-			}
-			
-			wg.Wait()
-
-			actualCourses := testCtx.CoursesIndexAction()
-
-			is.Equal(len(actualCourses), len(expectedCourses)) // all courses were created
-
-			for _, actualCourse := range actualCourses {
-				is.True(slices.Contains(expectedCourses, actualCourse)) // actualCourse not in expectedCourses
-			}
-			
-			outerWg.Done()
-		}()
+		go CoursesCreateActionConcurrent(requestCount, &wg, t)
 	}
 
-	outerWg.Wait()
+	wg.Wait()
+}
+
+func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t *testing.T) {
+	is := is.New(t)
+
+	wg := sync.WaitGroup{}
+	wg.Add(requestCount)
+
+	testCtx := NewTestContext(t, localhost8080)
+
+	testCtx.AcquireSessionCookie()
+
+	var expectedCourses []cmd.Course
+
+	for i := 0; i < requestCount; i++ {
+		expectedCourses = append(expectedCourses, RandomCourse())
+	}
+
+	for _, course := range expectedCourses {
+		go testCtx.CoursesCreateAction(course, &wg)	
+	}
+	
+	wg.Wait()
+
+	actualCourses := testCtx.CoursesIndexAction()
+
+	is.Equal(len(actualCourses), len(expectedCourses)) // all courses were created
+
+	for _, actualCourse := range actualCourses {
+		is.True(slices.Contains(expectedCourses, actualCourse)) // actualCourse not in expectedCourses
+	}
+	
+	outerWg.Done()
 }
 
 func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
