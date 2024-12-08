@@ -10,7 +10,7 @@ import (
 
 	"github.com/matryer/is"
 	"golang.org/x/net/html"
-	"softbaer.dev/ass/cmd"
+	"softbaer.dev/ass/model"
 )
 
 type TestClient struct {
@@ -59,7 +59,7 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) CoursesCreateAction(course cmd.Course, finish *sync.WaitGroup) {
+func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) {
 	if finish != nil {
 		defer finish.Done()
 	}
@@ -81,7 +81,7 @@ func (c *TestClient) CoursesCreateAction(course cmd.Course, finish *sync.WaitGro
 	is.Equal(location.Path, "/courses")
 }
 
-func (c *TestClient) CoursesIndexAction() []cmd.Course {
+func (c *TestClient) CoursesIndexAction() []model.Course {
 	is := is.New(c.T)
 
 	resp, err := c.client.Get(c.Endpoint("courses"))
@@ -93,10 +93,10 @@ func (c *TestClient) CoursesIndexAction() []cmd.Course {
 
 	divs := findCoursesDivs(doc)
 
-	courses := make([]cmd.Course, 0)
+	courses := make([]model.Course, 0)
 
 	for _, div := range divs {
-		var course cmd.Course
+		var course model.Course
 		err := unmarshal(&course, div)
 		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
 

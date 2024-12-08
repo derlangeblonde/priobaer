@@ -13,6 +13,7 @@ import (
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/cmd"
+	"softbaer.dev/ass/model"
 )
 
 func TestConcurrentRequestsDontCorruptData(t *testing.T) {
@@ -45,7 +46,7 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 
 	testClient.AcquireSessionCookie()
 
-	var expectedCourses []cmd.Course
+	var expectedCourses []model.Course
 
 	for i := 0; i < requestCount; i++ {
 		expectedCourses = append(expectedCourses, RandomCourse())
