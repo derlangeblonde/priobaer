@@ -14,6 +14,7 @@ import (
 	"github.com/jonboulle/clockwork"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/dbdir"
+	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/view"
 )
 
@@ -52,7 +53,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		},
 	)
 
-	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&Course{}, &Participant{}})
+	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&model.Course{}, &model.Participant{}})
 
 	if err != nil {
 		panic(err)
@@ -97,14 +98,6 @@ func FaviconHandler(c *gin.Context) {
 	c.Data(http.StatusOK, "image/x-icon", faviconBytes)
 }
 
-type Course struct {
-	gorm.Model
-	ID int
-	// TODO: unique constraint does not go well with soft delete
-	Name        string `gorm:"unique"`
-	MaxCapacity int
-	MinCapacity int
-}
 
 func LandingPage(c *gin.Context) {
 	fmt.Fprintf(c.Writer, "This is the landing page!")
@@ -114,7 +107,7 @@ func CoursesIndex() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		db := GetDB(c)
 
-		courses := make([]Course, 0)
+		courses := make([]model.Course, 0)
 		result := db.Find(&courses)
 
 		if result.Error != nil {
@@ -156,7 +149,7 @@ func CoursesCreate() gin.HandlerFunc {
 			return
 		}
 
-		course := Course{Name: req.Name, MaxCapacity: *req.MaxCapacity, MinCapacity: *req.MinCapacity}
+		course := model.Course{Name: req.Name, MaxCapacity: *req.MaxCapacity, MinCapacity: *req.MinCapacity}
 		result := db.Create(&course)
 
 		if result.Error != nil {
@@ -194,7 +187,7 @@ func CoursesDelete() gin.HandlerFunc {
 			return
 		}
 
-		course := Course{ID: req.ID}
+		course := model.Course{ID: req.ID}
 		result := db.Delete(&course)
 
 		if result.Error != nil {

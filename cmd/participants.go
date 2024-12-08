@@ -7,18 +7,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/model"
 )
 
-type Participant struct {
-	gorm.Model
-	Prename string
-	Surname string
-}
 
 func ParticipantsIndex(c *gin.Context) {
 	db := GetDB(c)
 
-	participants := make([]Participant, 0)
+	participants := make([]model.Participant, 0)
 	result := db.Find(&participants)
 
 	if result.Error != nil {
@@ -55,7 +51,7 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	participant := Participant{Prename: req.Prename, Surname: req.Surname}
+	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
 	result := db.Create(&participant)
 
 	if result.Error != nil {
@@ -95,7 +91,7 @@ func ParticipantsDelete(c *gin.Context) {
 		return
 	}
 
-	participant := Participant{}
+	participant := model.Participant{}
 	participant.ID = req.ID
 	result := db.Delete(&participant)
 
