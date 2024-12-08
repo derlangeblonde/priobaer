@@ -1,6 +1,10 @@
-package controller 
+package controller
 
-import "github.com/gin-gonic/gin"
+import (
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterRoutes(router *gin.Engine) {
 	router.GET("/health", HealthHandler())
@@ -19,4 +23,8 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/participants", ParticipantsIndex)
 	router.POST("/participants", ParticipantsCreate)
 	router.DELETE("/participants/:id", ParticipantsDelete)
+
+	router.GET("/assignments", func(c *gin.Context) {
+		fmt.Fprint(c.Writer, "OK")
+	})
 }
