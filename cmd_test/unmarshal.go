@@ -93,10 +93,10 @@ func getInnerTextData(node *html.Node) string {
 	return strings.TrimSpace(inner.Data)
 }
 
-func findCoursesDivs(current *html.Node) []*html.Node {
+func findEntityDivs(current *html.Node, prefix string) []*html.Node {
 	if current.Type == html.ElementNode && current.Data == "div" {
 		for _, attr := range current.Attr {
-			if attr.Key == "id" && strings.Contains(attr.Val, "course-") {
+			if attr.Key == "id" && strings.Contains(attr.Val, prefix) {
 				return []*html.Node{current}
 			}
 		}
@@ -104,7 +104,7 @@ func findCoursesDivs(current *html.Node) []*html.Node {
 
 	alreadyFound := make([]*html.Node, 0)
 	for c := current.FirstChild; c != nil; c = c.NextSibling {
-		alreadyFound = append(alreadyFound, findCoursesDivs(c)...)
+		alreadyFound = append(alreadyFound, findEntityDivs(c, prefix)...)
 	}
 
 	return alreadyFound

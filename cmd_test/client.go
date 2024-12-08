@@ -59,6 +59,27 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
+func (c *TestClient) ParticpantCreateAction(participant model.Participant, finish *sync.WaitGroup) {
+	if finish != nil {
+		defer finish.Done()
+	}
+
+	is := is.New(c.T)
+
+	form := url.Values{}
+	form.Add("prename", participant.Prename)
+	form.Add("surname", participant.Surname)
+	resp, err := c.client.PostForm(c.Endpoint("participants"), form)
+	is.NoErr(err) // post request failed
+	defer resp.Body.Close()
+
+	is.Equal(resp.StatusCode, 303)
+	location, err := resp.Location()
+	is.NoErr(err) // could not get location of the redirect response
+
+	is.Equal(location.Path, "/participants")
+}
+
 func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) {
 	if finish != nil {
 		defer finish.Done()
@@ -81,17 +102,44 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 	is.Equal(location.Path, "/courses")
 }
 
-func (c *TestClient) CoursesIndexAction() []model.Course {
+func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("courses"))
+	resp, err := c.client.Get(c.Endpoint("assignments"))
 	is.NoErr(err) // get request failed
+	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
 	defer resp.Body.Close()
 
 	doc, err := html.Parse(resp.Body)
 	is.NoErr(err) // could not parse response html
 
-	divs := findCoursesDivs(doc)
+	participants := make([]model.Participant, 0)
+
+	divs := findEntityDivs(doc, "participant-")
+
+	for _, div := range divs {
+		var participant model.Participant
+		err := unmarshal(&participant, div)
+		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
+
+		participants = append(participants, participant)
+	}
+
+	return participants
+}
+
+func (c *TestClient) CoursesIndexAction() []model.Course {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get(c.Endpoint("courses"))
+	is.NoErr(err) // get request failed
+	is.Equal(resp.StatusCode, 200) // get courses did not return 200
+	defer resp.Body.Close()
+
+	doc, err := html.Parse(resp.Body)
+	is.NoErr(err) // could not parse response html
+
+	divs := findEntityDivs(doc,  "course-")
 
 	courses := make([]model.Course, 0)
 

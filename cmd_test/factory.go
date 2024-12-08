@@ -15,3 +15,10 @@ func RandomCourse() model.Course {
 
 	return model.Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
 }
+
+func RandomParticipant() model.Participant {
+	prename := uuid.New()
+	surname := uuid.New()
+
+	return model.Participant{Prename: prename.String(), Surname: surname.String()}
+}
