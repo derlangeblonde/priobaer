@@ -20,11 +20,8 @@ func TestConcurrentRequestsDontCorruptData(t *testing.T) {
 	clientCount := 10
 	requestCount := 5
 
-	is := is.New(t)
-
-	sut, err := StartupSystemUnderTest(t, nil)
+	sut := StartupSystemUnderTest(t, nil)
 	defer waitForTerminationDefault(sut.cancel)
-	is.NoErr(err)
 
 	wg := sync.WaitGroup{}
 	wg.Add(clientCount)
@@ -73,9 +70,8 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	is := is.New(t)
 	fakeClock := defaultFakeClock()
 
-	sut, err := StartupSystemUnderTestWithFakeClock(t, nil, fakeClock)
+	sut := StartupSystemUnderTestWithFakeClock(t, nil, fakeClock)
 	defer waitForTerminationDefault(sut.cancel)
-	is.NoErr(err)
 
 	testClient := NewTestClient(t, localhost8080)
 
@@ -86,7 +82,7 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	is.Equal(dbFilesCount, 1) // there should be exactly *one* db-file after first user request
 
 	fakeClock.Advance(maxAgeDefault * time.Second)
-	time.Sleep(50 * time.Microsecond)
+	time.Sleep(100 * time.Microsecond)
 
 	dbFilesCount, err = countSQLiteFiles(sut.dbDir)
 	is.NoErr(err)             // failure while counting sqlite files
@@ -134,9 +130,8 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 func TestCreateAndReadCourse(t *testing.T) {
 	is := is.New(t)
 
-	sut, err := StartupSystemUnderTest(t, nil)
+	sut := StartupSystemUnderTest(t, nil)
 	defer waitForTerminationDefault(sut.cancel)
-	is.NoErr(err)
 
 	ctx := NewTestClient(t, "http://localhost:8080")
 

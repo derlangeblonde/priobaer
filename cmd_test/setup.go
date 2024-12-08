@@ -20,11 +20,11 @@ type SystemUnderTest struct {
 	dbDir  string
 }
 
-func StartupSystemUnderTest(t *testing.T, env func(string) string) (SystemUnderTest, error) {
+func StartupSystemUnderTest(t *testing.T, env func(string) string) SystemUnderTest {
 	return StartupSystemUnderTestWithFakeClock(t, env, defaultFakeClock())
 }
 
-func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, fakeClock clockwork.Clock) (SystemUnderTest, error) {
+func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, fakeClock clockwork.Clock) SystemUnderTest {
 	dbDir := MakeTestingDbDir(t)
 
 	if env == nil {
@@ -37,7 +37,11 @@ func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, 
 
 	err := waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
 
-	return SystemUnderTest{dbDir: dbDir, cancel: cancel}, err
+	if err != nil {
+		t.Fatalf("Application did not boot in specified time span")
+	}
+
+	return SystemUnderTest{dbDir: dbDir, cancel: cancel}
 
 }
 
