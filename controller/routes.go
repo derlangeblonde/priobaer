@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +22,5 @@ func RegisterRoutes(router *gin.Engine) {
 	router.POST("/participants", ParticipantsCreate)
 	router.DELETE("/participants/:id", ParticipantsDelete)
 
-	router.GET("/assignments", func(c *gin.Context) {
-		fmt.Fprint(c.Writer, "OK")
-	})
+	router.GET("/assignments", AssignmentsIndex)
 }

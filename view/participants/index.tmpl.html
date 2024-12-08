@@ -14,11 +14,11 @@
 		<h2>Teilnehmende</h2>
 
 		{{ range .participants }}
-			<div id="participants-{{ .ID }}">
+			<div id="participant-{{ .ID }}">
 				Vorname: {{ Field "Prename" . }} <br>
 				Nachname: {{ Field "Surname" . }} <br>
 				<br>
-				<a hx-delete="participants/{{ .ID }}" hx-target="#participants-{{ .ID }}" style="color: blue; text-decoration: underline; cursor: pointer;">Löschen</a>
+				<a hx-delete="participants/{{ .ID }}" hx-target="#participant-{{ .ID }}" style="color: blue; text-decoration: underline; cursor: pointer;">Löschen</a>
 				<hr>
 			</div>
 		{{ else }}

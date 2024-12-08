@@ -59,7 +59,7 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) ParticpantCreateAction(participant model.Participant, finish *sync.WaitGroup) {
+func (c *TestClient) ParticpantsCreateAction(participant model.Participant, finish *sync.WaitGroup) {
 	if finish != nil {
 		defer finish.Done()
 	}
