@@ -75,11 +75,9 @@ func waitForReady(
 
 		resp, err := client.Do(req)
 		if err != nil {
-			fmt.Printf("Error making request: %s\n", err.Error())
 			continue
 		}
 		if resp.StatusCode == http.StatusOK {
-			fmt.Println("Endpoint is ready!")
 			resp.Body.Close()
 			return nil
 		}
@@ -116,12 +114,9 @@ func waitForTermination(
 
 		resp, err := client.Do(req)
 		if err != nil {
-			fmt.Printf("Request unsuccessful, server probably shutdown. Err :%v", err.Error())
-
 			return nil
 		}
 		if resp.StatusCode == http.StatusOK {
-			fmt.Println("Endpoint is still available!")
 			resp.Body.Close()
 
 			continue
