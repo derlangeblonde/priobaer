@@ -12,6 +12,8 @@ func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
 
 	c := newConfig(t)
 	sut := c.createSut()
+	defer sut.Close()
+
 	id := c.DbId
 
 	conn1, err := sut.Open(id.String())
@@ -28,6 +30,8 @@ func TestOpen_ConnectionPersistsData_BetweenMultipleOpens(t *testing.T) {
 
 	c := newConfig(t)
 	sut := c.createSut()
+	defer sut.Close()
+
 	expectedNumber := 42
 
 	conn1, err := sut.Open(c.DbId.String())
@@ -54,6 +58,7 @@ func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
 	c := newConfig(t).withExpiration(expiration)
 
 	sut := c.createSut()
+	defer sut.Close()
 
 	conn1, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
@@ -76,6 +81,7 @@ func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 	c := newConfig(t).withExpiration(expiration)
 
 	sut := c.createSut()
+	defer sut.Close()
 
 	conn1, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
@@ -114,6 +120,7 @@ func TestNewDbDirectory_RestoresDataAndExpirationFromExistingDbFiles(t *testing.
 	is.Equal(len(errs), 0) // closing sut yielded some errors
 
 	sutNew := c.createSut()
+	defer sutNew.Close()
 
 	conn2, err := sutNew.Open(c.DbId.String())
 	is.NoErr(err)
@@ -157,6 +164,7 @@ func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T)
 	is.Equal(len(errs), 0) // closing sut yielded some errors
 
 	sutNew := c.createSut()
+	defer sutNew.Close()
 
 	c.FakeClock.Advance(expiration)
 	time.Sleep(40 * time.Microsecond)
