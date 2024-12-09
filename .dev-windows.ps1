@@ -1,1 +1,2 @@
 $env:DB_ROOT_DIR="db"
+$env:SESSION_MAX_AGE="86400"
