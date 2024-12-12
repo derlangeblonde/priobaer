@@ -5,10 +5,46 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"golang.org/x/net/html"
+	"softbaer.dev/ass/model"
 )
+
+func unmarshalMultiple(doc *html.Node) (participants []model.Participant, err error) {
+	prefix := "participant-"
+	divs := findEntityDivs(doc, prefix)
+
+	for _, div := range divs {
+		var participant model.Participant
+
+		for _, attr := range div.Attr {
+			if attr.Key != "id" {
+				continue
+			}
+
+			// TODO: refactor - maybe merge findEntityDivs with unmarshal
+			idStr := strings.Replace(attr.Val, prefix, "", 1)
+			id, err := strconv.Atoi(idStr)
+
+			if err != nil {
+				return participants, err
+			}
+
+			participant.ID = id
+			break
+		}
+
+		err := unmarshal(&participant, div)
+
+		if err != nil {
+			return participants, err
+		}
+
+		participants = append(participants, participant)
+	}
+
+	return participants, nil
+}
 
 func unmarshal[T any](instance *T, node *html.Node) error {
 	v := reflect.ValueOf(instance).Elem()

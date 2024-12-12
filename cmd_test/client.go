@@ -142,34 +142,8 @@ func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 	doc, err := html.Parse(resp.Body)
 	is.NoErr(err) // could not parse response html
 
-	participants := make([]model.Participant, 0)
-
-	divs := findEntityDivs(doc, "participant-")
-
-	for _, div := range divs {
-		var participant model.Participant
-
-		for _, attr := range div.Attr {
-			if attr.Key != "id" {
-				continue
-			}
-
-			// TODO: refactor - maybe merge findEntityDivs with unmarshal
-			idStr := strings.Replace(attr.Val, "participant-", "", 1)
-			slog.Warn("what about us?", "idStr", idStr, "attr.Val", attr.Val)
-			id, err := strconv.Atoi(idStr)
-			is.NoErr(err) // could not convert str to int when extracting id from participant-xxx
-
-			participant.ID = id
-			break
-		}
-
-		err := unmarshal(&participant, div)
-		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
-
-		participants = append(participants, participant)
-	}
-
+	participants, err := unmarshalMultiple(doc)
+	is.NoErr(err) // could not unmarshall entities in doc
 	return participants
 }
 
