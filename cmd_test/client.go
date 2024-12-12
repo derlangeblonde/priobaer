@@ -1,6 +1,7 @@
 package cmdtest
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -120,10 +121,16 @@ func (c *TestClient) CoursesIndexAction() []model.Course {
 	return courses
 }
 
-func (c *TestClient) AssignmentsIndexAction() []model.Participant {
+func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []model.Participant {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("assignments"))
+	endpoint := c.Endpoint("assignments")
+
+	if courseIdSelected.Valid {
+		endpoint = endpoint + fmt.Sprintf("?selected-course=%d", courseIdSelected.Value)
+	}
+
+	resp, err := c.client.Get(endpoint)
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
 	defer resp.Body.Close()

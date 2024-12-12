@@ -21,12 +21,13 @@ func TestParticpantsAreUnassignedIntially(t *testing.T) {
 
 	testClient.ParticpantsCreateAction(expectedParticipant, nil)
 
-	unassignedParticipants := testClient.AssignmentsIndexAction()
+	unassignedParticipants := testClient.AssignmentsIndexAction(util.NoneInt())
 
 	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one
 
 	is.Equal(unassignedParticipants[0].Prename, expectedParticipant.Prename)
 	is.Equal(unassignedParticipants[0].Surname, expectedParticipant.Surname)
+
 }
 
 func TestAssignParticipant(t *testing.T) {
@@ -45,15 +46,22 @@ func TestAssignParticipant(t *testing.T) {
 	testClient.ParticpantsCreateAction(expectedParticipant, nil)
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
-	unassignedParticipants := testClient.AssignmentsIndexAction()
+	unassignedParticipants := testClient.AssignmentsIndexAction(util.NoneInt())
+	allCourses := testClient.CoursesIndexAction()
 
-	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one
+	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one 123
+	is.Equal(len(allCourses), 1)             // expect exactly one course after creating one
 
 	idParticipantToAssign := unassignedParticipants[0].ID
+	courseIdToAssignTo := allCourses[0].ID
 
-	testClient.AssignmentsUpdateAction(idParticipantToAssign, util.JustInt(int(expectedCourse.ID)))
+	testClient.AssignmentsUpdateAction(idParticipantToAssign, util.JustInt(courseIdToAssignTo))
 
-	unassignedParticipants = testClient.AssignmentsIndexAction()
+	unassignedParticipants = testClient.AssignmentsIndexAction(util.NoneInt())
 
-	is.Equal(len(unassignedParticipants), 0) // expect exactly one participant after creating one
+	is.Equal(len(unassignedParticipants), 0) // expect exactly no unassigned participant after assigning the only one
+
+	participantsAssignedToCourse := testClient.AssignmentsIndexAction(util.JustInt(courseIdToAssignTo))
+
+	is.Equal(len(participantsAssignedToCourse), 1) // expect exactly one participant after creating one
 }
