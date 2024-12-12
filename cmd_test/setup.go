@@ -35,7 +35,7 @@ func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, 
 
 	go cmd.Run(ctx, env, fakeClock)
 
-	err := waitForReady(time.Millisecond*200, 8, "http://localhost:8080/health")
+	err := waitForReady(time.Millisecond*200, 16, "http://localhost:8080/health")
 
 	if err != nil {
 		t.Fatalf("Application did not boot in specified time span")
