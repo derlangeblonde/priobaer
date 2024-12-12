@@ -5,12 +5,14 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/matryer/is"
 	"golang.org/x/net/html"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/util"
 )
 
 type TestClient struct {
@@ -102,11 +104,37 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 	is.Equal(location.Path, "/courses")
 }
 
+func (c *TestClient) CoursesIndexAction() []model.Course {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get(c.Endpoint("courses"))
+	is.NoErr(err)                  // get request failed
+	is.Equal(resp.StatusCode, 200) // get courses did not return 200
+	defer resp.Body.Close()
+
+	doc, err := html.Parse(resp.Body)
+	is.NoErr(err) // could not parse response html
+
+	divs := findEntityDivs(doc, "course-")
+
+	courses := make([]model.Course, 0)
+
+	for _, div := range divs {
+		var course model.Course
+		err := unmarshal(&course, div)
+		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
+
+		courses = append(courses, course)
+	}
+
+	return courses
+}
+
 func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 	is := is.New(c.T)
 
 	resp, err := c.client.Get(c.Endpoint("assignments"))
-	is.NoErr(err) // get request failed
+	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
 	defer resp.Body.Close()
 
@@ -128,37 +156,35 @@ func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 	return participants
 }
 
-func (c *TestClient) CoursesIndexAction() []model.Course {
+func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("courses"))
-	is.NoErr(err) // get request failed
-	is.Equal(resp.StatusCode, 200) // get courses did not return 200
-	defer resp.Body.Close()
-
-	doc, err := html.Parse(resp.Body)
-	is.NoErr(err) // could not parse response html
-
-	divs := findEntityDivs(doc,  "course-")
-
-	courses := make([]model.Course, 0)
-
-	for _, div := range divs {
-		var course model.Course
-		err := unmarshal(&course, div)
-		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
-
-		courses = append(courses, course)
+	form := url.Values{}
+	form.Add("participant-id", strconv.Itoa(participantId))
+	
+	if courseId.Valid {
+		form.Add("course-id", strconv.Itoa(courseId.Value))
 	}
 
-	return courses
+	body := strings.NewReader(form.Encode())
+	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), body)
+	is.NoErr(err) // could not assemble put request to "assignments"
+
+	resp, err := c.client.Do(req)
+	is.NoErr(err) // error while doing put request to "assignments"
+
+	is.Equal(resp.StatusCode, 303)
+	location, err := resp.Location()
+	is.NoErr(err) // could not get location of the redirect response
+
+	is.Equal(location.Path, "/assignments")
 }
 
 func (c *TestClient) Endpoint(path string) string {
 	url := url.URL{
 		Scheme: c.baseUrl.Scheme,
-		Host: c.baseUrl.Host,
-		Path: path,
+		Host:   c.baseUrl.Host,
+		Path:   path,
 	}
 
 	return url.String()

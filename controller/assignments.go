@@ -30,3 +30,7 @@ func AssignmentsIndex(c *gin.Context) {
 
 }
 
+func AssignmentsUpdate(c *gin.Context) {
+	c.Redirect(http.StatusSeeOther, "/assignments")
+}
+

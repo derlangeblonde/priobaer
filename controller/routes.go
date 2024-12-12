@@ -22,5 +22,6 @@ func RegisterRoutes(router *gin.Engine) {
 	router.POST("/participants", ParticipantsCreate)
 	router.DELETE("/participants/:id", ParticipantsDelete)
 
+	router.PUT("/assignments", AssignmentsUpdate)
 	router.GET("/assignments", AssignmentsIndex)
 }

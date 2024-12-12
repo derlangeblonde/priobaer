@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"softbaer.dev/ass/util"
 )
 
 func TestParticpantsAreUnassignedIntially(t *testing.T) {
@@ -16,11 +17,30 @@ func TestParticpantsAreUnassignedIntially(t *testing.T) {
 
 	testClient.AcquireSessionCookie()
 
-	participant := RandomParticipant()
+	expectedParticipant := RandomParticipant()
 
-	testClient.ParticpantsCreateAction(participant, nil)
+	testClient.ParticpantsCreateAction(expectedParticipant, nil)
 
-	actualParticipants := testClient.AssignmentsIndexAction()
+	unassignedParticipants := testClient.AssignmentsIndexAction()
 
-	is.Equal(len(actualParticipants), 1) // expect exactly one participant after creating one
+	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one
+	is.Equal(unassignedParticipants[0], expectedParticipant)
+}
+
+func TestAssignParticipant(t *testing.T) {
+	sut := StartupSystemUnderTest(t, nil)
+	defer waitForTerminationDefault(sut.cancel)
+
+	testClient := NewTestClient(t, localhost8080)
+
+	testClient.AcquireSessionCookie()
+
+	expectedParticipant := RandomParticipant()
+	expectedCourse := RandomCourse()
+
+	testClient.ParticpantsCreateAction(expectedParticipant, nil)
+	testClient.CoursesCreateAction(expectedCourse, nil)
+
+	testClient.AssignmentsUpdateAction(int(expectedParticipant.ID), util.JustInt(int(expectedCourse.ID)))
+
 }
