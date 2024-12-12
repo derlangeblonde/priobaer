@@ -51,4 +51,8 @@ func TestAssignParticipant(t *testing.T) {
 	expectedParticipant.ID = unassignedParticipants[0].ID
 
 	testClient.AssignmentsUpdateAction(int(expectedParticipant.ID), util.JustInt(int(expectedCourse.ID)))
+
+	unassignedParticipants = testClient.AssignmentsIndexAction()
+
+	is.Equal(len(unassignedParticipants), 0) // expect exactly one participant after creating one
 }

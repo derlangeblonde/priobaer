@@ -34,7 +34,7 @@ func AssignmentsUpdate(c *gin.Context) {
 		ParticipantId int `form:"participant-id" binding:"required"`
 		CoureseId     int `form:"course-id"`
 	}
-	// db := GetDB(c)
+	db := GetDB(c)
 
 	var req request
 	err := c.Bind(&req)
@@ -44,8 +44,8 @@ func AssignmentsUpdate(c *gin.Context) {
 		return
 	}
 
-	// participant := model.Participant{ID: req.ParticipantId}
-	// db.Delete(&participant)
+	participant := model.Participant{ID: req.ParticipantId}
+	db.Delete(&participant)
 
 	c.Redirect(http.StatusSeeOther, "/assignments")
 }
