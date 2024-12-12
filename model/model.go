@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type Participant struct {
 	gorm.Model
+	ID      int
 	Prename string
 	Surname string
 }
