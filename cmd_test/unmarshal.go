@@ -1,58 +1,51 @@
 package cmdtest
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"golang.org/x/net/html"
-	"softbaer.dev/ass/model"
 )
 
-func unmarshalMultiple(doc *html.Node) (participants []model.Participant, err error) {
-	prefix := "participant-"
+var idExtractionRegex *regexp.Regexp = regexp.MustCompile(`\w+-(\d+)`)
+
+func unmarshalAll[T any](doc *html.Node, prefix string) (all []T, err error) {
 	divs := findEntityDivs(doc, prefix)
 
 	for _, div := range divs {
-		var participant model.Participant
+		var single T
 
-		for _, attr := range div.Attr {
-			if attr.Key != "id" {
-				continue
-			}
-
-			// TODO: refactor - maybe merge findEntityDivs with unmarshal
-			idStr := strings.Replace(attr.Val, prefix, "", 1)
-			id, err := strconv.Atoi(idStr)
-
-			if err != nil {
-				return participants, err
-			}
-
-			participant.ID = id
-			break
-		}
-
-		err := unmarshal(&participant, div)
+		err := unmarshal[T](&single, div)
 
 		if err != nil {
-			return participants, err
+			return all, err
 		}
 
-		participants = append(participants, participant)
+		all = append(all, single)
 	}
 
-	return participants, nil
+	return all, nil
 }
 
 func unmarshal[T any](instance *T, node *html.Node) error {
+	id, err := extractId(node)
+
+	if err != nil {
+		return err
+	}
+
 	v := reflect.ValueOf(instance).Elem()
+
 	if v.Kind() != reflect.Struct {
 		return fmt.Errorf("expected a struct pointer, got %T", instance)
 	}
 
 	namesToValues := fieldValuesFromDataNodes(node)
+	namesToValues["id"] = id
 
 	typeOfT := v.Type()
 
@@ -82,6 +75,28 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 	}
 
 	return nil
+}
+
+func extractId(node *html.Node) (id string, err error) {
+	for _, attr := range node.Attr {
+		if attr.Key != "id" {
+			continue
+		}
+
+		matches := idExtractionRegex.FindStringSubmatch(attr.Val)
+
+		if len(matches) != 2 {
+			return id, fmt.Errorf("Expected exactly two matches but got: %v", matches)
+		}
+
+		id = matches[1]
+	}
+
+	if id == "" {
+		return id, errors.New("No id found")
+	}
+
+	return id, nil
 }
 
 func fieldValuesFromDataNodes(node *html.Node) map[string]string {

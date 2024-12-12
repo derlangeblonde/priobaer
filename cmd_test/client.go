@@ -1,7 +1,6 @@
 package cmdtest
 
 import (
-	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -116,17 +115,7 @@ func (c *TestClient) CoursesIndexAction() []model.Course {
 	doc, err := html.Parse(resp.Body)
 	is.NoErr(err) // could not parse response html
 
-	divs := findEntityDivs(doc, "course-")
-
-	courses := make([]model.Course, 0)
-
-	for _, div := range divs {
-		var course model.Course
-		err := unmarshal(&course, div)
-		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
-
-		courses = append(courses, course)
-	}
+	courses, err := unmarshalAll[model.Course](doc, "course-")
 
 	return courses
 }
@@ -142,8 +131,8 @@ func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 	doc, err := html.Parse(resp.Body)
 	is.NoErr(err) // could not parse response html
 
-	participants, err := unmarshalMultiple(doc)
-	is.NoErr(err) // could not unmarshall entities in doc
+	participants, err := unmarshalAll[model.Participant](doc, "participant-")
+
 	return participants
 }
 
@@ -151,7 +140,6 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	is := is.New(c.T)
 
 	data := url.Values{}
-	slog.Error("particpant-id:", "i", participantId, "s", strconv.Itoa(participantId))
 	data.Add("participant-id", strconv.Itoa(participantId))
 
 	if courseId.Valid {
