@@ -8,7 +8,6 @@ import (
 	"softbaer.dev/ass/model"
 )
 
-
 func AssignmentsIndex(c *gin.Context) {
 	db := GetDB(c)
 
@@ -31,6 +30,22 @@ func AssignmentsIndex(c *gin.Context) {
 }
 
 func AssignmentsUpdate(c *gin.Context) {
+	type request struct {
+		ParticipantId int `form:"participant-id" binding:"required"`
+		CoureseId     int `form:"course-id"`
+	}
+	// db := GetDB(c)
+
+	var req request
+	err := c.Bind(&req)
+
+	if err != nil {
+		slog.Error("Bad request on AssignmentsUpdate", "err", err)
+		return
+	}
+
+	// participant := model.Participant{ID: req.ParticipantId}
+	// db.Delete(&participant)
+
 	c.Redirect(http.StatusSeeOther, "/assignments")
 }
-
