@@ -59,9 +59,15 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 
 	is.Equal(len(actualCourses), len(expectedCourses)) // all courses were created
 
+	var expectedNames []string
+
+	for _, expected := range expectedCourses {
+		expectedNames = append(expectedNames, expected.Name)
+	}
+
 	for _, actualCourse := range actualCourses {
 		actualCourse.ID = 0
-		is.True(slices.Contains(expectedCourses, actualCourse)) // actualCourse not in expectedCourses
+		is.True(slices.Contains(expectedNames, actualCourse.Name)) // actualCourse not in expectedCourses
 	}
 
 	outerWg.Done()
