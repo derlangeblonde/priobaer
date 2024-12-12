@@ -1,4 +1,4 @@
-package controller 
+package controller
 
 import (
 	"errors"
@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
 )
-
 
 func ParticipantsIndex(c *gin.Context) {
 	db := GetDB(c)
@@ -91,8 +90,7 @@ func ParticipantsDelete(c *gin.Context) {
 		return
 	}
 
-	participant := model.Participant{}
-	participant.ID = req.ID
+	participant := model.Participant{ID: int(req.ID)}
 	result := db.Delete(&participant)
 
 	if result.Error != nil {

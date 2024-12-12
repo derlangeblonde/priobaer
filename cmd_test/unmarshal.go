@@ -1,21 +1,51 @@
 package cmdtest
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"golang.org/x/net/html"
 )
 
+var idExtractionRegex *regexp.Regexp = regexp.MustCompile(`\w+-(\d+)`)
+
+func unmarshalAll[T any](doc *html.Node, prefix string) (all []T, err error) {
+	divs := findEntityDivs(doc, prefix)
+
+	for _, div := range divs {
+		var single T
+
+		err := unmarshal[T](&single, div)
+
+		if err != nil {
+			return all, err
+		}
+
+		all = append(all, single)
+	}
+
+	return all, nil
+}
+
 func unmarshal[T any](instance *T, node *html.Node) error {
-	namesToValues := fieldValuesFromDataNodes(node)
+	id, err := extractId(node)
+
+	if err != nil {
+		return err
+	}
 
 	v := reflect.ValueOf(instance).Elem()
+
 	if v.Kind() != reflect.Struct {
 		return fmt.Errorf("expected a struct pointer, got %T", instance)
 	}
+
+	namesToValues := fieldValuesFromDataNodes(node)
+	namesToValues["id"] = id
 
 	typeOfT := v.Type()
 
@@ -45,6 +75,28 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 	}
 
 	return nil
+}
+
+func extractId(node *html.Node) (id string, err error) {
+	for _, attr := range node.Attr {
+		if attr.Key != "id" {
+			continue
+		}
+
+		matches := idExtractionRegex.FindStringSubmatch(attr.Val)
+
+		if len(matches) != 2 {
+			return id, fmt.Errorf("Expected exactly two matches but got: %v", matches)
+		}
+
+		id = matches[1]
+	}
+
+	if id == "" {
+		return id, errors.New("No id found")
+	}
+
+	return id, nil
 }
 
 func fieldValuesFromDataNodes(node *html.Node) map[string]string {
@@ -93,10 +145,10 @@ func getInnerTextData(node *html.Node) string {
 	return strings.TrimSpace(inner.Data)
 }
 
-func findCoursesDivs(current *html.Node) []*html.Node {
+func findEntityDivs(current *html.Node, prefix string) []*html.Node {
 	if current.Type == html.ElementNode && current.Data == "div" {
 		for _, attr := range current.Attr {
-			if attr.Key == "id" && strings.Contains(attr.Val, "course-") {
+			if attr.Key == "id" && strings.Contains(attr.Val, prefix) {
 				return []*html.Node{current}
 			}
 		}
@@ -104,7 +156,7 @@ func findCoursesDivs(current *html.Node) []*html.Node {
 
 	alreadyFound := make([]*html.Node, 0)
 	for c := current.FirstChild; c != nil; c = c.NextSibling {
-		alreadyFound = append(alreadyFound, findCoursesDivs(c)...)
+		alreadyFound = append(alreadyFound, findEntityDivs(c, prefix)...)
 	}
 
 	return alreadyFound

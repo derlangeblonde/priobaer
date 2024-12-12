@@ -16,7 +16,6 @@ import (
 	"softbaer.dev/ass/view"
 )
 
-
 func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock) error {
 	router := gin.Default()
 
@@ -66,7 +65,6 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		Addr:    "localhost:8080",
 		Handler: router.Handler(),
 	}
-
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("ListenAndServe returned an errore", "err", err)
@@ -83,5 +81,3 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 
 	return nil
 }
-
-

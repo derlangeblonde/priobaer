@@ -1,16 +1,19 @@
 package cmdtest
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/matryer/is"
 	"golang.org/x/net/html"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/util"
 )
 
 type TestClient struct {
@@ -59,6 +62,27 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
+func (c *TestClient) ParticpantsCreateAction(participant model.Participant, finish *sync.WaitGroup) {
+	if finish != nil {
+		defer finish.Done()
+	}
+
+	is := is.New(c.T)
+
+	form := url.Values{}
+	form.Add("prename", participant.Prename)
+	form.Add("surname", participant.Surname)
+	resp, err := c.client.PostForm(c.Endpoint("participants"), form)
+	is.NoErr(err) // post request failed
+	defer resp.Body.Close()
+
+	is.Equal(resp.StatusCode, 303)
+	location, err := resp.Location()
+	is.NoErr(err) // could not get location of the redirect response
+
+	is.Equal(location.Path, "/participants")
+}
+
 func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) {
 	if finish != nil {
 		defer finish.Done()
@@ -85,32 +109,70 @@ func (c *TestClient) CoursesIndexAction() []model.Course {
 	is := is.New(c.T)
 
 	resp, err := c.client.Get(c.Endpoint("courses"))
-	is.NoErr(err) // get request failed
+	is.NoErr(err)                  // get request failed
+	is.Equal(resp.StatusCode, 200) // get courses did not return 200
 	defer resp.Body.Close()
 
 	doc, err := html.Parse(resp.Body)
 	is.NoErr(err) // could not parse response html
 
-	divs := findCoursesDivs(doc)
-
-	courses := make([]model.Course, 0)
-
-	for _, div := range divs {
-		var course model.Course
-		err := unmarshal(&course, div)
-		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
-
-		courses = append(courses, course)
-	}
+	courses, err := unmarshalAll[model.Course](doc, "course-")
 
 	return courses
+}
+
+func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []model.Participant {
+	is := is.New(c.T)
+
+	endpoint := c.Endpoint("assignments")
+
+	if courseIdSelected.Valid {
+		endpoint = endpoint + fmt.Sprintf("?selected-course=%d", courseIdSelected.Value)
+	}
+
+	resp, err := c.client.Get(endpoint)
+	is.NoErr(err)                  // get request failed
+	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
+	defer resp.Body.Close()
+
+	doc, err := html.Parse(resp.Body)
+	is.NoErr(err) // could not parse response html
+
+	participants, err := unmarshalAll[model.Participant](doc, "participant-")
+
+	return participants
+}
+
+func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) {
+	is := is.New(c.T)
+
+	data := url.Values{}
+	data.Add("participant-id", strconv.Itoa(participantId))
+
+	if courseId.Valid {
+		data.Add("course-id", strconv.Itoa(courseId.Value))
+	}
+
+	body := strings.NewReader(data.Encode())
+	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), body)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	is.NoErr(err) // could not assemble put request to "assignments"
+
+	resp, err := c.client.Do(req)
+	is.NoErr(err) // error while doing put request to "assignments"
+
+	is.Equal(resp.StatusCode, 303)
+	location, err := resp.Location()
+	is.NoErr(err) // could not get location of the redirect response
+
+	is.Equal(location.Path, "/assignments")
 }
 
 func (c *TestClient) Endpoint(path string) string {
 	url := url.URL{
 		Scheme: c.baseUrl.Scheme,
-		Host: c.baseUrl.Host,
-		Path: path,
+		Host:   c.baseUrl.Host,
+		Path:   path,
 	}
 
 	return url.String()

@@ -1,11 +1,18 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"database/sql"
+
+	"gorm.io/gorm"
+)
 
 type Participant struct {
 	gorm.Model
-	Prename string
-	Surname string
+	ID       int
+	Prename  string
+	Surname  string
+	CourseID sql.NullInt64
+	Course   Course
 }
 
 type Course struct {

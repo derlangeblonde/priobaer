@@ -1,6 +1,8 @@
-package controller 
+package controller
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterRoutes(router *gin.Engine) {
 	router.GET("/health", HealthHandler())
@@ -19,4 +21,7 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/participants", ParticipantsIndex)
 	router.POST("/participants", ParticipantsCreate)
 	router.DELETE("/participants/:id", ParticipantsDelete)
+
+	router.PUT("/assignments", AssignmentsUpdate)
+	router.GET("/assignments", AssignmentsIndex)
 }
