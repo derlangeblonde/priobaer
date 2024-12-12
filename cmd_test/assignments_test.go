@@ -64,4 +64,14 @@ func TestAssignParticipant(t *testing.T) {
 	participantsAssignedToCourse := testClient.AssignmentsIndexAction(util.JustInt(courseIdToAssignTo))
 
 	is.Equal(len(participantsAssignedToCourse), 1) // expect exactly one participant after creating one
+
+	testClient.AssignmentsUpdateAction(idParticipantToAssign, util.NoneInt())
+
+	unassignedParticipants = testClient.AssignmentsIndexAction(util.NoneInt())
+
+	is.Equal(len(unassignedParticipants), 1) // expect exactly one unassigned participant after unassigne participant again
+
+	participantsAssignedToCourse = testClient.AssignmentsIndexAction(util.JustInt(courseIdToAssignTo))
+
+	is.Equal(len(participantsAssignedToCourse), 0) // expect no participant assinged to course after unassigning
 }

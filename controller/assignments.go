@@ -65,7 +65,13 @@ func AssignmentsUpdate(c *gin.Context) {
 		return
 	}
 
-	result := db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CoureseId)
+	var result *gorm.DB
+
+	if req.CoureseId == 0 {
+		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", nil)
+	} else {
+		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CoureseId)
+	}
 
 	if result.Error != nil {
 		slog.Error("Unexpected error while updating assignment relation", "err", result.Error)
