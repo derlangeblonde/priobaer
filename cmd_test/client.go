@@ -154,6 +154,7 @@ func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 				continue
 			}
 
+			// TODO: refactor - maybe merge findEntityDivs with unmarshal
 			idStr := strings.Replace(attr.Val, "participant-", "", 1)
 			slog.Warn("what about us?", "idStr", idStr, "attr.Val", attr.Val)
 			id, err := strconv.Atoi(idStr)

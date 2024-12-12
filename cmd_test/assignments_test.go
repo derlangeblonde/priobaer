@@ -24,6 +24,8 @@ func TestParticpantsAreUnassignedIntially(t *testing.T) {
 	unassignedParticipants := testClient.AssignmentsIndexAction()
 
 	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one
+
+	// TODO: there has to be a smarter way to do this
 	unassignedParticipants[0].ID = 0
 	is.Equal(unassignedParticipants[0], expectedParticipant)
 }

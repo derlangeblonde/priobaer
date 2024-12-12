@@ -110,17 +110,3 @@ func findEntityDivs(current *html.Node, prefix string) []*html.Node {
 
 	return alreadyFound
 }
-
-func extracNumber(input string) (string, error) {
-	var result []rune
-	for _, char := range input {
-		if !unicode.IsDigit(char) {
-			result = append(result, char)
-		}
-	}
-	str := string(result)
-
-	_, err := strconv.Atoi(str)
-
-	return str, err
-}
