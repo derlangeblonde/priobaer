@@ -3,7 +3,6 @@ package view
 import (
 	"embed"
 	_ "embed"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"path/filepath"
@@ -30,8 +29,6 @@ func LoadTemplate() (*template.Template, error) {
 			name := filepath.ToSlash(path)
 
 			name = strings.Replace(name, ".tmpl.html", "", 1)
-
-			fmt.Printf("- Registered new template: %s\n", name)
 
 			_, err = templates.New(name).Parse(string(templateContent))
 			if err != nil {
