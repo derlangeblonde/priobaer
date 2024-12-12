@@ -5,17 +5,18 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"golang.org/x/net/html"
 )
 
 func unmarshal[T any](instance *T, node *html.Node) error {
-	namesToValues := fieldValuesFromDataNodes(node)
-
 	v := reflect.ValueOf(instance).Elem()
 	if v.Kind() != reflect.Struct {
 		return fmt.Errorf("expected a struct pointer, got %T", instance)
 	}
+
+	namesToValues := fieldValuesFromDataNodes(node)
 
 	typeOfT := v.Type()
 
@@ -108,4 +109,18 @@ func findEntityDivs(current *html.Node, prefix string) []*html.Node {
 	}
 
 	return alreadyFound
+}
+
+func extracNumber(input string) (string, error) {
+	var result []rune
+	for _, char := range input {
+		if !unicode.IsDigit(char) {
+			result = append(result, char)
+		}
+	}
+	str := string(result)
+
+	_, err := strconv.Atoi(str)
+
+	return str, err
 }

@@ -1,6 +1,7 @@
 package cmdtest
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -147,6 +148,21 @@ func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 
 	for _, div := range divs {
 		var participant model.Participant
+
+		for _, attr := range div.Attr {
+			if attr.Key != "id" {
+				continue
+			}
+
+			idStr := strings.Replace(attr.Val, "participant-", "", 1)
+			slog.Warn("what about us?", "idStr", idStr, "attr.Val", attr.Val)
+			id, err := strconv.Atoi(idStr)
+			is.NoErr(err) // could not convert str to int when extracting id from participant-xxx
+
+			participant.ID = id
+			break
+		}
+
 		err := unmarshal(&participant, div)
 		is.NoErr(err) // something went wrong during unmarshalling from html (duh!)
 
@@ -159,15 +175,17 @@ func (c *TestClient) AssignmentsIndexAction() []model.Participant {
 func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) {
 	is := is.New(c.T)
 
-	form := url.Values{}
-	form.Add("participant-id", strconv.Itoa(participantId))
-	
+	data := url.Values{}
+	slog.Error("particpant-id:", "i", participantId, "s", strconv.Itoa(participantId))
+	data.Add("participant-id", strconv.Itoa(participantId))
+
 	if courseId.Valid {
-		form.Add("course-id", strconv.Itoa(courseId.Value))
+		data.Add("course-id", strconv.Itoa(courseId.Value))
 	}
 
-	body := strings.NewReader(form.Encode())
+	body := strings.NewReader(data.Encode())
 	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), body)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	is.NoErr(err) // could not assemble put request to "assignments"
 
 	resp, err := c.client.Do(req)
