@@ -1,0 +1,6 @@
+<div id="participant-{{ .ID }}">
+	{{ Field "Surname" . }}, {{ Field "Prename" . }} <br>
+	<a hx-delete="participants/{{ .ID }}" hx-target="#participant-{{ .ID }}"
+		style="color: blue; text-decoration: underline; cursor: pointer;">Löschen</a>
+	<hr>
+</div>
