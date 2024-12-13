@@ -1,4 +1,5 @@
-<div id="course-{{ .ID }}" ondragover="allowDrop(event)" ondrop="drop(event)">
+<div id="course-{{ .ID }}" ondragover="allowDrop(event)" ondrop="drop(event)"
+	hx-get="/assignments?selected-course={{ .ID }}" hx-target="#assignments" hx-swap="outerHTML">
 	{{ Field "Name" . }} <br>
 	Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }} <br>
 	<a hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" class="link">Löschen</a>
