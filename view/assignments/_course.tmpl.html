@@ -1,5 +1,6 @@
 <div id="course-{{ .ID }}">
 	{{ Field "Name" . }} <br>
 	Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }} <br>
+	<a hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" class="link">Löschen</a>
 	<hr>
 </div>
