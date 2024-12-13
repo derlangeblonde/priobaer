@@ -100,10 +100,13 @@ func AssignmentsUpdate(c *gin.Context) {
 
 func toViewCourses(models []model.Course, selectedId *int) (views []view.Course) {
 	for _, model := range models {
-		view := view.Course{ID: model.ID, Name: model.Name, MinCapacity: model.MinCapacity, MaxCapacity: model.MaxCapacity, Selected: selectedId != nil && model.ID == *selectedId}
-
+		view := toViewCourse(model, selectedId)
 		views = append(views, view)
 	}
 
 	return
+}
+
+func toViewCourse(model model.Course, selectedId *int) view.Course {
+	return view.Course{ID: model.ID, Name: model.Name, MinCapacity: model.MinCapacity, MaxCapacity: model.MaxCapacity, Selected: selectedId != nil && model.ID == *selectedId}
 }

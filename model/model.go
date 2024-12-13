@@ -11,8 +11,8 @@ type Participant struct {
 	ID       int
 	Prename  string
 	Surname  string
-	CourseID sql.NullInt64
-	Course   Course
+	CourseID sql.NullInt64 `gorm:"constraint:OnDelete:SET NULL;"`
+	Course   Course        `gorm:"constraint:OnDelete:SET NULL;"`
 }
 
 type Course struct {

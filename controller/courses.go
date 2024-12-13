@@ -73,8 +73,10 @@ func CoursesCreate() gin.HandlerFunc {
 			return
 		}
 
+		viewCourse := toViewCourse(course, nil)
+
 		if c.GetHeader("HX-Request") == "true" {
-			c.HTML(http.StatusOK, "courses/_show-with-new-button", course)
+			c.HTML(http.StatusOK, "courses/_show-with-new-button", viewCourse)
 		} else {
 			c.Redirect(http.StatusSeeOther, "/assignments")
 		}
