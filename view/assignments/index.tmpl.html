@@ -8,7 +8,7 @@
 	<h1>Ass</h1>
 
 	<div class="row" id="assignments">
-		<div id="courses-list">
+		<div id="courses-list" class="margin-lr">
 			<h2>Kurse</h2>
 
 			Nicht zugeteilt
@@ -21,7 +21,7 @@
 			<button hx-get="courses/new" hx-target="#assignments">Neuer Kurs</button>
 		</div>
 
-		<div id="participants-list">
+		<div id="participants-list" class="margin-lr">
 			<h2>Teilnehmer</h2>
 
 			{{ range .participants }}
