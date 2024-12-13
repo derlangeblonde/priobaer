@@ -8,6 +8,12 @@ h1 {
 	justify-content: flex-start;
 }
 
+.column{
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+}
+
 .margin-lr {
 	margin-left: 10px;
 	margin-right: 10px;
