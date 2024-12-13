@@ -101,7 +101,7 @@ func CoursesDelete() gin.HandlerFunc {
 		}
 
 		course := model.Course{ID: req.ID}
-		result := db.Delete(&course)
+		result := db.Unscoped().Delete(&course)
 
 		if result.Error != nil {
 			slog.Error("Delete of course failed on db level", "err", result.Error)

@@ -94,7 +94,7 @@ func ParticipantsDelete(c *gin.Context) {
 	}
 
 	participant := model.Participant{ID: int(req.ID)}
-	result := db.Delete(&participant)
+	result := db.Unscoped().Delete(&participant)
 
 	if result.Error != nil {
 		slog.Error("Delete of participants failed on db level", "err", result.Error)
