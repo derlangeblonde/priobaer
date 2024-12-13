@@ -70,7 +70,7 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusSeeOther, "/participants")
+	c.Redirect(http.StatusSeeOther, "/assignments")
 
 }
 

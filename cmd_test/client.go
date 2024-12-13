@@ -80,7 +80,7 @@ func (c *TestClient) ParticpantsCreateAction(participant model.Participant, fini
 	location, err := resp.Location()
 	is.NoErr(err) // could not get location of the redirect response
 
-	is.Equal(location.Path, "/participants")
+	is.Equal(location.Path, "/assignments")
 }
 
 func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) {
@@ -102,7 +102,7 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 	location, err := resp.Location()
 	is.NoErr(err) // could not get location of the redirect response
 
-	is.Equal(location.Path, "/courses")
+	is.Equal(location.Path, "/assignments")
 }
 
 func (c *TestClient) CoursesIndexAction() []model.Course {

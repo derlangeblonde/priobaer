@@ -41,8 +41,8 @@ func CoursesNew() gin.HandlerFunc {
 func CoursesCreate() gin.HandlerFunc {
 	type request struct {
 		Name        string `form:"name" binding:"required"`
-		MaxCapacity *int    `form:"max-capacity" binding:"required"`
-		MinCapacity *int    `form:"min-capacity" binding:"required"`
+		MaxCapacity *int   `form:"max-capacity" binding:"required"`
+		MinCapacity *int   `form:"min-capacity" binding:"required"`
 	}
 
 	return func(c *gin.Context) {
@@ -73,7 +73,7 @@ func CoursesCreate() gin.HandlerFunc {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "/courses")
+		c.Redirect(http.StatusSeeOther, "/assignments")
 	}
 }
 
