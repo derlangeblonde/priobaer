@@ -1,3 +1,4 @@
+{{ if .fullPage }}
 <!DOCTYPE html>
 
 <html lang="de">
@@ -7,6 +8,7 @@
 <body>
 	<h1>Ass</h1>
 
+{{ end }}
 	<div class="row" id="assignments">
 		<div id="courses-list" class="margin-lr">
 			<h2>Kurse</h2>
@@ -22,20 +24,10 @@
 			{{ template "courses/_new-button" }}
 		</div>
 
-		<div id="participants-list" class="margin-lr">
-			<h2>Teilnehmer</h2>
-
-			{{ range .participants }}
-			{{ template "participants/_show" . }}
-			{{ else }}
-			<p> Keine Teilnehmenden </p>
-			{{ end }}
-
-			{{ template "participants/_new-button" }}
-		</div>
-
+		{{ template "assignments/_participants-list" .participants }}
 	</div>
-
+{{ if .fullPage }}
 </body>
 
 </html>
+{{ end }}

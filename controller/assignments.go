@@ -54,7 +54,14 @@ func AssignmentsIndex(c *gin.Context) {
 
 	noCourseSelected := req.CourseIdSelected == nil
 	viewCourses := toViewCourses(courses, req.CourseIdSelected)
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants, "courses": viewCourses, "noCourseSelected": noCourseSelected})
+
+	if c.GetHeader("HX-Request") == "true" {
+		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": participants, "courses": viewCourses, "noCourseSelected": noCourseSelected})
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": participants, "courses": viewCourses, "noCourseSelected": noCourseSelected})
 }
 
 func AssignmentsUpdate(c *gin.Context) {

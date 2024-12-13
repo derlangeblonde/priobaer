@@ -1,0 +1,11 @@
+<div id="participants-list" class="margin-lr">
+	<h2>Teilnehmer</h2>
+
+	{{ range . }}
+	{{ template "participants/_show" . }}
+	{{ else }}
+	<p> Keine Teilnehmenden </p>
+	{{ end }}
+
+	{{ template "participants/_new-button" }}
+</div>
