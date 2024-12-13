@@ -85,5 +85,5 @@ func AssignmentsUpdate(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusSeeOther, "/assignments")
+	c.Data(http.StatusOK, "text/html", []byte(""))
 }

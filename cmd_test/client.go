@@ -161,11 +161,7 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	resp, err := c.client.Do(req)
 	is.NoErr(err) // error while doing put request to "assignments"
 
-	is.Equal(resp.StatusCode, 303)
-	location, err := resp.Location()
-	is.NoErr(err) // could not get location of the redirect response
-
-	is.Equal(location.Path, "/assignments")
+	is.Equal(resp.StatusCode, 200)
 }
 
 func (c *TestClient) Endpoint(path string) string {
