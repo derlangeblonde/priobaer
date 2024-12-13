@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-unused-vars
 window.addEventListener("beforeunload", function (event) {
 
     const navigationType = performance.getEntriesByType("navigation")[0]?.type;
@@ -26,13 +27,16 @@ function allowDrop(e) {
     *@param {DragEvent} e
     */
 function drop(e) {
-    let participantElementId = e.dataTransfer.getData("css-id")
-    let participantId = extractNumericId(participantElementId)
-    let courseId = extractNumericId(e.target.id) 
+    const participantElementId = e.dataTransfer.getData("css-id")
+    const participantId = extractNumericId(participantElementId)
+    const courseId = extractNumericId(e.target.id) 
 
     htmx.ajax("PUT", "/assignments", {"target": "#" + participantElementId, "values": {"participant-id": participantId, "course-id": courseId}})
 }
 
+/**
+    *@param {string} elementId
+    */
 function extractNumericId(elementId) {
     return elementId.split("-")[1]
 }
