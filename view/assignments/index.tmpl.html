@@ -16,10 +16,10 @@
 			<hr>
 
 			{{ range .courses }}
-			{{ template "assignments/_course" . }}
+			{{ template "courses/_show" . }}
 			{{ end }}
 
-			<button hx-get="courses/new" hx-target="#assignments">Neuer Kurs</button>
+			{{ template "courses/_new-button" }}
 		</div>
 
 		<div id="participants-list" class="margin-lr">
