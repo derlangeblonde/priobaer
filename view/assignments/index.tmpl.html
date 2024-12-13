@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<html lang="de">
+
+	{{ template "general/head" }}
+
+<body>
+	<h1>Ass</h1>
+
+	<div class="row" >
+		<div id="courses-list">
+			<h2>Kurse</h2>
+
+			Nicht zugeteilt
+			<hr>
+
+			{{ range .courses }}
+			{{ end }}
+
+		</div>
+
+		<div id="participants-list">
+			<h2>Teilnehmer</h2>
+
+			{{ range .participants }}
+				<div id="participant-{{ .ID }}">
+					Vorname: {{ Field "Prename" . }} <br>
+					Nachname: {{ Field "Surname" . }} <br>
+					<br>
+					<a hx-delete="participants/{{ .ID }}" hx-target="#participant-{{ .ID }}" style="color: blue; text-decoration: underline; cursor: pointer;">Löschen</a>
+					<hr>
+				</div>
+			{{ else }}
+				<p> Keine Teilnehmenden </p>
+			{{ end }}
+
+			<button hx-get="participants/new" hx-target="#participants-list">Neuer Teilnehmende</button>
+		</div>
+
+	</div>
+
+</body>
+
+</html>

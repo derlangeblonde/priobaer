@@ -41,11 +41,7 @@ func AssignmentsIndex(c *gin.Context) {
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": participants})
-	} else {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": participants})
-	}
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants})
 
 }
 
