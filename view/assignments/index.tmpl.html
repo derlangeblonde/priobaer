@@ -10,7 +10,7 @@
 	<div class="row" id="assignments">
 		<div id="courses-list" class="margin-lr">
 			<h2>Kurse</h2>
-			<div hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML">
+			<div hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" {{if .noCourseSelected }} class="selected" {{ end }}>
 				Nicht zugeteilt
 			</div>
 			<hr>

@@ -51,7 +51,8 @@ func AssignmentsIndex(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants, "courses": courses})
+	noCourseSelected := req.CourseIdSelected == nil
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants, "courses": courses, "noCourseSelected": noCourseSelected})
 }
 
 func AssignmentsUpdate(c *gin.Context) {

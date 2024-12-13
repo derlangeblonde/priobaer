@@ -18,3 +18,7 @@ h1 {
 	text-decoration: underline;
 	cursor: pointer;
 }
+
+.selected {
+	background-color: lightblue;
+}
