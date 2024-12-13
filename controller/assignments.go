@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/view"
 )
 
 func AssignmentsIndex(c *gin.Context) {
@@ -52,7 +53,8 @@ func AssignmentsIndex(c *gin.Context) {
 	}
 
 	noCourseSelected := req.CourseIdSelected == nil
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants, "courses": courses, "noCourseSelected": noCourseSelected})
+	viewCourses := toViewCourses(courses, req.CourseIdSelected)
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants, "courses": viewCourses, "noCourseSelected": noCourseSelected})
 }
 
 func AssignmentsUpdate(c *gin.Context) {
@@ -87,4 +89,14 @@ func AssignmentsUpdate(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, "text/html", []byte(""))
+}
+
+func toViewCourses(models []model.Course, selectedId *int) (views []view.Course) {
+	for _, model := range models {
+		view := view.Course{ID: model.ID, Name: model.Name, MinCapacity: model.MinCapacity, MaxCapacity: model.MaxCapacity, Selected: selectedId != nil && model.ID == *selectedId}
+
+		views = append(views, view)
+	}
+
+	return
 }
