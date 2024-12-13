@@ -105,3 +105,7 @@ func ParticipantsDelete(c *gin.Context) {
 
 	c.Data(http.StatusOK, "text/html", []byte(""))
 }
+
+func ParticipantsButtonNew(c *gin.Context) {
+	c.HTML(http.StatusOK, "participants/_new-button", nil)
+}

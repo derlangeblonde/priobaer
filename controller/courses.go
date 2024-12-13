@@ -113,3 +113,7 @@ func CoursesDelete() gin.HandlerFunc {
 		c.Data(http.StatusOK, "text/html", []byte(""))
 	}
 }
+
+func CoursesButtonNew(c *gin.Context) {
+	c.HTML(http.StatusOK, "courses/_new-button", nil)
+}
