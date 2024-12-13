@@ -28,14 +28,14 @@ func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, 
 	dbDir := MakeTestingDbDir(t)
 
 	if env == nil {
-		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault))
+		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PORT", strconv.Itoa(port))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go cmd.Run(ctx, env, fakeClock)
 
-	err := waitForReady(time.Millisecond*200, 16, "http://localhost:8080/health")
+	err := waitForReady(time.Millisecond*200, 16, localhost+"/health")
 
 	if err != nil {
 		t.Fatalf("Application did not boot in specified time span")
@@ -57,7 +57,7 @@ func MakeTestingDbDir(t *testing.T) string {
 }
 
 func defaultWaitForReady() error {
-	return waitForReady(time.Millisecond*200, 20, "http://localhost:8080/health")
+	return waitForReady(time.Millisecond*200, 20, localhost+"/health")
 }
 
 func waitForReady(
@@ -94,7 +94,7 @@ func waitForReady(
 }
 
 func waitForTerminationDefault(cancel context.CancelFunc) error {
-	return waitForTermination(time.Millisecond*200, 8, "http://localhost:8080/health", cancel)
+	return waitForTermination(time.Millisecond*200, 8, localhost+"/health", cancel)
 }
 
 func waitForTermination(

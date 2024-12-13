@@ -7,7 +7,7 @@
 <body>
 	<h1>Ass</h1>
 
-	<div class="row" >
+	<div class="row" id="assignments">
 		<div id="courses-list">
 			<h2>Kurse</h2>
 
@@ -17,6 +17,7 @@
 			{{ range .courses }}
 			{{ end }}
 
+			<button hx-get="courses/new" hx-target="#assignments">Neuer Kurs</button>
 		</div>
 
 		<div id="participants-list">
@@ -34,7 +35,7 @@
 				<p> Keine Teilnehmenden </p>
 			{{ end }}
 
-			<button hx-get="participants/new" hx-target="#participants-list">Neuer Teilnehmende</button>
+			<button hx-get="participants/new" hx-target="#assignments">Neuer Teilnehmende</button>
 		</div>
 
 	</div>

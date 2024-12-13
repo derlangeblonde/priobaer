@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -9,6 +10,7 @@ import (
 type Config struct {
 	DbRootDir     string
 	SessionMaxAge time.Duration
+	Port          int
 }
 
 func ParseConfig(getenv func(string) string) (Config, error) {
@@ -22,13 +24,7 @@ func ParseConfig(getenv func(string) string) (Config, error) {
 
 	config.DbRootDir = dbRootDir
 
-	sessionMaxAgeString := getenv("SESSION_MAX_AGE")
-
-	if sessionMaxAgeString == "" {
-		return config, errors.New("SESSION_MAX_AGE not set")
-	}
-
-	sessionMaxAge, err := strconv.Atoi(sessionMaxAgeString)
+	sessionMaxAge, err := GetInt(getenv, "SESSION_MAX_AGE")
 
 	if err != nil {
 		return config, err
@@ -36,5 +32,23 @@ func ParseConfig(getenv func(string) string) (Config, error) {
 
 	config.SessionMaxAge = time.Second * time.Duration(sessionMaxAge)
 
+	port, err := GetInt(getenv, "PORT")
+
+	if err != nil {
+		return config, err
+	}
+
+	config.Port = port
+
 	return config, nil
+}
+
+func GetInt(getenv func(string) string, key string) (int, error) {
+	sessionMaxAgeString := getenv(key)
+
+	if sessionMaxAgeString == "" {
+		return 0, fmt.Errorf("%s not set", key)
+	}
+
+	return strconv.Atoi(sessionMaxAgeString)
 }

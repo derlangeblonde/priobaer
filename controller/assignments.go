@@ -35,14 +35,23 @@ func AssignmentsIndex(c *gin.Context) {
 	}
 
 	if result.Error != nil {
-		slog.Error("Unexpected error while showing course index", "err", result.Error)
+		slog.Error("Unexpected error while gettting assigned particpants from db", "err", result.Error)
 		c.AbortWithStatus(http.StatusInternalServerError)
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants})
+	var courses []model.Course
+	result = db.Find(&courses)
 
+	if result.Error != nil {
+		slog.Error("Unexpected error while getting all courses from db", "err", result.Error)
+		c.AbortWithStatus(http.StatusInternalServerError)
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"participants": participants, "courses": courses})
 }
 
 func AssignmentsUpdate(c *gin.Context) {
