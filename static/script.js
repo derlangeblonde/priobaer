@@ -12,20 +12,7 @@ window.addEventListener("beforeunload", function (event) {
     *@param {DragEvent} e
     */
 function dragStart(e) {
-    e.dataTransfer.setData("text", e.target.id)
-}
-
-/**
-    *@param {DragEvent} e
-    */
-function drop(e) {
-    let participantId = e.dataTransfer.getData("text").split("-")[1]
-    let courseId = e.target.id.split("-")[1]
-
-    console.log(participantId)
-    console.log(courseId)
-
-    htmx.ajax("PUT", "/assignments", {"target": "#" + e.dataTransfer.getData("text"), "values": {"participant-id": participantId, "course-id": courseId}})
+    e.dataTransfer.setData("css-id", e.target.id)
 }
 
 /**
@@ -33,4 +20,19 @@ function drop(e) {
     */
 function allowDrop(e) {
     e.preventDefault()
+}
+
+/**
+    *@param {DragEvent} e
+    */
+function drop(e) {
+    let participantElementId = e.dataTransfer.getData("css-id")
+    let participantId = extractNumericId(participantElementId)
+    let courseId = extractNumericId(e.target.id) 
+
+    htmx.ajax("PUT", "/assignments", {"target": "#" + participantElementId, "values": {"participant-id": participantId, "course-id": courseId}})
+}
+
+function extractNumericId(elementId) {
+    return elementId.split("-")[1]
 }
