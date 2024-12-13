@@ -26,12 +26,13 @@
 			<h2>Teilnehmer</h2>
 
 			{{ range .participants }}
-			{{ template "assignments/_participant" . }}
+			{{ template "participants/_show" . }}
 			{{ else }}
 			<p> Keine Teilnehmenden </p>
 			{{ end }}
 
-			<button hx-get="participants/new" hx-target="#assignments">Neuer Teilnehmende</button>
+			<button hx-get="participants/new" hx-target="this" hx-swap="outerHTML">Neuer
+				Teilnehmende</button>
 		</div>
 
 	</div>
