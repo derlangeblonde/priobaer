@@ -19,7 +19,8 @@ type Course struct {
 	gorm.Model
 	ID int
 	// TODO: unique constraint does not go well with soft delete
-	Name        string `gorm:"unique"`
-	MaxCapacity int
-	MinCapacity int
+	Name         string `gorm:"unique"`
+	MaxCapacity  int
+	MinCapacity  int
+	Participants []Participant
 }
