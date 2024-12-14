@@ -105,13 +105,11 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 		"min-capacity", strconv.Itoa(course.MinCapacity),
 	)
 
-	req, err := http.NewRequest("POST", c.Endpoint("courses"), body)
-	is.NoErr(err)
+	req := c.NewRequest("POST", c.Endpoint("courses"), body).AsHxRequest().WithFormUrlEncodedBody()
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("HX-Request", "true")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do(req.Request)
 
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
@@ -170,6 +168,7 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 
 	body := strings.NewReader(data.Encode())
 	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), body)
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	is.NoErr(err) // could not assemble put request to "assignments"
 
@@ -191,6 +190,14 @@ func (c *TestClient) Endpoint(path string) string {
 
 type Request struct {
 	*http.Request
+}
+
+func (c *TestClient) NewRequest(method, url string, body io.Reader) *Request {
+	is := is.New(c.T)
+	req, err := http.NewRequest(method, url, body)
+	is.NoErr(err)
+
+	return &Request{req}
 }
 
 func (r *Request) AsHxRequest() *Request {
