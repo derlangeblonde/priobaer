@@ -38,6 +38,7 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 	d.entries[dbId] = &entry{conn: db}
 	db.AutoMigrate(d.models...)
 	db.AutoMigrate(&session{})
+	db.Exec("PRAGMA foreign_keys = ON;")
 
 	var count int64
 	db.Model(&session{}).Count(&count)

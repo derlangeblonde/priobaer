@@ -32,7 +32,7 @@ func ParticipantsIndex(c *gin.Context) {
 }
 
 func ParticipantsNew(c *gin.Context) {
-	c.HTML(http.StatusOK, "participants/new", nil)
+	c.HTML(http.StatusOK, "participants/_new", nil)
 }
 
 func ParticipantsCreate(c *gin.Context) {
@@ -70,8 +70,11 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusSeeOther, "/participants")
-
+	if c.GetHeader("HX-Request") == "true" {
+		c.HTML(http.StatusOK, "participants/_show-with-new-button", participant)
+	} else {
+		c.Redirect(http.StatusSeeOther, "/assignments")
+	}
 }
 
 func ParticipantsDelete(c *gin.Context) {
@@ -91,7 +94,7 @@ func ParticipantsDelete(c *gin.Context) {
 	}
 
 	participant := model.Participant{ID: int(req.ID)}
-	result := db.Delete(&participant)
+	result := db.Unscoped().Delete(&participant)
 
 	if result.Error != nil {
 		slog.Error("Delete of participants failed on db level", "err", result.Error)
@@ -101,4 +104,8 @@ func ParticipantsDelete(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, "text/html", []byte(""))
+}
+
+func ParticipantsButtonNew(c *gin.Context) {
+	c.HTML(http.StatusOK, "participants/_new-button", nil)
 }

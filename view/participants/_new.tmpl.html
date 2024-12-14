@@ -1,7 +1,7 @@
 <div id="participants-new">
 	<h2>Neuer Teilnehmer</h2>
 
-	<form hx-post="/participants" hx-target="#participants-new">
+	<form hx-post="/participants" hx-target="#participants-new" hx-swap="outerHTML" class="column">
 		<label>Vorname</label>
 		<input type="text" name="prename">
 		<label>Nachname</label>
@@ -9,4 +9,6 @@
 
 		<input type="submit" value="Anlegen">
 	</form>
+
+	<button hx-get="participants/button-new" hx-target="#participants-new" hx-swap="outerHTML">Abbrechen</button>
 </div>

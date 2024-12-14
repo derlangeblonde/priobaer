@@ -1,0 +1,30 @@
+h1 {
+	color: red
+}
+
+.row {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+}
+
+.column{
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+}
+
+.margin-lr {
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+.link {
+	color: blue;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.selected {
+	background-color: lightblue;
+}

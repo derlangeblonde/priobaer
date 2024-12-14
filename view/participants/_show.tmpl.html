@@ -1,0 +1,5 @@
+<div id="participant-{{ .ID }}" draggable="true" ondragstart="dragStart(event)">
+	{{ Field "Surname" . }}, {{ Field "Prename" . }} <br>
+	<a hx-delete="participants/{{ .ID }}" hx-target="#participant-{{ .ID }}" class="link">Löschen</a>
+	<hr>
+</div>

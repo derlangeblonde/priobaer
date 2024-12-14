@@ -41,8 +41,8 @@ func CoursesNew() gin.HandlerFunc {
 func CoursesCreate() gin.HandlerFunc {
 	type request struct {
 		Name        string `form:"name" binding:"required"`
-		MaxCapacity *int    `form:"max-capacity" binding:"required"`
-		MinCapacity *int    `form:"min-capacity" binding:"required"`
+		MaxCapacity *int   `form:"max-capacity" binding:"required"`
+		MinCapacity *int   `form:"min-capacity" binding:"required"`
 	}
 
 	return func(c *gin.Context) {
@@ -73,7 +73,13 @@ func CoursesCreate() gin.HandlerFunc {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "/courses")
+		viewCourse := toViewCourse(course, nil)
+
+		if c.GetHeader("HX-Request") == "true" {
+			c.HTML(http.StatusOK, "courses/_show-with-new-button", viewCourse)
+		} else {
+			c.Redirect(http.StatusSeeOther, "/assignments")
+		}
 	}
 }
 
@@ -95,7 +101,7 @@ func CoursesDelete() gin.HandlerFunc {
 		}
 
 		course := model.Course{ID: req.ID}
-		result := db.Delete(&course)
+		result := db.Unscoped().Delete(&course)
 
 		if result.Error != nil {
 			slog.Error("Delete of course failed on db level", "err", result.Error)
@@ -106,4 +112,8 @@ func CoursesDelete() gin.HandlerFunc {
 
 		c.Data(http.StatusOK, "text/html", []byte(""))
 	}
+}
+
+func CoursesButtonNew(c *gin.Context) {
+	c.HTML(http.StatusOK, "courses/_new-button", nil)
 }

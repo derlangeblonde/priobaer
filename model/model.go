@@ -12,7 +12,7 @@ type Participant struct {
 	Prename  string
 	Surname  string
 	CourseID sql.NullInt64
-	Course   Course
+	Course   Course `gorm:"constraint:OnDelete:SET NULL;"`
 }
 
 type Course struct {

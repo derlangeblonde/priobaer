@@ -39,7 +39,7 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 	wg := sync.WaitGroup{}
 	wg.Add(requestCount)
 
-	testClient := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost)
 
 	testClient.AcquireSessionCookie()
 
@@ -80,7 +80,7 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	sut := StartupSystemUnderTestWithFakeClock(t, nil, fakeClock)
 	defer waitForTerminationDefault(sut.cancel)
 
-	testClient := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost)
 
 	testClient.AcquireSessionCookie()
 
@@ -101,7 +101,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault))
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PORT", strconv.Itoa(port))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -110,7 +110,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
-	testClient := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost)
 
 	testClient.AcquireSessionCookie()
 
@@ -140,7 +140,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 	sut := StartupSystemUnderTest(t, nil)
 	defer waitForTerminationDefault(sut.cancel)
 
-	ctx := NewTestClient(t, "http://localhost:8080")
+	ctx := NewTestClient(t, localhost)
 
 	ctx.AcquireSessionCookie()
 	expectedCourse := RandomCourse()

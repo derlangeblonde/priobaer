@@ -62,7 +62,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 	controller.RegisterRoutes(router)
 
 	server := &http.Server{
-		Addr:    "localhost:8080",
+		Addr:    fmt.Sprintf("localhost:%d", config.Port),
 		Handler: router.Handler(),
 	}
 	go func() {

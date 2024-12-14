@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-const renderFieldTemplateString = `<data class="{{ .Name }}"> {{ .Value }} </data>`
+const renderFieldTemplateString = `<data class="{{ .Name }}">{{ .Value }}</data>`
 
 var getFieldTmpl = sync.OnceValue(func() *template.Template {
 	tmpl := template.New("data")

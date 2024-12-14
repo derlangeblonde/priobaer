@@ -1,0 +1,34 @@
+{{ if .fullPage }}
+<!DOCTYPE html>
+
+<html lang="de">
+
+{{ template "general/head" }}
+
+<body>
+	<h1>Ass</h1>
+
+{{ end }}
+	<div class="row" id="assignments">
+		<div id="courses-list" class="margin-lr">
+			<h2>Kurse</h2>
+			<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" {{if .noCourseSelected }} class="selected" {{ end }}
+				ondragover="allowDrop(event)" ondrop="drop(event)">
+				Nicht zugeteilt
+			</div>
+			<hr>
+
+			{{ range .courses }}
+			{{ template "courses/_show" . }}
+			{{ end }}
+
+			{{ template "courses/_new-button" }}
+		</div>
+
+		{{ template "assignments/_participants-list" .participants }}
+	</div>
+{{ if .fullPage }}
+</body>
+
+</html>
+{{ end }}

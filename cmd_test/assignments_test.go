@@ -13,7 +13,7 @@ func TestParticpantsAreUnassignedIntially(t *testing.T) {
 	sut := StartupSystemUnderTest(t, nil)
 	defer waitForTerminationDefault(sut.cancel)
 
-	testClient := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost)
 
 	testClient.AcquireSessionCookie()
 
@@ -36,7 +36,7 @@ func TestAssignParticipant(t *testing.T) {
 	sut := StartupSystemUnderTest(t, nil)
 	defer waitForTerminationDefault(sut.cancel)
 
-	testClient := NewTestClient(t, localhost8080)
+	testClient := NewTestClient(t, localhost)
 
 	testClient.AcquireSessionCookie()
 
