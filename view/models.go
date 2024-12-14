@@ -5,5 +5,6 @@ type Course struct {
 	Name        string
 	MaxCapacity int
 	MinCapacity int
+	Allocation  int
 	Selected    bool
 }

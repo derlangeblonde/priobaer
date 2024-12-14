@@ -108,5 +108,12 @@ func toViewCourses(models []model.Course, selectedId *int) (views []view.Course)
 }
 
 func toViewCourse(model model.Course, selectedId *int) view.Course {
-	return view.Course{ID: model.ID, Name: model.Name, MinCapacity: model.MinCapacity, MaxCapacity: model.MaxCapacity, Selected: selectedId != nil && model.ID == *selectedId}
+	return view.Course{
+		ID:          model.ID,
+		Name:        model.Name,
+		MinCapacity: model.MinCapacity,
+		MaxCapacity: model.MaxCapacity,
+		Selected:    selectedId != nil && model.ID == *selectedId,
+		Allocation:  model.Allocation(),
+	}
 }
