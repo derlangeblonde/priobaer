@@ -2,6 +2,7 @@ package cmdtest
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -11,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"golang.org/x/net/html"
 	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/util"
+	"softbaer.dev/ass/view"
 )
 
 type TestClient struct {
@@ -62,47 +63,66 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) ParticpantsCreateAction(participant model.Participant, finish *sync.WaitGroup) {
+func (c *TestClient) ParticpantsCreateAction(participant model.Participant, finish *sync.WaitGroup) model.Participant {
 	if finish != nil {
 		defer finish.Done()
 	}
 
 	is := is.New(c.T)
 
-	form := url.Values{}
-	form.Add("prename", participant.Prename)
-	form.Add("surname", participant.Surname)
-	resp, err := c.client.PostForm(c.Endpoint("participants"), form)
+	body := BuildFormBody(
+		"prename", participant.Prename,
+		"surname", participant.Surname,
+	)
+
+	req, err := http.NewRequest("POST", c.Endpoint("participants"), body)
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("HX-Request", "true")
+
+	resp, err := c.client.Do(req)
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
-	is.Equal(resp.StatusCode, 303)
-	location, err := resp.Location()
-	is.NoErr(err) // could not get location of the redirect response
+	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
+	is.NoErr(err)
 
-	is.Equal(location.Path, "/assignments")
+	is.Equal(len(participants), 1)
+
+	return participants[0]
 }
 
-func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) {
+func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) view.Course {
 	if finish != nil {
 		defer finish.Done()
 	}
 
 	is := is.New(c.T)
 
-	form := url.Values{}
-	form.Add("name", course.Name)
-	form.Add("max-capacity", strconv.Itoa(course.MaxCapacity))
-	form.Add("min-capacity", strconv.Itoa(course.MinCapacity))
-	resp, err := c.client.PostForm(c.Endpoint("courses"), form)
+	body := BuildFormBody(
+		"name", course.Name,
+		"max-capacity", strconv.Itoa(course.MaxCapacity),
+		"min-capacity", strconv.Itoa(course.MinCapacity),
+	)
+
+	req, err := http.NewRequest("POST", c.Endpoint("courses"), body)
+	is.NoErr(err)
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("HX-Request", "true")
+
+	resp, err := c.client.Do(req)
+
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
-	is.Equal(resp.StatusCode, 303)
-	location, err := resp.Location()
-	is.NoErr(err) // could not get location of the redirect response
+	is.Equal(resp.StatusCode, 200)
+	defer resp.Body.Close()
 
-	is.Equal(location.Path, "/assignments")
+	courses, err := unmarshalAll[view.Course](resp.Body, "course-")
+	is.Equal(len(courses), 1)
+
+	return courses[0]
 }
 
 func (c *TestClient) CoursesIndexAction() []model.Course {
@@ -113,10 +133,8 @@ func (c *TestClient) CoursesIndexAction() []model.Course {
 	is.Equal(resp.StatusCode, 200) // get courses did not return 200
 	defer resp.Body.Close()
 
-	doc, err := html.Parse(resp.Body)
-	is.NoErr(err) // could not parse response html
-
-	courses, err := unmarshalAll[model.Course](doc, "course-")
+	courses, err := unmarshalAll[model.Course](resp.Body, "course-")
+	is.NoErr(err)
 
 	return courses
 }
@@ -135,10 +153,7 @@ func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []mo
 	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
 	defer resp.Body.Close()
 
-	doc, err := html.Parse(resp.Body)
-	is.NoErr(err) // could not parse response html
-
-	participants, err := unmarshalAll[model.Participant](doc, "participant-")
+	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
 
 	return participants
 }
@@ -172,4 +187,34 @@ func (c *TestClient) Endpoint(path string) string {
 	}
 
 	return url.String()
+}
+
+type Request struct {
+	*http.Request
+}
+
+func (r *Request) AsHxRequest() *Request {
+	r.Header.Add("HX-Request", "true")
+
+	return r
+}
+
+func (r *Request) WithFormUrlEncodedBody() *Request {
+	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	return r
+}
+
+func BuildFormBody(args ...string) io.Reader {
+	if len(args)%2 != 0 {
+		panic("Expected even number of args for BuildFormBody")
+	}
+
+	data := url.Values{}
+
+	for i := 0; i < len(args); i += 2 {
+		data.Add(args[i], args[i+1])
+	}
+
+	return strings.NewReader(data.Encode())
 }

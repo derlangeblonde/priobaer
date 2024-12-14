@@ -3,6 +3,7 @@ package cmdtest
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -13,7 +14,13 @@ import (
 
 var idExtractionRegex *regexp.Regexp = regexp.MustCompile(`\w+-(\d+)`)
 
-func unmarshalAll[T any](doc *html.Node, prefix string) (all []T, err error) {
+func unmarshalAll[T any](body io.Reader, prefix string) (all []T, err error) {
+	doc, err := html.Parse(body)
+
+	if err != nil {
+		return all, err
+	}
+
 	divs := findEntityDivs(doc, prefix)
 
 	for _, div := range divs {

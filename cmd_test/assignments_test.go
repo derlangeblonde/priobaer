@@ -75,3 +75,19 @@ func TestAssignParticipant(t *testing.T) {
 
 	is.Equal(len(participantsAssignedToCourse), 0) // expect no participant assinged to course after unassigning
 }
+
+func TestDisplayCourseAllocation(t *testing.T) {
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+
+	expectedAllocations := []int{4, 2, 5, 11, 5}
+
+	for _, expectedAlloc := range expectedAllocations {
+		testClient.CoursesCreateAction(RandomCourse(), nil)
+		for i := 0; i < expectedAlloc; i++ {
+
+		}
+	}
+}
