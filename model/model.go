@@ -24,3 +24,7 @@ type Course struct {
 	MinCapacity  int
 	Participants []Participant
 }
+
+func (c *Course) Allocation() int {
+	return len(c.Participants)
+}
