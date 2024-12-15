@@ -70,12 +70,11 @@ func (c *TestClient) ParticpantsCreateAction(participant model.Participant, fini
 
 	is := is.New(c.T)
 
-	body := BuildFormBody(
+	req := c.RequestWithFormBody(
+		"POST", c.Endpoint("participants"),
 		"prename", participant.Prename,
 		"surname", participant.Surname,
 	)
-
-	req, err := http.NewRequest("POST", c.Endpoint("participants"), body)
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("HX-Request", "true")
@@ -99,17 +98,16 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 
 	is := is.New(c.T)
 
-	body := BuildFormBody(
+	req := c.RequestWithFormBody(
+		"POST", c.Endpoint("courses"),
 		"name", course.Name,
 		"max-capacity", strconv.Itoa(course.MaxCapacity),
 		"min-capacity", strconv.Itoa(course.MinCapacity),
 	)
 
-	req := c.NewRequest("POST", c.Endpoint("courses"), body).AsHxRequest().WithFormUrlEncodedBody()
+	SetHxRequest(req)
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := c.client.Do(req.Request)
+	resp, err := c.client.Do(req)
 
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
@@ -188,28 +186,18 @@ func (c *TestClient) Endpoint(path string) string {
 	return url.String()
 }
 
-type Request struct {
-	*http.Request
-}
-
-func (c *TestClient) NewRequest(method, url string, body io.Reader) *Request {
+func (c *TestClient) RequestWithFormBody(method, url string, args ...string) *http.Request{
+	body := BuildFormBody(args...)
 	is := is.New(c.T)
 	req, err := http.NewRequest(method, url, body)
 	is.NoErr(err)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	return &Request{req}
+	return req 
 }
 
-func (r *Request) AsHxRequest() *Request {
-	r.Header.Add("HX-Request", "true")
-
-	return r
-}
-
-func (r *Request) WithFormUrlEncodedBody() *Request {
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	return r
+func SetHxRequest(req *http.Request) {
+	req.Header.Add("HX-Request", "true")
 }
 
 func BuildFormBody(args ...string) io.Reader {
