@@ -1,7 +1,7 @@
 <div id="course-{{ .ID }}" {{if .Selected }} class="selected" {{ end }} hx-get="/assignments?selected-course={{ .ID }}"
 	hx-target="#assignments" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)">
 	{{ Field "Name" . }} <br>
-	Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }} <br>
+	Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }}, Auslastung {{ Field "Allocation" . }} <br>
 	<a hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" class="link">Löschen</a>
 	<hr>
 </div>
