@@ -77,6 +77,8 @@ func TestAssignParticipant(t *testing.T) {
 }
 
 func TestDisplayCourseAllocation(t *testing.T) {
+	is := is.New(t)
+
 	sut := StartupSystemUnderTest(t, nil)
 	defer sut.cancel()
 
@@ -85,9 +87,25 @@ func TestDisplayCourseAllocation(t *testing.T) {
 	expectedAllocations := []int{4, 2, 5, 11, 5}
 
 	for _, expectedAlloc := range expectedAllocations {
-		testClient.CoursesCreateAction(RandomCourse(), nil)
+		course := testClient.CoursesCreateAction(RandomCourse(), nil)
 		for i := 0; i < expectedAlloc; i++ {
-
+			participant := testClient.ParticpantsCreateAction(RandomParticipant(), nil)
+			testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 		}
 	}
+
+	actualCourses := testClient.CoursesIndexAction()
+
+	is.Equal(len(actualCourses), len(expectedAllocations))
+
+	// var actualAllocations []int
+	//
+	// for _, actualCourse := range actualCourses{
+	// 	actualAllocations = append(actualAllocations, actualCourse.Allocation)
+	// }
+	//
+	// slices.Sort(actualAllocations)
+	// slices.Sort(expectedAllocations)
+	//
+	// is.Equal(actualAllocations, expectedAllocations)
 }

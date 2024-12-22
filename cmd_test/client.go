@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -121,15 +122,16 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 	return courses[0]
 }
 
-func (c *TestClient) CoursesIndexAction() []model.Course {
+func (c *TestClient) CoursesIndexAction() []view.Course {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("courses"))
+	resp, err := c.client.Get(c.Endpoint("assignments"))
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get courses did not return 200
 	defer resp.Body.Close()
 
-	courses, err := unmarshalAll[model.Course](resp.Body, "course-")
+	courses, err := unmarshalAll[view.Course](resp.Body, "course-")
+	c.T.Log(courses)
 	is.NoErr(err)
 
 	return courses
@@ -157,18 +159,13 @@ func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []mo
 func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) {
 	is := is.New(c.T)
 
-	data := url.Values{}
-	data.Add("participant-id", strconv.Itoa(participantId))
+	data := []string{"participant-id", strconv.Itoa(participantId)}
 
 	if courseId.Valid {
-		data.Add("course-id", strconv.Itoa(courseId.Value))
+		data = slices.Concat(data, []string{"course-id", strconv.Itoa(courseId.Value)})
 	}
 
-	body := strings.NewReader(data.Encode())
-	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), body)
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	is.NoErr(err) // could not assemble put request to "assignments"
+	req := c.RequestWithFormBody("PUT", c.Endpoint("assignments"), data...)
 
 	resp, err := c.client.Do(req)
 	is.NoErr(err) // error while doing put request to "assignments"
@@ -196,10 +193,6 @@ func (c *TestClient) RequestWithFormBody(method, url string, args ...string) *ht
 	return req 
 }
 
-func SetHxRequest(req *http.Request) {
-	req.Header.Add("HX-Request", "true")
-}
-
 func BuildFormBody(args ...string) io.Reader {
 	if len(args)%2 != 0 {
 		panic("Expected even number of args for BuildFormBody")
@@ -212,4 +205,8 @@ func BuildFormBody(args ...string) io.Reader {
 	}
 
 	return strings.NewReader(data.Encode())
+}
+
+func SetHxRequest(req *http.Request) {
+	req.Header.Add("HX-Request", "true")
 }
