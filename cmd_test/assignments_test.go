@@ -1,6 +1,7 @@
 package cmdtest
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/matryer/is"
@@ -83,6 +84,7 @@ func TestDisplayCourseAllocation(t *testing.T) {
 	defer sut.cancel()
 
 	testClient := NewTestClient(t, localhost)
+	testClient.AcquireSessionCookie()
 
 	expectedAllocations := []int{4, 2, 5, 11, 5}
 
@@ -98,14 +100,14 @@ func TestDisplayCourseAllocation(t *testing.T) {
 
 	is.Equal(len(actualCourses), len(expectedAllocations))
 
-	// var actualAllocations []int
-	//
-	// for _, actualCourse := range actualCourses{
-	// 	actualAllocations = append(actualAllocations, actualCourse.Allocation)
-	// }
-	//
-	// slices.Sort(actualAllocations)
-	// slices.Sort(expectedAllocations)
-	//
-	// is.Equal(actualAllocations, expectedAllocations)
+	var actualAllocations []int
+
+	for _, actualCourse := range actualCourses{
+		actualAllocations = append(actualAllocations, actualCourse.Allocation)
+	}
+
+	slices.Sort(actualAllocations)
+	slices.Sort(expectedAllocations)
+
+	is.Equal(actualAllocations, expectedAllocations)
 }
