@@ -43,7 +43,7 @@ func AssignmentsIndex(c *gin.Context) {
 	}
 
 	var courses []model.Course
-	result = db.Model(&model.Course{}).Preload("Participants").Find(&courses).Debug()
+	result = db.Model(&model.Course{}).Preload("Participants").Find(&courses)
 
 	if result.Error != nil {
 		slog.Error("Unexpected error while getting all courses from db", "err", result.Error)
@@ -67,7 +67,7 @@ func AssignmentsIndex(c *gin.Context) {
 func AssignmentsUpdate(c *gin.Context) {
 	type request struct {
 		ParticipantId int `form:"participant-id" binding:"required"`
-		CoureseId     int `form:"course-id"`
+		CourseId     int `form:"course-id"`
 	}
 
 	db := GetDB(c)
@@ -82,10 +82,10 @@ func AssignmentsUpdate(c *gin.Context) {
 
 	var result *gorm.DB
 
-	if req.CoureseId == 0 {
+	if req.CourseId == 0 {
 		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", nil)
 	} else {
-		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CoureseId)
+		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CourseId)
 	}
 
 	if result.Error != nil {
@@ -95,7 +95,16 @@ func AssignmentsUpdate(c *gin.Context) {
 		return
 	}
 
-	c.Data(http.StatusOK, "text/html", []byte(""))
+	var courseAssigned model.Course
+	result = db.Preload("Participants").First(&courseAssigned, req.CourseId)
+	
+	if result.Error != nil {
+		slog.Error("Error when querying for courseAssigned", "err", result.Error)
+	}
+
+	// TODO: selected has to be courseUnassigned 
+	c.HTML(http.StatusOK, "courses/_show", toViewCourse(courseAssigned, nil, true))
+
 }
 
 func toViewCourses(models []model.Course, selectedId *int) (views []view.Course) {
