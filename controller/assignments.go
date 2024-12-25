@@ -67,7 +67,7 @@ func AssignmentsIndex(c *gin.Context) {
 func AssignmentsUpdate(c *gin.Context) {
 	type request struct {
 		ParticipantId int `form:"participant-id" binding:"required"`
-		CourseId     int `form:"course-id"`
+		CourseId      int `form:"course-id"`
 	}
 
 	db := GetDB(c)
@@ -97,12 +97,12 @@ func AssignmentsUpdate(c *gin.Context) {
 
 	var courseAssigned model.Course
 	result = db.Preload("Participants").First(&courseAssigned, req.CourseId)
-	
+
 	if result.Error != nil {
 		slog.Error("Error when querying for courseAssigned", "err", result.Error)
 	}
 
-	// TODO: selected has to be courseUnassigned 
+	// TODO: selected has to be courseUnassigned
 	c.HTML(http.StatusOK, "courses/_show", toViewCourse(courseAssigned, nil, true))
 
 }
@@ -116,7 +116,7 @@ func toViewCourses(models []model.Course, selectedId *int) (views []view.Course)
 	return
 }
 
-func toViewCourse(model model.Course, selectedId *int, hxSwap bool) view.Course {
+func toViewCourse(model model.Course, selectedId *int, asOobSwap bool) view.Course {
 	return view.Course{
 		ID:          model.ID,
 		Name:        model.Name,
@@ -124,6 +124,6 @@ func toViewCourse(model model.Course, selectedId *int, hxSwap bool) view.Course 
 		MaxCapacity: model.MaxCapacity,
 		Selected:    selectedId != nil && model.ID == *selectedId,
 		Allocation:  model.Allocation(),
-		HxSwap: hxSwap,
+		AsOobSwap:   asOobSwap,
 	}
 }
