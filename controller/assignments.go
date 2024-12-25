@@ -100,14 +100,14 @@ func AssignmentsUpdate(c *gin.Context) {
 
 func toViewCourses(models []model.Course, selectedId *int) (views []view.Course) {
 	for _, model := range models {
-		view := toViewCourse(model, selectedId)
+		view := toViewCourse(model, selectedId, false)
 		views = append(views, view)
 	}
 
 	return
 }
 
-func toViewCourse(model model.Course, selectedId *int) view.Course {
+func toViewCourse(model model.Course, selectedId *int, hxSwap bool) view.Course {
 	return view.Course{
 		ID:          model.ID,
 		Name:        model.Name,
@@ -115,5 +115,6 @@ func toViewCourse(model model.Course, selectedId *int) view.Course {
 		MaxCapacity: model.MaxCapacity,
 		Selected:    selectedId != nil && model.ID == *selectedId,
 		Allocation:  model.Allocation(),
+		HxSwap: hxSwap,
 	}
 }

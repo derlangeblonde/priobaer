@@ -7,4 +7,5 @@ type Course struct {
 	MinCapacity int
 	Allocation  int
 	Selected    bool
+	HxSwap      bool
 }
