@@ -80,7 +80,15 @@ func AssignmentsUpdate(c *gin.Context) {
 		return
 	}
 
-	var result *gorm.DB
+	var participant model.Participant
+
+	result := db.Preload("Course").First(&participant, req.ParticipantId)
+
+	if result.Error != nil {
+		slog.Error("Unexpected error in AssignmentUpdate while fetching participant from db", "err", result.Error)
+	}
+
+	courseUnassigned := participant.Course
 
 	if req.CourseId == 0 {
 		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", nil)
@@ -102,8 +110,12 @@ func AssignmentsUpdate(c *gin.Context) {
 		slog.Error("Error when querying for courseAssigned", "err", result.Error)
 	}
 
-	// TODO: selected has to be courseUnassigned
-	c.HTML(http.StatusOK, "courses/_show", toViewCourse(courseAssigned, nil, true))
+	viewUpdates := []view.Course{
+		toViewCourse(courseAssigned, &courseUnassigned.ID, true),
+		toViewCourse(courseUnassigned, &courseUnassigned.ID, true),
+	}
+
+	c.HTML(http.StatusOK, "courses", viewUpdates)
 
 }
 

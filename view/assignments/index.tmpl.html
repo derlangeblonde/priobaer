@@ -18,8 +18,10 @@
 			</div>
 			<hr>
 
-			{{ range .courses }}
-			{{ template "courses/_show" . }}
+			{{ block "courses" .courses }}
+				{{ range . }}
+				{{ template "courses/_show" . }}
+				{{ end }}
 			{{ end }}
 
 			{{ template "courses/_new-button" }}
