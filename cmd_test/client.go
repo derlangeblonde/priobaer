@@ -171,11 +171,29 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 
 	is.Equal(resp.StatusCode, 200)
 	defer resp.Body.Close()
-	
+
 	coursesUpdated, err := unmarshalAll[view.Course](resp.Body, "course-")
 	is.NoErr(err)
 
 	return coursesUpdated
+}
+
+func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []int) map[int][]int {
+	courseIdToAssignedParticipantId := make(map[int][]int, 0)
+
+	for _, expectedAlloc := range expectedAllocations {
+		course := c.CoursesCreateAction(RandomCourse(), nil)
+		courseIdToAssignedParticipantId[course.ID] = make([]int, 0)
+
+		for i := 0; i < expectedAlloc; i++ {
+			participant := c.ParticpantsCreateAction(RandomParticipant(), nil)
+			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+
+			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)
+		}
+	}
+
+	return courseIdToAssignedParticipantId
 }
 
 func (c *TestClient) Endpoint(path string) string {
@@ -188,14 +206,14 @@ func (c *TestClient) Endpoint(path string) string {
 	return url.String()
 }
 
-func (c *TestClient) RequestWithFormBody(method, url string, args ...string) *http.Request{
+func (c *TestClient) RequestWithFormBody(method, url string, args ...string) *http.Request {
 	body := BuildFormBody(args...)
 	is := is.New(c.T)
 	req, err := http.NewRequest(method, url, body)
 	is.NoErr(err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	return req 
+	return req
 }
 
 func BuildFormBody(args ...string) io.Reader {

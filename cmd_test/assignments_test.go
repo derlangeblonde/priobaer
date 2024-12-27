@@ -88,13 +88,7 @@ func TestDisplayCourseAllocation(t *testing.T) {
 
 	expectedAllocations := []int{4, 2, 5, 11, 5}
 
-	for _, expectedAlloc := range expectedAllocations {
-		course := testClient.CoursesCreateAction(RandomCourse(), nil)
-		for i := 0; i < expectedAlloc; i++ {
-			participant := testClient.ParticpantsCreateAction(RandomParticipant(), nil)
-			testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
-		}
-	}
+	testClient.CreateCoursesWithAllocationsAction(expectedAllocations)
 
 	actualCourses := testClient.CoursesIndexAction()
 
@@ -128,7 +122,7 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseOld.ID))
 
 	// act
-	coursesUpdated := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseNew.ID))	
+	coursesUpdated := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseNew.ID))
 
 	// assert
 	is.Equal(len(coursesUpdated), 2) // expect exactly to courses to have updated allocation
@@ -149,4 +143,39 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 
 	is.True(courseOldPresent) // expect courseOld to be present in view-update
 	is.True(courseNewPresent) // expect courseNew to be present in view-update
+}
+
+func TestAssigmnentUpdateSendsCorrectAllocationInViewUpdateWhenMoreThanOneParticipantInitiallyAssigned(t *testing.T) {
+	is := is.New(t)
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+	testClient.AcquireSessionCookie()
+
+	initialAllocations := []int{2, 2}
+	assignmentMap := testClient.CreateCoursesWithAllocationsAction(initialAllocations)
+
+	newCourseId, participantId, loopCounter := 0, 0, 0
+	for courseId, participantsId := range assignmentMap {
+		if loopCounter == 0 {
+			participantId = participantsId[0]
+		} else {
+			newCourseId = courseId
+		}
+
+		loopCounter++
+	}
+
+	coursesUpdated := testClient.AssignmentsUpdateAction(participantId, util.JustInt(newCourseId))
+
+	var updatedAllocations []int
+	for _, courseUpdated := range coursesUpdated {
+		updatedAllocations = append(updatedAllocations, courseUpdated.Allocation)
+	}
+
+	slices.Sort(updatedAllocations)
+
+	is.Equal(updatedAllocations, []int{1, 3})
 }
