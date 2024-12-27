@@ -81,15 +81,13 @@ func AssignmentsUpdate(c *gin.Context) {
 	}
 
 	var participant model.Participant
-
-	// TODO: Does this work for more than one participant because participants are not preloaded
 	result := db.Preload("Course").First(&participant, req.ParticipantId)
+
+	courseUnassigned := participant.Course
 
 	if result.Error != nil {
 		slog.Error("Unexpected error in AssignmentUpdate while fetching participant from db", "err", result.Error)
 	}
-
-	courseUnassigned := participant.Course
 
 	if req.CourseId == 0 {
 		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", nil)
@@ -109,6 +107,12 @@ func AssignmentsUpdate(c *gin.Context) {
 
 	if result.Error != nil {
 		slog.Error("Error when querying for courseAssigned", "err", result.Error)
+	}
+
+	result = db.Preload("Participants").First(&courseUnassigned, courseUnassigned.ID)
+
+	if result.Error != nil {
+		slog.Error("Unexpected error in AssignmentUpdate while courseUnassigned from db", "err", result.Error)
 	}
 
 	viewUpdates := []view.Course{
