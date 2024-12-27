@@ -82,6 +82,7 @@ func AssignmentsUpdate(c *gin.Context) {
 
 	var participant model.Participant
 
+	// TODO: Does this work for more than one participant because participants are not preloaded
 	result := db.Preload("Course").First(&participant, req.ParticipantId)
 
 	if result.Error != nil {

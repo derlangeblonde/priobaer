@@ -26,7 +26,7 @@ func unmarshalAll[T any](body io.Reader, prefix string) (all []T, err error) {
 	for _, div := range divs {
 		var single T
 
-		err := unmarshal[T](&single, div)
+		err := unmarshal(&single, div)
 
 		if err != nil {
 			return all, err
@@ -119,7 +119,7 @@ func fieldValuesFromDataNodes(node *html.Node) map[string]string {
 }
 
 func findAllDataTags(node *html.Node) []*html.Node {
-	if node.Type == html.ElementNode && node.Data == "data" {
+	if node.Type == html.ElementNode && node.Data == "data" && node.FirstChild != nil {
 		return []*html.Node{node}
 	}
 

@@ -131,7 +131,6 @@ func (c *TestClient) CoursesIndexAction() []view.Course {
 	defer resp.Body.Close()
 
 	courses, err := unmarshalAll[view.Course](resp.Body, "course-")
-	c.T.Log(courses)
 	is.NoErr(err)
 
 	return courses
@@ -156,7 +155,7 @@ func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []mo
 	return participants
 }
 
-func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) {
+func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) []view.Course {
 	is := is.New(c.T)
 
 	data := []string{"participant-id", strconv.Itoa(participantId)}
@@ -171,6 +170,12 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	is.NoErr(err) // error while doing put request to "assignments"
 
 	is.Equal(resp.StatusCode, 200)
+	defer resp.Body.Close()
+	
+	coursesUpdated, err := unmarshalAll[view.Course](resp.Body, "course-")
+	is.NoErr(err)
+
+	return coursesUpdated
 }
 
 func (c *TestClient) Endpoint(path string) string {

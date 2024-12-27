@@ -50,7 +50,7 @@ func TestAssignParticipant(t *testing.T) {
 	unassignedParticipants := testClient.AssignmentsIndexAction(util.NoneInt())
 	allCourses := testClient.CoursesIndexAction()
 
-	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one 123
+	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one
 	is.Equal(len(allCourses), 1)             // expect exactly one course after creating one
 
 	idParticipantToAssign := unassignedParticipants[0].ID
@@ -102,7 +102,7 @@ func TestDisplayCourseAllocation(t *testing.T) {
 
 	var actualAllocations []int
 
-	for _, actualCourse := range actualCourses{
+	for _, actualCourse := range actualCourses {
 		actualAllocations = append(actualAllocations, actualCourse.Allocation)
 	}
 
@@ -110,4 +110,43 @@ func TestDisplayCourseAllocation(t *testing.T) {
 	slices.Sort(expectedAllocations)
 
 	is.Equal(actualAllocations, expectedAllocations)
+}
+
+func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
+	is := is.New(t)
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+	testClient.AcquireSessionCookie()
+
+	courseOld := testClient.CoursesCreateAction(RandomCourse(), nil)
+	courseNew := testClient.CoursesCreateAction(RandomCourse(), nil)
+	participant := testClient.ParticpantsCreateAction(RandomParticipant(), nil)
+
+	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseOld.ID))
+
+	// act
+	coursesUpdated := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseNew.ID))	
+
+	// assert
+	is.Equal(len(coursesUpdated), 2) // expect exactly to courses to have updated allocation
+
+	courseOldPresent, courseNewPresent := false, false
+
+	for _, courseUpdated := range coursesUpdated {
+		if courseUpdated.ID == courseOld.ID {
+			courseOldPresent = true
+			is.Equal(courseUpdated.Allocation, 0) // expect old course to have no one assignment after update
+		}
+
+		if courseUpdated.ID == courseNew.ID {
+			courseNewPresent = true
+			is.Equal(courseUpdated.Allocation, 1) // expect new course to have one participant after update
+		}
+	}
+
+	is.True(courseOldPresent) // expect courseOld to be present in view-update
+	is.True(courseNewPresent) // expect courseNew to be present in view-update
 }
