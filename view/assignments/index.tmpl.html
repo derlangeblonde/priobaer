@@ -16,6 +16,7 @@
 				<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" {{if .NoCourseSelected }} class="selected" {{ end }}
 					ondragover="allowDrop(event)" ondrop="drop(event)">
 					Nicht zugeteilt
+					{{ .UnassignedEntry.ParticipantsCount }}
 				</div>
 				<hr>
 

@@ -10,7 +10,12 @@ type Course struct {
 	AsOobSwap   bool
 }
 
+type UnassignedEntry struct {
+	ParticipantsCount int
+}
+
 type CourseList struct {
 	CourseEntries    []Course
+	UnassignedEntry  UnassignedEntry
 	NoCourseSelected bool
 }
