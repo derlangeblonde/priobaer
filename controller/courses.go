@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -73,7 +74,7 @@ func CoursesCreate() gin.HandlerFunc {
 			return
 		}
 
-		viewCourse := toViewCourse(course, nil, false)
+		viewCourse := toViewCourse(course, sql.NullInt64{Valid: false}, false)
 
 		if c.GetHeader("HX-Request") == "true" {
 			c.HTML(http.StatusOK, "courses/_show-with-new-button", viewCourse)
