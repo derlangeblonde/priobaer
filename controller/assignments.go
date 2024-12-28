@@ -53,16 +53,16 @@ func AssignmentsIndex(c *gin.Context) {
 		return
 	}
 
-	noCourseSelected := req.CourseIdSelected == nil
 	viewCourses := toViewCourses(courses, pointerToNullable(req.CourseIdSelected), false)
+	viewCourses.NoCourseSelected = req.CourseIdSelected == nil
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": participants, "courses": viewCourses, "noCourseSelected": noCourseSelected})
+		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": participants, "courseList": viewCourses})
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": participants, "courses": viewCourses, "noCourseSelected": noCourseSelected})
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": participants, "courseList": viewCourses})
 }
 
 type assignmentUpdateRequest struct {
@@ -130,16 +130,18 @@ func AssignmentsUpdate(c *gin.Context) {
 	}
 
 	viewUpdates := toViewCourses(coursesToUpdate, courseIdUnassigned, true)
-	c.HTML(http.StatusOK, "courses", viewUpdates)
+	c.HTML(http.StatusOK, "courses", viewUpdates.CourseEntries)
 }
 
-func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) (views []view.Course) {
+func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) (view.CourseList) {
+	var courseViews []view.Course
+
 	for _, model := range models {
 		view := toViewCourse(model, selectedId, allAsOobSwap)
-		views = append(views, view)
+		courseViews = append(courseViews, view)
 	}
 
-	return
+	return view.CourseList{CourseEntries: courseViews}
 }
 
 func toViewCourse(model model.Course, selectedId sql.NullInt64, asOobSwap bool) view.Course {

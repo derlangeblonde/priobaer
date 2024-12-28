@@ -11,5 +11,6 @@ type Course struct {
 }
 
 type CourseList struct {
-	CourseEntries []Course
+	CourseEntries    []Course
+	NoCourseSelected bool
 }
