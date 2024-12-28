@@ -12,15 +12,17 @@
 	<div class="row" id="assignments">
 		<div id="courses-list" class="margin-lr">
 			<h2>Kurse</h2>
-			<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" {{if .noCourseSelected }} class="selected" {{ end }}
-				ondragover="allowDrop(event)" ondrop="drop(event)">
-				Nicht zugeteilt
-			</div>
-			<hr>
+			{{ block "assignments/course-list" .}}
+				<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" {{if .noCourseSelected }} class="selected" {{ end }}
+					ondragover="allowDrop(event)" ondrop="drop(event)">
+					Nicht zugeteilt
+				</div>
+				<hr>
 
-			{{ block "courses" .courses }}
-				{{ range . }}
-				{{ template "courses/_show" . }}
+				{{ block "courses" .courses }}
+					{{ range . }}
+					{{ template "courses/_show" . }}
+					{{ end }}
 				{{ end }}
 			{{ end }}
 

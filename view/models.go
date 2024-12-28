@@ -9,3 +9,7 @@ type Course struct {
 	Selected    bool
 	AsOobSwap   bool
 }
+
+type CourseList struct {
+	CourseEntries []Course
+}
