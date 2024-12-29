@@ -15,3 +15,12 @@ type Participant struct {
 	Course   Course `gorm:"constraint:OnDelete:SET NULL;"`
 }
 
+func (p *Participant) Valid() map[string]string {
+	validationErrors := make(map[string]string, 0)
+
+	validateNonEmpty(p.Surname, "surname", "Nachname darf nicht leer sein", validationErrors)
+	validateNonEmpty(p.Prename, "prename", "Vorname darf nicht leer sein", validationErrors)
+
+	return validationErrors
+}
+

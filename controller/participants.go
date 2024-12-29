@@ -32,13 +32,13 @@ func ParticipantsIndex(c *gin.Context) {
 }
 
 func ParticipantsNew(c *gin.Context) {
-	c.HTML(http.StatusOK, "participants/_new", nil)
+	c.HTML(http.StatusOK, "participants/_new", gin.H{"Errors": make(map[string]string, 0)})
 }
 
 func ParticipantsCreate(c *gin.Context) {
 	type request struct {
-		Prename string `form:"prename" binding:"required"`
-		Surname string `form:"surname" binding:"required"`
+		Prename string `form:"prename"`
+		Surname string `form:"surname"`
 	}
 
 	db := GetDB(c)
@@ -51,6 +51,14 @@ func ParticipantsCreate(c *gin.Context) {
 	}
 
 	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
+	validationErrors := participant.Valid()
+
+	if len(validationErrors) > 0 {
+		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": participant})
+
+		return
+	}
+
 	result := db.Create(&participant)
 
 	if result.Error != nil {

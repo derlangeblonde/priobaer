@@ -28,9 +28,13 @@ func (c *Course) Valid() map[string]string {
 		errors["max-capacity"] = "Die maximale Kapazität muss größer null sein"
 	}
 
-	if len(c.Name) == 0 {
-		errors["name"] = "Name darf nicht leer sein"
-	}
+	validateNonEmpty(c.Name, "name", "Name darf nicht leer sein", errors)
 
 	return errors
+}
+
+func validateNonEmpty(field, mapFieldName, errorMessage string, errorMap map[string]string) {
+	if len(field) == 0 {
+		errorMap[mapFieldName] = errorMessage
+	}
 }
