@@ -41,7 +41,6 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 
 	testClient := NewTestClient(t, localhost)
 
-	testClient.AcquireSessionCookie()
 
 	var expectedCourses []model.Course
 
@@ -80,9 +79,7 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	sut := StartupSystemUnderTestWithFakeClock(t, nil, fakeClock)
 	defer waitForTerminationDefault(sut.cancel)
 
-	testClient := NewTestClient(t, localhost)
-
-	testClient.AcquireSessionCookie()
+	NewTestClient(t, localhost)
 
 	dbFilesCount, err := countSQLiteFiles(sut.dbDir)
 	is.NoErr(err)             // failure while counting sqlite files
@@ -112,7 +109,6 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	testClient.AcquireSessionCookie()
 
 	expectedCourse := RandomCourse()
 	testClient.CoursesCreateAction(expectedCourse, nil)
@@ -142,7 +138,6 @@ func TestCreateAndReadCourse(t *testing.T) {
 
 	ctx := NewTestClient(t, localhost)
 
-	ctx.AcquireSessionCookie()
 	expectedCourse := RandomCourse()
 	ctx.CoursesCreateAction(expectedCourse, nil)
 	courses := ctx.CoursesIndexAction()

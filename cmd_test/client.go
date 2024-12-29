@@ -40,6 +40,7 @@ func NewTestClient(t *testing.T, baseUrl string) *TestClient {
 	is.NoErr(err) // could not parse baseUrl
 
 	testClient := TestClient{T: t, client: &client, baseUrl: baseUrlParsed}
+	testClient.AcquireSessionCookie()
 
 	return &testClient
 }

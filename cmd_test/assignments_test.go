@@ -16,8 +16,6 @@ func TestParticpantsAreUnassignedIntially(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	testClient.AcquireSessionCookie()
-
 	expectedParticipant := RandomParticipant()
 
 	testClient.ParticpantsCreateAction(expectedParticipant, nil)
@@ -38,8 +36,6 @@ func TestAssignParticipant(t *testing.T) {
 	defer waitForTerminationDefault(sut.cancel)
 
 	testClient := NewTestClient(t, localhost)
-
-	testClient.AcquireSessionCookie()
 
 	expectedParticipant := RandomParticipant()
 	expectedCourse := RandomCourse()
@@ -84,7 +80,6 @@ func TestDisplayCourseAllocation(t *testing.T) {
 	defer sut.cancel()
 
 	testClient := NewTestClient(t, localhost)
-	testClient.AcquireSessionCookie()
 
 	expectedAllocations := []int{4, 2, 5, 11, 5}
 
@@ -113,7 +108,6 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 	defer sut.cancel()
 
 	testClient := NewTestClient(t, localhost)
-	testClient.AcquireSessionCookie()
 
 	courseOld := testClient.CoursesCreateAction(RandomCourse(), nil)
 	courseNew := testClient.CoursesCreateAction(RandomCourse(), nil)
@@ -152,7 +146,6 @@ func TestAssignmentUpdateWithMultipleParticipantsUpdatesViewCorrectly(t *testing
 	defer sut.cancel()
 
 	testClient := NewTestClient(t, localhost)
-	testClient.AcquireSessionCookie()
 
 	initialAllocations := []int{2, 2}
 	assignmentMap := testClient.CreateCoursesWithAllocationsAction(initialAllocations)
@@ -179,3 +172,4 @@ func TestAssignmentUpdateWithMultipleParticipantsUpdatesViewCorrectly(t *testing
 
 	is.Equal(updatedAllocations, []int{1, 3})
 }
+
