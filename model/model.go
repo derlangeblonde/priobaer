@@ -37,5 +37,9 @@ func (c *Course) Valid() map[string]string {
 		errors["max-capacity"] = "Die maxmale Kapazität muss größer oder gleich der minimalen Kapazität sein"
 	}
 
+	if c.MaxCapacity <= 0 {
+		errors["max-capacity"] = "Die maximale Kapazität muss größer null sein"
+	}
+
 	return errors
 }
