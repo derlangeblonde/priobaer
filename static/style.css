@@ -28,3 +28,7 @@ h1 {
 .selected {
 	background-color: lightblue;
 }
+
+.error {
+	color: red
+}

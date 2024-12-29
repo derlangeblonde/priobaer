@@ -4,8 +4,13 @@
 	<form hx-post="/courses" hx-target="#courses-new" hx-swap="outerHTML" class="column">
 		<label>Name</label>
 		<input type="text" name="name">
+
 		<label>Maximalbelegung</label>
 		<input type="number" name="max-capacity">
+		{{ if index .Errors "max-capacity" }}
+		<span class="error"> Fehler: {{ index .Errors "max-capacity" }} </span>
+		{{ end }}
+
 		<label>Minimalbelegung</label>
 		<input type="number" name="min-capacity">
 		{{ if index .Errors "min-capacity" }}
