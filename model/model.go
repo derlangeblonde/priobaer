@@ -28,3 +28,14 @@ type Course struct {
 func (c *Course) Allocation() int {
 	return len(c.Participants)
 }
+
+func (c *Course) Valid() map[string]string {
+	errors := make(map[string]string, 0)
+
+	if c.MinCapacity > c.MaxCapacity {
+		errors["min-capacity"] = "Die minmale Kapazität muss kleiner oder gleich der maximalen Kapazität sein"
+		errors["max-capacity"] = "Die maxmale Kapazität muss größer oder gleich der minimalen Kapazität sein"
+	}
+
+	return errors
+}

@@ -8,6 +8,9 @@
 		<input type="number" name="max-capacity">
 		<label>Minimalbelegung</label>
 		<input type="number" name="min-capacity">
+		{{ if index .Errors "min-capacity" }}
+		<span class="error"> Fehler: {{ index .Errors "min-capacity" }} </span>
+		{{ end }}
 
 		<input type="submit" value="Anlegen">
 	</form>

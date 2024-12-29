@@ -35,7 +35,7 @@ func CoursesIndex() gin.HandlerFunc {
 
 func CoursesNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, "courses/new", nil)
+		c.HTML(http.StatusOK, "courses/new", gin.H{"Errors": make(map[string]string, 0)})
 	}
 }
 
@@ -58,6 +58,15 @@ func CoursesCreate() gin.HandlerFunc {
 		}
 
 		course := model.Course{Name: req.Name, MaxCapacity: *req.MaxCapacity, MinCapacity: *req.MinCapacity}
+		validationErrors := course.Valid()
+
+		if len(validationErrors) > 0 {
+			c.HTML(200, "courses/new", gin.H{"Errors": validationErrors})
+
+			return
+		}
+
+
 		result := db.Create(&course)
 
 		if result.Error != nil {
