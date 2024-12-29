@@ -4,11 +4,11 @@
 	<form hx-post="/participants" hx-target="#participants-new" hx-swap="outerHTML" class="column">
 		<label>Vorname</label>
 		<input type="text" name="prename" value="{{ .Value.Prename }}">
-		{{ template "error-message" index .Errors "prename" }}
+		{{ template "general/error-message" index .Errors "prename" }}
 
 		<label>Nachname</label>
 		<input type="text" name="surname" value="{{ .Value.Surname }}">
-		{{ template "error-message" index .Errors "surname" }}
+		{{ template "general/error-message" index .Errors "surname" }}
 
 		<input type="submit" value="Anlegen">
 	</form>
