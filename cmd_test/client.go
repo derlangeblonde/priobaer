@@ -1,6 +1,7 @@
 package cmdtest
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"golang.org/x/net/html"
 	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/util"
 	"softbaer.dev/ass/view"
@@ -157,9 +159,13 @@ func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []mo
 }
 
 type AssignmentViewUpdate struct {
-	courses                []view.Course
-	UnassignedCountUpdated bool
-	UnassignedCount        int
+	courses         []view.Course
+	UnassignedCount UnassignedCount
+}
+
+type UnassignedCount struct {
+	Updated bool
+	Value   int
 }
 
 func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) AssignmentViewUpdate {
@@ -179,10 +185,35 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	is.Equal(resp.StatusCode, 200)
 	defer resp.Body.Close()
 
-	coursesUpdated, err := unmarshalAll[view.Course](resp.Body, "course-")
+	bodyBytes, err := io.ReadAll(resp.Body)
+	is.NoErr(err) // Ensure no error occurs
+
+	coursesUpdated, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
 	is.NoErr(err)
 
-	return AssignmentViewUpdate{courses: coursesUpdated} 
+	rootNode, err := html.Parse(bytes.NewReader(bodyBytes))
+	is.NoErr(err)
+
+	unassignedDivs := findEntityDivs(rootNode, "not-assigned")
+	is.True(len(unassignedDivs) < 2) // expect none or one unassigned-entry
+
+	var unassignedCount UnassignedCount
+	if len(unassignedDivs) == 1 {
+		unassignedDiv := unassignedDivs[0]
+		dataTags := findAllDataTags(unassignedDiv)
+		is.True(len(dataTags) < 2) // expect none or one data-tag in unassigned-entry
+
+		if len(dataTags) == 1 {
+			dataTag := dataTags[0]
+
+			count, err := strconv.Atoi(getInnerTextData(dataTag))
+			is.NoErr(err)
+
+			unassignedCount = UnassignedCount{Value: count, Updated: true}
+		}
+	}
+
+	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
 }
 
 func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []int) map[int][]int {

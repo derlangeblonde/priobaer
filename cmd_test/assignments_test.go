@@ -175,6 +175,7 @@ func TestAssignmentUpdateWithMultipleParticipantsUpdatesViewCorrectly(t *testing
 }
 
 func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
+	is := is.New(t)
 
 	sut := StartupSystemUnderTest(t, nil)
 	defer sut.cancel()
@@ -188,10 +189,11 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 
 	course := testClient.CoursesCreateAction(RandomCourse(), nil)
 
-
 	// act
-	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+	viewUpdate := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 
-	
+	// assert
+	is.True(viewUpdate.UnassignedCount.Updated) // expect that unassigned count was updated
+	is.Equal(viewUpdate.UnassignedCount.Value, 2)
 }
 

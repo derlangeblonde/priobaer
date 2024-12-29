@@ -152,10 +152,10 @@ func getInnerTextData(node *html.Node) string {
 	return strings.TrimSpace(inner.Data)
 }
 
-func findEntityDivs(current *html.Node, prefix string) []*html.Node {
+func findEntityDivs(current *html.Node, idContains string) []*html.Node {
 	if current.Type == html.ElementNode && current.Data == "div" {
 		for _, attr := range current.Attr {
-			if attr.Key == "id" && strings.Contains(attr.Val, prefix) {
+			if attr.Key == "id" && strings.Contains(attr.Val, idContains) {
 				return []*html.Node{current}
 			}
 		}
@@ -163,7 +163,7 @@ func findEntityDivs(current *html.Node, prefix string) []*html.Node {
 
 	alreadyFound := make([]*html.Node, 0)
 	for c := current.FirstChild; c != nil; c = c.NextSibling {
-		alreadyFound = append(alreadyFound, findEntityDivs(c, prefix)...)
+		alreadyFound = append(alreadyFound, findEntityDivs(c, idContains)...)
 	}
 
 	return alreadyFound

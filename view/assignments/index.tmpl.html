@@ -20,7 +20,7 @@
 							{{ if .AsOobSwap }}hx-swap-oob="outerHTML:#not-assigned"{{ end }}
 							ondragover="allowDrop(event)" ondrop="drop(event)">
 							Nicht zugeteilt <br>
-							{{ .ParticipantsCount }} Teilnehmer
+							{{ Field "ParticipantsCount" . }} Teilnehmer
 						</div>
 						<hr>
 					{{ end }}
