@@ -145,7 +145,7 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 	is.True(courseNewPresent) // expect courseNew to be present in view-update
 }
 
-func TestAssigmnentUpdateSendsCorrectAllocationInViewUpdateWhenMoreThanOneParticipantInitiallyAssigned(t *testing.T) {
+func TestAssignmentUpdateWithMultipleParticipantsUpdatesViewCorrectly(t *testing.T) {
 	is := is.New(t)
 
 	sut := StartupSystemUnderTest(t, nil)
