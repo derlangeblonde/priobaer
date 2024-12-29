@@ -84,6 +84,43 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 	return nil
 }
 
+func unmarshalUnassignedCount(bodyBytes io.Reader) (result UnassignedCount, err error) {
+
+	rootNode, err := html.Parse(bodyBytes)
+	if err != nil {
+		return result, err
+	}
+
+	unassignedDivs := findEntityDivs(rootNode, "not-assigned")
+
+	if len(unassignedDivs) > 1 {
+		return result, errors.New("More than 1 unassigned entry found")
+	}
+
+	if len(unassignedDivs) == 0 {
+		return result, nil
+	}
+
+	unassignedDiv := unassignedDivs[0]
+	dataTags := findAllDataTags(unassignedDiv)
+
+	if len(dataTags) != 1 {
+		return result, fmt.Errorf("Expected exactly one data tag in unassigned entry but got: #%d", len(dataTags))
+	}
+
+	dataTag := dataTags[0]
+
+	count, err := strconv.Atoi(getInnerTextData(dataTag))
+
+	if err != nil {
+		return result, err
+	}
+
+	result = UnassignedCount{Value: count, Updated: true}
+
+	return result, nil
+}
+
 func extractId(node *html.Node) (id string, err error) {
 	for _, attr := range node.Attr {
 		if attr.Key != "id" {

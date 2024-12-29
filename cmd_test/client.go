@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"golang.org/x/net/html"
 	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/util"
 	"softbaer.dev/ass/view"
@@ -191,27 +190,8 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	coursesUpdated, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
 	is.NoErr(err)
 
-	rootNode, err := html.Parse(bytes.NewReader(bodyBytes))
+	unassignedCount, err := unmarshalUnassignedCount(bytes.NewReader(bodyBytes))
 	is.NoErr(err)
-
-	unassignedDivs := findEntityDivs(rootNode, "not-assigned")
-	is.True(len(unassignedDivs) < 2) // expect none or one unassigned-entry
-
-	var unassignedCount UnassignedCount
-	if len(unassignedDivs) == 1 {
-		unassignedDiv := unassignedDivs[0]
-		dataTags := findAllDataTags(unassignedDiv)
-		is.True(len(dataTags) < 2) // expect none or one data-tag in unassigned-entry
-
-		if len(dataTags) == 1 {
-			dataTag := dataTags[0]
-
-			count, err := strconv.Atoi(getInnerTextData(dataTag))
-			is.NoErr(err)
-
-			unassignedCount = UnassignedCount{Value: count, Updated: true}
-		}
-	}
 
 	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
 }
