@@ -61,7 +61,7 @@ func CoursesCreate() gin.HandlerFunc {
 		validationErrors := course.Valid()
 
 		if len(validationErrors) > 0 {
-			c.HTML(200, "courses/new", gin.H{"Errors": validationErrors})
+			c.HTML(200, "courses/new", gin.H{"Errors": validationErrors, "Value": course})
 
 			return
 		}

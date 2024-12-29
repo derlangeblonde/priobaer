@@ -3,16 +3,16 @@
 
 	<form hx-post="/courses" hx-target="#courses-new" hx-swap="outerHTML" class="column">
 		<label>Name</label>
-		<input type="text" name="name">
+		<input type="text" name="name" value="{{ .Value.Name }}">
 
 		<label>Maximalbelegung</label>
-		<input type="number" name="max-capacity">
+		<input type="number" name="max-capacity" value="{{ .Value.MaxCapacity }}" >
 		{{ if index .Errors "max-capacity" }}
 		<span class="error"> Fehler: {{ index .Errors "max-capacity" }} </span>
 		{{ end }}
 
 		<label>Minimalbelegung</label>
-		<input type="number" name="min-capacity">
+		<input type="number" name="min-capacity" value="{{ .Value.MinCapacity }}">
 		{{ if index .Errors "min-capacity" }}
 		<span class="error"> Fehler: {{ index .Errors "min-capacity" }} </span>
 		{{ end }}
