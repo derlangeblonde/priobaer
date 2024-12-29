@@ -3,14 +3,21 @@
 
 	<form hx-post="/courses" hx-target="#courses-new" hx-swap="outerHTML" class="column">
 		<label>Name</label>
-		<input type="text" name="name">
+		<input type="text" name="name" value="{{ .Value.Name }}">
+		{{ template "general/error-message" index .Errors "name" }}
+
 		<label>Maximalbelegung</label>
-		<input type="number" name="max-capacity">
+		<input type="number" name="max-capacity" value="{{ .Value.MaxCapacity }}" >
+		{{ template "general/error-message" index .Errors "max-capacity" }}
+
 		<label>Minimalbelegung</label>
-		<input type="number" name="min-capacity">
+		<input type="number" name="min-capacity" value="{{ .Value.MinCapacity }}">
+		{{ template "general/error-message" index .Errors "min-capacity" }}
 
 		<input type="submit" value="Anlegen">
 	</form>
 
 	<button hx-get="courses/button-new" hx-target="#courses-new" hx-swap="outerHTML">Abbrechen</button>
 </div>
+
+

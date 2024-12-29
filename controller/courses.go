@@ -35,13 +35,13 @@ func CoursesIndex() gin.HandlerFunc {
 
 func CoursesNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, "courses/new", nil)
+		c.HTML(http.StatusOK, "courses/new", gin.H{"Errors": make(map[string]string, 0)})
 	}
 }
 
 func CoursesCreate() gin.HandlerFunc {
 	type request struct {
-		Name        string `form:"name" binding:"required"`
+		Name        string `form:"name"`
 		MaxCapacity *int   `form:"max-capacity" binding:"required"`
 		MinCapacity *int   `form:"min-capacity" binding:"required"`
 	}
@@ -58,6 +58,15 @@ func CoursesCreate() gin.HandlerFunc {
 		}
 
 		course := model.Course{Name: req.Name, MaxCapacity: *req.MaxCapacity, MinCapacity: *req.MinCapacity}
+		validationErrors := course.Valid()
+
+		if len(validationErrors) > 0 {
+			c.HTML(422, "courses/new", gin.H{"Errors": validationErrors, "Value": course})
+
+			return
+		}
+
+
 		result := db.Create(&course)
 
 		if result.Error != nil {

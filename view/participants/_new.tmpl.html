@@ -3,9 +3,12 @@
 
 	<form hx-post="/participants" hx-target="#participants-new" hx-swap="outerHTML" class="column">
 		<label>Vorname</label>
-		<input type="text" name="prename">
+		<input type="text" name="prename" value="{{ .Value.Prename }}">
+		{{ template "general/error-message" index .Errors "prename" }}
+
 		<label>Nachname</label>
-		<input type="text" name="surname">
+		<input type="text" name="surname" value="{{ .Value.Surname }}">
+		{{ template "general/error-message" index .Errors "surname" }}
 
 		<input type="submit" value="Anlegen">
 	</form>
