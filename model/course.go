@@ -28,5 +28,9 @@ func (c *Course) Valid() map[string]string {
 		errors["max-capacity"] = "Die maximale Kapazität muss größer null sein"
 	}
 
+	if len(c.Name) == 0 {
+		errors["name"] = "Name darf nicht leer sein"
+	}
+
 	return errors
 }

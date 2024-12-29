@@ -41,7 +41,7 @@ func CoursesNew() gin.HandlerFunc {
 
 func CoursesCreate() gin.HandlerFunc {
 	type request struct {
-		Name        string `form:"name" binding:"required"`
+		Name        string `form:"name"`
 		MaxCapacity *int   `form:"max-capacity" binding:"required"`
 		MinCapacity *int   `form:"min-capacity" binding:"required"`
 	}
