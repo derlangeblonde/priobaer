@@ -197,3 +197,26 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 	is.Equal(viewUpdate.UnassignedCount.Value, 2)
 }
 
+func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
+	is := is.New(t)
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+
+	course := testClient.CoursesCreateAction(RandomCourse(), nil)
+
+	var participant model.Participant
+	for i := 0; i < 3; i ++ {
+		participant = testClient.ParticpantsCreateAction(RandomParticipant(), nil)
+		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+	}
+
+	// act
+	viewUpdate := testClient.AssignmentsUpdateAction(participant.ID, util.NoneInt())
+
+	// assert
+	is.True(viewUpdate.UnassignedCount.Updated) // expect that unassigned count was updated
+	is.Equal(viewUpdate.UnassignedCount.Value, 1)
+}
