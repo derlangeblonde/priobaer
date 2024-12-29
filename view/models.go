@@ -12,6 +12,9 @@ type Course struct {
 
 type UnassignedEntry struct {
 	ParticipantsCount int
+	ShouldRender      bool
+	AsOobSwap         bool
+	Selected          bool
 }
 
 type CourseList struct {

@@ -13,16 +13,22 @@
 		<div id="courses-list" class="margin-lr">
 			<h2>Kurse</h2>
 			{{ block "assignments/course-list" .courseList}}
-				<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" {{if .NoCourseSelected }} class="selected" {{ end }}
-					ondragover="allowDrop(event)" ondrop="drop(event)">
-					Nicht zugeteilt <br>
-					{{ .UnassignedEntry.UnassignedParticipantsCount }} Teilnehmer
-				</div>
-				<hr>
+				{{ block "assignments/unassigned-entry" .UnassignedEntry }}
+					{{ if .ShouldRender }}
+						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
+							{{ if .Selected }}class="selected"{{ end }}
+							{{ if .AsOobSwap }}hx-swap-oob="outerHTML:#not-assigned"{{ end }}
+							ondragover="allowDrop(event)" ondrop="drop(event)">
+							Nicht zugeteilt <br>
+							{{ .ParticipantsCount }} Teilnehmer
+						</div>
+						<hr>
+					{{ end }}
+				{{ end }}
 
-				{{ block "courses" .CourseEntries}}
+				{{ block "courses" .CourseEntries }}
 					{{ range . }}
-					{{ template "courses/_show" . }}
+						{{ template "courses/_show" . }}
 					{{ end }}
 				{{ end }}
 			{{ end }}

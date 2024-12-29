@@ -57,8 +57,9 @@ func AssignmentsIndex(c *gin.Context) {
 	result = db.Model(model.Participant{}).Where("course_id is null").Count(&unassignedParticipantsCount)
 
 	viewCourses := toViewCourses(courses, pointerToNullable(req.CourseIdSelected), false)
-	viewCourses.NoCourseSelected = req.CourseIdSelected == nil
+	viewCourses.UnassignedEntry.Selected = req.CourseIdSelected == nil
 	viewCourses.UnassignedEntry.ParticipantsCount = int(unassignedParticipantsCount)
+	viewCourses.UnassignedEntry.ShouldRender = true
 
 	if c.GetHeader("HX-Request") == "true" {
 		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": participants, "courseList": viewCourses})
@@ -134,7 +135,8 @@ func AssignmentsUpdate(c *gin.Context) {
 	}
 
 	viewUpdates := toViewCourses(coursesToUpdate, courseIdUnassigned, true)
-	c.HTML(http.StatusOK, "courses", viewUpdates.CourseEntries)
+	viewUpdates.UnassignedEntry.ShouldRender = false
+	c.HTML(http.StatusOK, "assignments/course-list", viewUpdates)
 }
 
 func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) (view.CourseList) {
