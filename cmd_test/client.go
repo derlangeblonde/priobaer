@@ -66,7 +66,7 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) ParticpantsCreateAction(participant model.Participant, finish *sync.WaitGroup) model.Participant {
+func (c *TestClient) ParticipantsCreateAction(participant model.Participant, finish *sync.WaitGroup) model.Participant {
 	if finish != nil {
 		defer finish.Done()
 	}
@@ -204,7 +204,7 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 		courseIdToAssignedParticipantId[course.ID] = make([]int, 0)
 
 		for i := 0; i < expectedAlloc; i++ {
-			participant := c.ParticpantsCreateAction(RandomParticipant(), nil)
+			participant := c.ParticipantsCreateAction(RandomParticipant(), nil)
 			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 
 			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)

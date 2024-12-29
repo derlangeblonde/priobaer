@@ -9,7 +9,7 @@ import (
 	"softbaer.dev/ass/util"
 )
 
-func TestParticpantsAreUnassignedIntially(t *testing.T) {
+func TestParticipantsAreUnassignedIntially(t *testing.T) {
 	is := is.New(t)
 
 	sut := StartupSystemUnderTest(t, nil)
@@ -19,7 +19,7 @@ func TestParticpantsAreUnassignedIntially(t *testing.T) {
 
 	expectedParticipant := RandomParticipant()
 
-	testClient.ParticpantsCreateAction(expectedParticipant, nil)
+	testClient.ParticipantsCreateAction(expectedParticipant, nil)
 
 	unassignedParticipants := testClient.AssignmentsIndexAction(util.NoneInt())
 
@@ -41,7 +41,7 @@ func TestAssignParticipant(t *testing.T) {
 	expectedParticipant := RandomParticipant()
 	expectedCourse := RandomCourse()
 
-	testClient.ParticpantsCreateAction(expectedParticipant, nil)
+	testClient.ParticipantsCreateAction(expectedParticipant, nil)
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
 	unassignedParticipants := testClient.AssignmentsIndexAction(util.NoneInt())
@@ -112,7 +112,7 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 
 	courseOld := testClient.CoursesCreateAction(RandomCourse(), nil)
 	courseNew := testClient.CoursesCreateAction(RandomCourse(), nil)
-	participant := testClient.ParticpantsCreateAction(RandomParticipant(), nil)
+	participant := testClient.ParticipantsCreateAction(RandomParticipant(), nil)
 
 	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseOld.ID))
 
@@ -184,7 +184,7 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant model.Participant
 	for i := 0; i < 3; i ++ {
-		participant = testClient.ParticpantsCreateAction(RandomParticipant(), nil)
+		participant = testClient.ParticipantsCreateAction(RandomParticipant(), nil)
 	}
 
 	course := testClient.CoursesCreateAction(RandomCourse(), nil)
@@ -209,7 +209,7 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant model.Participant
 	for i := 0; i < 3; i ++ {
-		participant = testClient.ParticpantsCreateAction(RandomParticipant(), nil)
+		participant = testClient.ParticipantsCreateAction(RandomParticipant(), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 	}
 
