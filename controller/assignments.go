@@ -56,6 +56,13 @@ func AssignmentsIndex(c *gin.Context) {
 	var unassignedParticipantsCount int64
 	result = db.Model(model.Participant{}).Where("course_id is null").Count(&unassignedParticipantsCount)
 
+	if result.Error != nil {
+		slog.Error("Error while fetching unassigned participants count from db", "err", err)
+		c.AbortWithStatus(500)
+
+		return
+	}
+
 	viewCourses := toViewCourses(courses, pointerToNullable(req.CourseIdSelected), false)
 	viewCourses.UnassignedEntry.Selected = req.CourseIdSelected == nil
 	viewCourses.UnassignedEntry.ParticipantsCount = int(unassignedParticipantsCount)
@@ -93,6 +100,7 @@ func AssignmentsUpdate(c *gin.Context) {
 	var participant model.Participant
 	var courseUnassigned, courseAssigned model.Course
 	var coursesToUpdate []model.Course
+	var updateUnassignedEntry bool
 
 	result := db.First(&participant, req.ParticipantId)
 
@@ -107,6 +115,7 @@ func AssignmentsUpdate(c *gin.Context) {
 
 	if req.IsUnassign() {
 		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", nil)
+		updateUnassignedEntry = true
 	} else {
 		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CourseId)
 		// TODO: we might be overriding an error here
@@ -132,10 +141,25 @@ func AssignmentsUpdate(c *gin.Context) {
 		}
 
 		coursesToUpdate = append(coursesToUpdate, courseUnassigned)
+	} else {
+		updateUnassignedEntry = true
 	}
 
 	viewUpdates := toViewCourses(coursesToUpdate, courseIdUnassigned, true)
-	viewUpdates.UnassignedEntry.ShouldRender = false
+
+	if updateUnassignedEntry {
+		var unassignedParticipantsCount int64
+		result = db.Model(model.Participant{}).Where("course_id is null").Count(&unassignedParticipantsCount)
+
+		if result.Error != nil {
+			slog.Error("Error while fetching unassigned participants count from db", "err", err)
+			c.AbortWithStatus(500)
+
+			return
+		}
+
+		viewUpdates.UnassignedEntry = view.UnassignedEntry{ShouldRender: true, ParticipantsCount: int(unassignedParticipantsCount), AsOobSwap: true}
+	}
 	c.HTML(http.StatusOK, "assignments/course-list", viewUpdates)
 }
 
