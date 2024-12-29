@@ -118,9 +118,14 @@ func AssignmentsUpdate(c *gin.Context) {
 		updateUnassignedEntry = true
 	} else {
 		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CourseId)
-		// TODO: we might be overriding an error here
-		result = db.Preload("Participants").First(&courseAssigned, req.CourseId)
-		coursesToUpdate = append(coursesToUpdate, courseAssigned)
+
+		if result.Error == nil {
+			result = db.Preload("Participants").First(&courseAssigned, req.CourseId)
+		}
+
+		if result.Error == nil {
+			coursesToUpdate = append(coursesToUpdate, courseAssigned)
+		}
 	}
 
 	if result.Error != nil {
@@ -163,7 +168,7 @@ func AssignmentsUpdate(c *gin.Context) {
 	c.HTML(http.StatusOK, "assignments/course-list", viewUpdates)
 }
 
-func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) (view.CourseList) {
+func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) view.CourseList {
 	var courseViews []view.Course
 
 	for _, model := range models {
