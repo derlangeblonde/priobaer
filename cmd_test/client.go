@@ -156,7 +156,13 @@ func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []mo
 	return participants
 }
 
-func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) []view.Course {
+type AssignmentViewUpdate struct {
+	courses                []view.Course
+	UnassignedCountUpdated bool
+	UnassignedCount        int
+}
+
+func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) AssignmentViewUpdate {
 	is := is.New(c.T)
 
 	data := []string{"participant-id", strconv.Itoa(participantId)}
@@ -176,7 +182,7 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	coursesUpdated, err := unmarshalAll[view.Course](resp.Body, "course-")
 	is.NoErr(err)
 
-	return coursesUpdated
+	return AssignmentViewUpdate{courses: coursesUpdated} 
 }
 
 func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []int) map[int][]int {

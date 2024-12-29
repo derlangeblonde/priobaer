@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/util"
 )
 
@@ -116,14 +117,14 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseOld.ID))
 
 	// act
-	coursesUpdated := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseNew.ID))
+	viewUpdate := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseNew.ID))
 
 	// assert
-	is.Equal(len(coursesUpdated), 2) // expect exactly to courses to have updated allocation
+	is.Equal(len(viewUpdate.courses), 2) // expect exactly to courses to have updated allocation
 
 	courseOldPresent, courseNewPresent := false, false
 
-	for _, courseUpdated := range coursesUpdated {
+	for _, courseUpdated := range viewUpdate.courses{
 		if courseUpdated.ID == courseOld.ID {
 			courseOldPresent = true
 			is.Equal(courseUpdated.Allocation, 0) // expect old course to have no one assignment after update
@@ -161,15 +162,36 @@ func TestAssignmentUpdateWithMultipleParticipantsUpdatesViewCorrectly(t *testing
 		loopCounter++
 	}
 
-	coursesUpdated := testClient.AssignmentsUpdateAction(participantId, util.JustInt(newCourseId))
+	viewUpdate := testClient.AssignmentsUpdateAction(participantId, util.JustInt(newCourseId))
 
 	var updatedAllocations []int
-	for _, courseUpdated := range coursesUpdated {
+	for _, courseUpdated := range viewUpdate.courses {
 		updatedAllocations = append(updatedAllocations, courseUpdated.Allocation)
 	}
 
 	slices.Sort(updatedAllocations)
 
 	is.Equal(updatedAllocations, []int{1, 3})
+}
+
+func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+
+	var participant model.Participant
+	for i := 0; i < 3; i ++ {
+		participant = testClient.ParticpantsCreateAction(RandomParticipant(), nil)
+	}
+
+	course := testClient.CoursesCreateAction(RandomCourse(), nil)
+
+
+	// act
+	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+
+	
 }
 
