@@ -1,19 +1,22 @@
 package cmdtest
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/matryer/is"
-	"golang.org/x/net/html"
 	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/util"
+	"softbaer.dev/ass/view"
 )
 
 type TestClient struct {
@@ -38,6 +41,7 @@ func NewTestClient(t *testing.T, baseUrl string) *TestClient {
 	is.NoErr(err) // could not parse baseUrl
 
 	testClient := TestClient{T: t, client: &client, baseUrl: baseUrlParsed}
+	testClient.AcquireSessionCookie()
 
 	return &testClient
 }
@@ -62,61 +66,74 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) ParticpantsCreateAction(participant model.Participant, finish *sync.WaitGroup) {
+func (c *TestClient) ParticipantsCreateAction(participant model.Participant, finish *sync.WaitGroup) model.Participant {
 	if finish != nil {
 		defer finish.Done()
 	}
 
 	is := is.New(c.T)
 
-	form := url.Values{}
-	form.Add("prename", participant.Prename)
-	form.Add("surname", participant.Surname)
-	resp, err := c.client.PostForm(c.Endpoint("participants"), form)
+	req := c.RequestWithFormBody(
+		"POST", c.Endpoint("participants"),
+		"prename", participant.Prename,
+		"surname", participant.Surname,
+	)
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("HX-Request", "true")
+
+	resp, err := c.client.Do(req)
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
-	is.Equal(resp.StatusCode, 303)
-	location, err := resp.Location()
-	is.NoErr(err) // could not get location of the redirect response
+	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
+	is.NoErr(err)
 
-	is.Equal(location.Path, "/assignments")
+	is.Equal(len(participants), 1)
+
+	return participants[0]
 }
 
-func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) {
+func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) view.Course {
 	if finish != nil {
 		defer finish.Done()
 	}
 
 	is := is.New(c.T)
 
-	form := url.Values{}
-	form.Add("name", course.Name)
-	form.Add("max-capacity", strconv.Itoa(course.MaxCapacity))
-	form.Add("min-capacity", strconv.Itoa(course.MinCapacity))
-	resp, err := c.client.PostForm(c.Endpoint("courses"), form)
+	req := c.RequestWithFormBody(
+		"POST", c.Endpoint("courses"),
+		"name", course.Name,
+		"max-capacity", strconv.Itoa(course.MaxCapacity),
+		"min-capacity", strconv.Itoa(course.MinCapacity),
+	)
+
+	SetHxRequest(req)
+
+	resp, err := c.client.Do(req)
+
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
-	is.Equal(resp.StatusCode, 303)
-	location, err := resp.Location()
-	is.NoErr(err) // could not get location of the redirect response
+	is.Equal(resp.StatusCode, 200)
+	defer resp.Body.Close()
 
-	is.Equal(location.Path, "/assignments")
+	courses, err := unmarshalAll[view.Course](resp.Body, "course-")
+	is.Equal(len(courses), 1)
+
+	return courses[0]
 }
 
-func (c *TestClient) CoursesIndexAction() []model.Course {
+func (c *TestClient) CoursesIndexAction() []view.Course {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("courses"))
+	resp, err := c.client.Get(c.Endpoint("assignments"))
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get courses did not return 200
 	defer resp.Body.Close()
 
-	doc, err := html.Parse(resp.Body)
-	is.NoErr(err) // could not parse response html
-
-	courses, err := unmarshalAll[model.Course](doc, "course-")
+	courses, err := unmarshalAll[view.Course](resp.Body, "course-")
+	is.NoErr(err)
 
 	return courses
 }
@@ -135,33 +152,66 @@ func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []mo
 	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
 	defer resp.Body.Close()
 
-	doc, err := html.Parse(resp.Body)
-	is.NoErr(err) // could not parse response html
-
-	participants, err := unmarshalAll[model.Participant](doc, "participant-")
+	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
 
 	return participants
 }
 
-func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) {
+type AssignmentViewUpdate struct {
+	courses         []view.Course
+	UnassignedCount UnassignedCount
+}
+
+type UnassignedCount struct {
+	Updated bool
+	Value   int
+}
+
+func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) AssignmentViewUpdate {
 	is := is.New(c.T)
 
-	data := url.Values{}
-	data.Add("participant-id", strconv.Itoa(participantId))
+	data := []string{"participant-id", strconv.Itoa(participantId)}
 
 	if courseId.Valid {
-		data.Add("course-id", strconv.Itoa(courseId.Value))
+		data = slices.Concat(data, []string{"course-id", strconv.Itoa(courseId.Value)})
 	}
 
-	body := strings.NewReader(data.Encode())
-	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), body)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	is.NoErr(err) // could not assemble put request to "assignments"
+	req := c.RequestWithFormBody("PUT", c.Endpoint("assignments"), data...)
 
 	resp, err := c.client.Do(req)
 	is.NoErr(err) // error while doing put request to "assignments"
 
 	is.Equal(resp.StatusCode, 200)
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	is.NoErr(err) // Ensure no error occurs
+
+	coursesUpdated, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
+	is.NoErr(err)
+
+	unassignedCount, err := unmarshalUnassignedCount(bytes.NewReader(bodyBytes))
+	is.NoErr(err)
+
+	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
+}
+
+func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []int) map[int][]int {
+	courseIdToAssignedParticipantId := make(map[int][]int, 0)
+
+	for _, expectedAlloc := range expectedAllocations {
+		course := c.CoursesCreateAction(RandomCourse(), nil)
+		courseIdToAssignedParticipantId[course.ID] = make([]int, 0)
+
+		for i := 0; i < expectedAlloc; i++ {
+			participant := c.ParticipantsCreateAction(RandomParticipant(), nil)
+			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+
+			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)
+		}
+	}
+
+	return courseIdToAssignedParticipantId
 }
 
 func (c *TestClient) Endpoint(path string) string {
@@ -172,4 +222,32 @@ func (c *TestClient) Endpoint(path string) string {
 	}
 
 	return url.String()
+}
+
+func (c *TestClient) RequestWithFormBody(method, url string, args ...string) *http.Request {
+	body := BuildFormBody(args...)
+	is := is.New(c.T)
+	req, err := http.NewRequest(method, url, body)
+	is.NoErr(err)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	return req
+}
+
+func BuildFormBody(args ...string) io.Reader {
+	if len(args)%2 != 0 {
+		panic("Expected even number of args for BuildFormBody")
+	}
+
+	data := url.Values{}
+
+	for i := 0; i < len(args); i += 2 {
+		data.Add(args[i], args[i+1])
+	}
+
+	return strings.NewReader(data.Encode())
+}
+
+func SetHxRequest(req *http.Request) {
+	req.Header.Add("HX-Request", "true")
 }
