@@ -16,6 +16,10 @@ func (c *Course) Allocation() int {
 	return len(c.Participants)
 }
 
+func (c *Course) RemainingCapacity() int {
+	return c.MaxCapacity - c.Allocation() 
+}
+
 func (c *Course) Valid() map[string]string {
 	errors := make(map[string]string, 0)
 
