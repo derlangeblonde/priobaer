@@ -17,7 +17,7 @@ func TestParticipantsAreUnassignedIntially(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedParticipant := RandomParticipant()
+	expectedParticipant := model.RandomParticipant()
 
 	testClient.ParticipantsCreateAction(expectedParticipant, nil)
 
@@ -38,8 +38,8 @@ func TestAssignParticipant(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedParticipant := RandomParticipant()
-	expectedCourse := RandomCourse()
+	expectedParticipant := model.RandomParticipant()
+	expectedCourse := model.RandomCourse()
 
 	testClient.ParticipantsCreateAction(expectedParticipant, nil)
 	testClient.CoursesCreateAction(expectedCourse, nil)
@@ -110,9 +110,9 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	courseOld := testClient.CoursesCreateAction(RandomCourse(), nil)
-	courseNew := testClient.CoursesCreateAction(RandomCourse(), nil)
-	participant := testClient.ParticipantsCreateAction(RandomParticipant(), nil)
+	courseOld := testClient.CoursesCreateAction(model.RandomCourse(), nil)
+	courseNew := testClient.CoursesCreateAction(model.RandomCourse(), nil)
+	participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
 
 	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseOld.ID))
 
@@ -184,10 +184,10 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant model.Participant
 	for i := 0; i < 3; i ++ {
-		participant = testClient.ParticipantsCreateAction(RandomParticipant(), nil)
+		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
 	}
 
-	course := testClient.CoursesCreateAction(RandomCourse(), nil)
+	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 
 	// act
 	viewUpdate := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
@@ -205,11 +205,11 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	course := testClient.CoursesCreateAction(RandomCourse(), nil)
+	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 
 	var participant model.Participant
 	for i := 0; i < 3; i ++ {
-		participant = testClient.ParticipantsCreateAction(RandomParticipant(), nil)
+		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 	}
 

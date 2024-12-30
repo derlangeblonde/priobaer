@@ -1,11 +1,10 @@
-package cmdtest
+package model
 
 import (
 	"strconv"
 
 	"github.com/google/uuid"
 	"golang.org/x/exp/rand"
-	"softbaer.dev/ass/model"
 )
 
 var namespace uuid.UUID = uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
@@ -17,23 +16,29 @@ func SeededUUID() uuid.UUID {
 	return uuid.NewMD5(namespace, []byte(oneTimeSeedStr))
 }
 
-func RandomCourse() model.Course {
+func RandomCourse() Course {
 	name := SeededUUID()
 
 	minCap := SeededRand.Intn(30)
 	maxCap := minCap + SeededRand.Intn(30)
 
-	return model.Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
+	return Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
 }
 
-func RandomParticipant() model.Participant {
+func RandomNameCourse(minCap, maxCap int) Course {
+	name := SeededUUID()
+
+	return Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
+}
+
+func RandomParticipant() Participant {
 	prename := SeededUUID()
 	surname := SeededUUID()
 
-	return model.Participant{Prename: prename.String(), Surname: surname.String()}
+	return Participant{Prename: prename.String(), Surname: surname.String()}
 }
 
-func RandomCourses(n int) (result []model.Course) {
+func RandomCourses(n int) (result []Course) {
 	for i := 0; i < n; i++ {
 		result = append(result, RandomCourse())
 	}
@@ -41,7 +46,7 @@ func RandomCourses(n int) (result []model.Course) {
 	return
 }
 
-func RandomParticipants(n int) (result []model.Participant) {
+func RandomParticipants(n int) (result []Participant) {
 	for i := 0; i < n; i++ {
 		result = append(result, RandomParticipant())
 	}

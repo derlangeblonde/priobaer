@@ -8,7 +8,6 @@ import (
 	"github.com/matryer/is"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	cmdtest "softbaer.dev/ass/cmd_test"
 	"softbaer.dev/ass/model"
 )
 
@@ -57,8 +56,8 @@ func setup(testDir string, t *testing.B) *gorm.DB {
 
 	db.AutoMigrate(&model.Course{}, &model.Participant{})
 
-	courses := cmdtest.RandomCourses(nCourses)
-	participants := cmdtest.RandomParticipants(nParticipants)
+	courses := model.RandomCourses(nCourses)
+	participants := model.RandomParticipants(nParticipants)
 
 	db.CreateInBatches(&courses, 100)
 	db.CreateInBatches(&participants, 100)
@@ -67,7 +66,7 @@ func setup(testDir string, t *testing.B) *gorm.DB {
 
 	db.Transaction(func(tx *gorm.DB) error {
 		for _, toAssign := range participantsToAssign {
-			selectedCourseIndex := cmdtest.SeededRand.Intn(nCourses)
+			selectedCourseIndex := model.SeededRand.Intn(nCourses)
 			selectedCourseId := courses[selectedCourseIndex].ID
 			// toAssign.CourseID = sql.NullInt64{Valid: true, Int64: int64()}
 			tx.Model(&toAssign).Update("course_id", selectedCourseId)
