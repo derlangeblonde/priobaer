@@ -1,5 +1,7 @@
 package model
 
+import "slices"
+
 type Assignment struct {
 	Participant Participant
 	Course      Course
@@ -7,13 +9,30 @@ type Assignment struct {
 
 func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant) (assignments []Assignment) {
 
-	availableCoursesMap := make(map[int]Course, 0)
+	for len(availableCourses) > 0 && len(unassignedParticipants) > 0 {
+		courseCandidate := Head(availableCourses)
 
-	for _, course := range availableCourses {
-		if course.RemainingCapacity() > 0 {
-			availableCoursesMap[course.ID] = course
+		if courseCandidate.RemainingCapacity() <= 0 {
+			availableCourses = RemoveHead(availableCourses)	
+
+			continue
 		}
+
+		participantCandidate := Head(unassignedParticipants)
+
+		courseCandidate.Participants = append(courseCandidate.Participants, participantCandidate)
+		assignments =append(assignments, Assignment{Participant: participantCandidate, Course: courseCandidate})
+
+		unassignedParticipants = RemoveHead(unassignedParticipants)
 	}
 
 	return assignments
+}
+
+func Head[T any](s []T) T {
+	return s[0]
+}
+
+func RemoveHead[T any](s []T) []T {
+	return slices.Delete(s, 0, 1)
 }
