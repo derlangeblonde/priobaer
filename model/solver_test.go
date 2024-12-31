@@ -7,10 +7,6 @@ import (
 	"github.com/matryer/is"
 )
 
-type AssignmentOnlyNames struct {
-	participantName string
-	courseName      string
-}
 
 func  TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 	is := is.New(t)
@@ -28,11 +24,47 @@ func  TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 	}
 
 	assignments := SolveAssignment(courses, particpants)
-	var assignmentsOnlyNames []AssignmentOnlyNames
+
+	is.Equal(countUniqueAssignments(assignments), len(particpants))
+}
+
+func  TestSolveAssignmentWithScarceCapacity(t *testing.T) {
+	is := is.New(t)
+
+	courses := []Course{
+		RandomNameCourse(0, 4),
+		RandomNameCourse(0, 3),
+		RandomNameCourse(0, 2),
+	}
+
+	capacityTotal := 0
+
+	for _, c := range courses {
+		capacityTotal += c.MaxCapacity
+	}
+
+	var particpants []Participant
+
+	for i := 0; i < 10; i++ {
+		particpants = append(particpants, RandomParticipant())
+	}
+
+	assignments := SolveAssignment(courses, particpants)
+
+	is.Equal(countUniqueAssignments(assignments), capacityTotal)
+}
+
+type assignmentOnlyNames struct {
+	participantName string
+	courseName      string
+}
+
+func countUniqueAssignments(assignments []Assignment) int {
+	var assignmentsOnlyNames []assignmentOnlyNames
 
 	for _, assignment := range assignments {
 		assignmentsOnlyNames = append(assignmentsOnlyNames,
-			AssignmentOnlyNames{
+			assignmentOnlyNames{
 				participantName: assignment.Participant.Prename + assignment.Participant.Surname,
 				courseName: assignment.Course.Name,
 		})
@@ -40,5 +72,5 @@ func  TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 
 	assignmentsOnlyNames = slices.Compact(assignmentsOnlyNames)
 
-	is.Equal(len(assignmentsOnlyNames), len(particpants))
+	return len(assignmentsOnlyNames)
 }
