@@ -29,6 +29,8 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	defer ctx.Close()
 	s := ctx.NewSolver()
 	defer s.Close()
+	o := ctx.NewOptimizer()
+	defer o.Close()
 
 	zero := ctx.Int(0, ctx.IntSort())
 	one := ctx.Int(1, ctx.IntSort())
@@ -36,6 +38,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	idTupleToVariable := make(map[AssignmentIdTuple]*z3.AST, 0)
 	participantIdToVariables := make(map[int][]*z3.AST, 0)
 	courseIdToVariables := make(map[int][]*z3.AST, 0)
+	var allVariables []*z3.AST
 
 	for _, course := range availableCourses {
 		if course.RemainingCapacity() <= 0 {
@@ -47,6 +50,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 			varName := fmt.Sprintf("%d%s%d", participant.ID, separator, course.ID)
 			variable := ctx.Const(ctx.Symbol(varName), ctx.IntSort())
 
+			allVariables = append(allVariables, variable)
 			idTupleToVariable[idTuple] = variable
 			participantIdToVariables[participant.ID] = append(participantIdToVariables[participant.ID], variable)
 			courseIdToVariables[course.ID] = append(courseIdToVariables[course.ID], variable)
@@ -54,30 +58,34 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	}
 	slog.Error("varmaps", "all", idTupleToVariable)
 
+	// optimize for most participants assigned
+	o.Maximize(zero.Add(allVariables...))
+	
+
 	// Exactly one particpant in one course
 	for _, variableForOneParticipant := range participantIdToVariables {
-		s.Assert(zero.Add(variableForOneParticipant...).Eq(one))	
+		o.Assert(zero.Add(variableForOneParticipant...).Le(one))	
 
 		for _, variable := range variableForOneParticipant {
-			s.Assert(variable.Ge(zero))
-			s.Assert(variable.Le(one))
+			o.Assert(variable.Ge(zero))
+			o.Assert(variable.Le(one))
 		}
 	}
 
 	// respect maxCap for Course
 	for courseId, variableForOneCourse := range courseIdToVariables {
 		course := FindCourse(availableCourses, courseId)
-		s.Assert(zero.Add(variableForOneCourse...).Le(ctx.Int(course.RemainingCapacity(), ctx.IntSort())))
+		o.Assert(zero.Add(variableForOneCourse...).Le(ctx.Int(course.RemainingCapacity(), ctx.IntSort())))
 	}
 
 	
 	slog.Error("sabelsabelsabel")
-	if v := s.Check(); v != z3.True {
+	if v := o.Check(); v != z3.True {
 		slog.Error("Unsolveable")
 		return assignments
 	}
 
-	m := s.Model()
+	m := o.Model()
 	varsSolved := m.Assignments()
 
 	slog.Error("blablabl")
@@ -91,28 +99,6 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 			assignments = append(assignments, FullAssignmentFromTuple(idTuple, availableCourses, unassignedParticipants))
 		}
 	}
-
-	// for len(availableCourses) > 0 && len(unassignedParticipants) > 0 {
-	// 	slog.Error("New iteration", "lenc", len(availableCourses), "lenp", len(unassignedParticipants))
-	// 	courseCandidate := Head(availableCourses)
-	//
-	// 	if courseCandidate.RemainingCapacity() <= 0 {
-	// 		slog.Error("Removing full course")
-	// 		availableCourses = RemoveHead(availableCourses)
-	//
-	// 		continue
-	// 	}
-	//
-	// 	slog.Error("Choose to assign", "Remaining Cap in candC", courseCandidate.RemainingCapacity(), "Allocation", courseCandidate.Allocation())
-	//
-	// 	participantCandidate := Head(unassignedParticipants)
-	//
-	// 	courseCandidate.Participants = append(courseCandidate.Participants, participantCandidate)
-	// 	assignments = append(assignments, Assignment{Participant: participantCandidate, Course: courseCandidate})
-	//
-	// 	unassignedParticipants = RemoveHead(unassignedParticipants)
-	// 	slog.Error("Do Assign")
-	// }
 
 	return assignments
 }
