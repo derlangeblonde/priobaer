@@ -25,10 +25,10 @@ func RandomCourse() Course {
 	return Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
 }
 
-func RandomNameCourse(minCap, maxCap int) Course {
+func RandomNameCourse(id, minCap, maxCap int) Course {
 	name := SeededUUID()
 
-	return Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
+	return Course{ID: id, Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
 }
 
 func RandomParticipant() Participant {
@@ -36,6 +36,13 @@ func RandomParticipant() Participant {
 	surname := SeededUUID()
 
 	return Participant{Prename: prename.String(), Surname: surname.String()}
+}
+
+func RandomNameParticipant(id int) Participant {
+	p := RandomParticipant()
+	p.ID = id
+
+	return p
 }
 
 func RandomCourses(n int) (result []Course) {

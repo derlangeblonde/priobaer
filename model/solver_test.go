@@ -7,20 +7,19 @@ import (
 	"github.com/matryer/is"
 )
 
-
-func  TestSolveAssignmentWithExcessCapacity(t *testing.T) {
+func TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 	is := is.New(t)
 
 	courses := []Course{
-		RandomNameCourse(0, 2),
-		RandomNameCourse(0, 2),
-		RandomNameCourse(0, 2),
+		RandomNameCourse(1, 0, 2),
+		RandomNameCourse(2, 0, 2),
+		RandomNameCourse(3, 0, 2),
 	}
 
 	var particpants []Participant
 
 	for i := 0; i < 5; i++ {
-		particpants = append(particpants, RandomParticipant())
+		particpants = append(particpants, RandomNameParticipant(i+1))
 	}
 
 	assignments := SolveAssignment(courses, particpants)
@@ -28,13 +27,13 @@ func  TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 	is.Equal(countUniqueAssignments(assignments), len(particpants))
 }
 
-func  TestSolveAssignmentWithScarceCapacity(t *testing.T) {
+func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 	is := is.New(t)
 
 	courses := []Course{
-		RandomNameCourse(0, 4),
-		RandomNameCourse(0, 3),
-		RandomNameCourse(0, 2),
+		RandomNameCourse(1, 0, 4),
+		RandomNameCourse(2, 0, 3),
+		RandomNameCourse(3, 0, 2),
 	}
 
 	capacityTotal := 0
@@ -46,7 +45,7 @@ func  TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 	var particpants []Participant
 
 	for i := 0; i < 10; i++ {
-		particpants = append(particpants, RandomParticipant())
+		particpants = append(particpants, RandomNameParticipant(i+1))
 	}
 
 	assignments := SolveAssignment(courses, particpants)
@@ -66,8 +65,8 @@ func countUniqueAssignments(assignments []Assignment) int {
 		assignmentsOnlyNames = append(assignmentsOnlyNames,
 			assignmentOnlyNames{
 				participantName: assignment.Participant.Prename + assignment.Participant.Surname,
-				courseName: assignment.Course.Name,
-		})
+				courseName:      assignment.Course.Name,
+			})
 	}
 
 	assignmentsOnlyNames = slices.Compact(assignmentsOnlyNames)
