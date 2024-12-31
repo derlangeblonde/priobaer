@@ -12,6 +12,7 @@ require (
 	golang.org/x/net v0.30.0
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12
+	github.com/mitchellh/go-z3 v0.0.0-20191228203228-4cbedeba863f
 )
 
 require (
