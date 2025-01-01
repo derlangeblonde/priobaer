@@ -200,11 +200,11 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 	courseIdToAssignedParticipantId := make(map[int][]int, 0)
 
 	for _, expectedAlloc := range expectedAllocations {
-		course := c.CoursesCreateAction(RandomCourse(), nil)
+		course := c.CoursesCreateAction(model.RandomCourse(), nil)
 		courseIdToAssignedParticipantId[course.ID] = make([]int, 0)
 
 		for i := 0; i < expectedAlloc; i++ {
-			participant := c.ParticipantsCreateAction(RandomParticipant(), nil)
+			participant := c.ParticipantsCreateAction(model.RandomParticipant(), nil)
 			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 
 			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)

@@ -45,7 +45,7 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 	var expectedCourses []model.Course
 
 	for i := 0; i < requestCount; i++ {
-		expectedCourses = append(expectedCourses, RandomCourse())
+		expectedCourses = append(expectedCourses, model.RandomCourse())
 	}
 
 	for _, course := range expectedCourses {
@@ -110,7 +110,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	testClient := NewTestClient(t, localhost)
 
 
-	expectedCourse := RandomCourse()
+	expectedCourse := model.RandomCourse()
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
 	waitForTerminationDefault(cancel)
@@ -138,7 +138,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 
 	ctx := NewTestClient(t, localhost)
 
-	expectedCourse := RandomCourse()
+	expectedCourse := model.RandomCourse()
 	ctx.CoursesCreateAction(expectedCourse, nil)
 	courses := ctx.CoursesIndexAction()
 
