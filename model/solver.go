@@ -21,13 +21,13 @@ type AssignmentIdTuple struct {
 	CourseId      int
 }
 
-func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant) (assignments []Assignment) {
+func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant) (assignments []Assignment, err error) {
 	ctx, o := NewZ3Optimizer()
 	defer ctx.Close()
 	defer o.Close()
 
 	idToCourses := make(map[int]Course, 0)
-	idToParticipants:= make(map[int]Participant, 0)
+	idToParticipants := make(map[int]Participant, 0)
 
 	zero := ctx.Int(0, ctx.IntSort())
 	one := ctx.Int(1, ctx.IntSort())
@@ -73,32 +73,54 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 
 	// respect maxCap for Course
 	for courseId, variableForOneCourse := range courseIdToVariables {
-		// TODO: handle not ok? 
-		course, _ := idToCourses[courseId] 
+		course, ok := idToCourses[courseId]
+
+		if !ok {
+			return assignments, fmt.Errorf("Did not find course with id: %d", courseId)
+		}
+
 		o.Assert(zero.Add(variableForOneCourse...).Le(ctx.Int(course.RemainingCapacity(), ctx.IntSort())))
 	}
 
 	if v := o.Check(); v != z3.True {
-		return assignments
+		return assignments, err
 	}
 
 	m := o.Model()
 	varsSolved := m.Assignments()
 
 	for varName, solutionStr := range varsSolved {
-		// TODO: handle err
-		solution, _ := strconv.Atoi(solutionStr.String())
+		solution, err := strconv.Atoi(solutionStr.String())
+
+		if err != nil {
+			return assignments, fmt.Errorf("Could not parse assigned solution. varName: %s, solution: %s", varName, solutionStr)
+		}
 
 		if solution == 1 {
-			idTuple := ParseAssignmentTuple(varName)
-			course, _ := idToCourses[idTuple.CourseId]
-			participant, _ := idToParticipants[idTuple.ParticipantId]
+			idTuple, err := ParseAssignmentTuple(varName)
+
+			if err != nil {
+				return assignments, err
+			}
+
+			course, ok := idToCourses[idTuple.CourseId]
+
+			if !ok {
+				return assignments, fmt.Errorf("Did not find course with id: %d", idTuple.CourseId)
+			}
+
+			participant, ok := idToParticipants[idTuple.ParticipantId]
+
+			if !ok {
+				return assignments, fmt.Errorf("Did not find participant with id: %d", idTuple.ParticipantId)
+			}
+
 			assignment := Assignment{Course: course, Participant: participant}
 			assignments = append(assignments, assignment)
 		}
 	}
 
-	return assignments
+	return assignments, err
 }
 
 func NewZ3Optimizer() (*z3.Context, *z3.Optimize) {
@@ -110,15 +132,26 @@ func NewZ3Optimizer() (*z3.Context, *z3.Optimize) {
 	return ctx, o
 }
 
-func ParseAssignmentTuple(varName string) AssignmentIdTuple {
+func ParseAssignmentTuple(varName string) (tuple AssignmentIdTuple, err error) {
 	idsAsStr := strings.Split(varName, separator)
-	// TODO: assert that we get exactly two results
 
-	// TODO: check errs
-	participantId, _ := strconv.Atoi(idsAsStr[0])
-	courseId, _ := strconv.Atoi(idsAsStr[1])
+	if len(idsAsStr) != 2 {
+		return tuple, fmt.Errorf("Splitting of varName did not give exactly two ids. VarName: %s", varName)
+	}
 
-	return AssignmentIdTuple{ParticipantId: participantId, CourseId: courseId}
+	participantId, err := strconv.Atoi(idsAsStr[0])
+
+	if err != nil {
+		return tuple, fmt.Errorf("Could not parse participantId: %d, err: %s", participantId, err)
+	}
+
+	courseId, err := strconv.Atoi(idsAsStr[1])
+
+	if err != nil {
+		return tuple, fmt.Errorf("Could not parse courseId: %d, err: %s", courseId, err)
+	}
+
+	return AssignmentIdTuple{ParticipantId: participantId, CourseId: courseId}, err
 }
 
 func Head[T any](s []T) T {
@@ -128,4 +161,3 @@ func Head[T any](s []T) T {
 func RemoveHead[T any](s []T) []T {
 	return slices.Delete(s, 0, 1)
 }
-

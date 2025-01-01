@@ -22,7 +22,8 @@ func TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 		particpants = append(particpants, RandomParticipant(WithParticipantId(i+1)))
 	}
 
-	assignments := SolveAssignment(courses, particpants)
+	assignments, err := SolveAssignment(courses, particpants)
+	is.NoErr(err)
 
 	is.Equal(countUniqueAssignments(assignments), len(particpants))
 }
@@ -48,7 +49,8 @@ func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 		particpants = append(particpants, RandomParticipant(WithParticipantId(i+1)))
 	}
 
-	assignments := SolveAssignment(courses, particpants)
+	assignments, err := SolveAssignment(courses, particpants)
+	is.NoErr(err)
 
 	is.Equal(countUniqueAssignments(assignments), capacityTotal)
 }
