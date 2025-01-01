@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -16,7 +15,7 @@ type Assignment struct {
 	Course      Course
 }
 
-type AssignmentIdTuple struct {
+type assignmentIdTuple struct {
 	ParticipantId int
 	CourseId      int
 }
@@ -32,7 +31,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	zero := ctx.Int(0, ctx.IntSort())
 	one := ctx.Int(1, ctx.IntSort())
 
-	idTupleToVariable := make(map[AssignmentIdTuple]*z3.AST, 0)
+	idTupleToVariable := make(map[assignmentIdTuple]*z3.AST, 0)
 	participantIdToVariables := make(map[int][]*z3.AST, 0)
 	courseIdToVariables := make(map[int][]*z3.AST, 0)
 	var allVariables []*z3.AST
@@ -47,7 +46,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 		for _, participant := range unassignedParticipants {
 			idToParticipants[participant.ID] = participant
 
-			idTuple := AssignmentIdTuple{ParticipantId: participant.ID, CourseId: course.ID}
+			idTuple := assignmentIdTuple{ParticipantId: participant.ID, CourseId: course.ID}
 			varName := fmt.Sprintf("%d%s%d", participant.ID, separator, course.ID)
 			variable := ctx.Const(ctx.Symbol(varName), ctx.IntSort())
 
@@ -132,7 +131,7 @@ func NewZ3Optimizer() (*z3.Context, *z3.Optimize) {
 	return ctx, o
 }
 
-func ParseAssignmentTuple(varName string) (tuple AssignmentIdTuple, err error) {
+func ParseAssignmentTuple(varName string) (tuple assignmentIdTuple, err error) {
 	idsAsStr := strings.Split(varName, separator)
 
 	if len(idsAsStr) != 2 {
@@ -151,13 +150,5 @@ func ParseAssignmentTuple(varName string) (tuple AssignmentIdTuple, err error) {
 		return tuple, fmt.Errorf("Could not parse courseId: %d, err: %s", courseId, err)
 	}
 
-	return AssignmentIdTuple{ParticipantId: participantId, CourseId: courseId}, err
-}
-
-func Head[T any](s []T) T {
-	return s[0]
-}
-
-func RemoveHead[T any](s []T) []T {
-	return slices.Delete(s, 0, 1)
+	return assignmentIdTuple{ParticipantId: participantId, CourseId: courseId}, err
 }
