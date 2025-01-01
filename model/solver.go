@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -23,11 +22,8 @@ type AssignmentIdTuple struct {
 }
 
 func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant) (assignments []Assignment) {
-	config := z3.NewConfig()
-	ctx := z3.NewContext(config)
-	config.Close()
+	ctx, o := NewZ3Optimizer()
 	defer ctx.Close()
-	o := ctx.NewOptimizer()
 	defer o.Close()
 
 	zero := ctx.Int(0, ctx.IntSort())
@@ -44,7 +40,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 		}
 
 		for _, participant := range unassignedParticipants {
-			idTuple := AssignmentIdTuple{ParticipantId: participant.ID, CourseId: course.ID} 
+			idTuple := AssignmentIdTuple{ParticipantId: participant.ID, CourseId: course.ID}
 			varName := fmt.Sprintf("%d%s%d", participant.ID, separator, course.ID)
 			variable := ctx.Const(ctx.Symbol(varName), ctx.IntSort())
 
@@ -54,15 +50,13 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 			courseIdToVariables[course.ID] = append(courseIdToVariables[course.ID], variable)
 		}
 	}
-	slog.Error("varmaps", "all", idTupleToVariable)
 
 	// optimize for most participants assigned
 	o.Maximize(zero.Add(allVariables...))
-	
 
 	// Exactly one particpant in one course
 	for _, variableForOneParticipant := range participantIdToVariables {
-		o.Assert(zero.Add(variableForOneParticipant...).Le(one))	
+		o.Assert(zero.Add(variableForOneParticipant...).Le(one))
 
 		for _, variable := range variableForOneParticipant {
 			o.Assert(variable.Ge(zero))
@@ -76,21 +70,16 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 		o.Assert(zero.Add(variableForOneCourse...).Le(ctx.Int(course.RemainingCapacity(), ctx.IntSort())))
 	}
 
-	
-	slog.Error("sabelsabelsabel")
 	if v := o.Check(); v != z3.True {
-		slog.Error("Unsolveable")
 		return assignments
 	}
 
 	m := o.Model()
 	varsSolved := m.Assignments()
 
-	slog.Error("blablabl")
 	for varName, solutionStr := range varsSolved {
-		slog.Error("Var", "Name", varName, "solution", solutionStr)
 		// TODO: handle err
-		solution, _  := strconv.Atoi(solutionStr.String())
+		solution, _ := strconv.Atoi(solutionStr.String())
 
 		if solution == 1 {
 			idTuple := ParseAssignmentTuple(varName)
@@ -101,6 +90,15 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	return assignments
 }
 
+func NewZ3Optimizer() (*z3.Context, *z3.Optimize) {
+	config := z3.NewConfig()
+	ctx := z3.NewContext(config)
+	config.Close()
+	o := ctx.NewOptimizer()
+
+	return ctx, o
+}
+
 func ParseAssignmentTuple(varName string) AssignmentIdTuple {
 	idsAsStr := strings.Split(varName, separator)
 	// TODO: assert that we get exactly two results
@@ -108,7 +106,6 @@ func ParseAssignmentTuple(varName string) AssignmentIdTuple {
 	// TODO: check errs
 	participantId, _ := strconv.Atoi(idsAsStr[0])
 	courseId, _ := strconv.Atoi(idsAsStr[1])
-
 
 	return AssignmentIdTuple{ParticipantId: participantId, CourseId: courseId}
 }
@@ -128,7 +125,7 @@ func RemoveHead[T any](s []T) []T {
 func FindCourse(courses []Course, id int) Course {
 	for _, c := range courses {
 		if c.ID == id {
-			return c 
+			return c
 		}
 	}
 
@@ -136,10 +133,10 @@ func FindCourse(courses []Course, id int) Course {
 	panic(fmt.Sprintf("No Course found with id: %d", id))
 }
 
-func FindParticipant(participants []Participant, id int) Participant{
+func FindParticipant(participants []Participant, id int) Participant {
 	for _, p := range participants {
 		if p.ID == id {
-			return p 
+			return p
 		}
 	}
 
