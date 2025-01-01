@@ -26,6 +26,9 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	defer ctx.Close()
 	defer o.Close()
 
+	idToCourses := make(map[int]Course, 0)
+	idToParticipants:= make(map[int]Participant, 0)
+
 	zero := ctx.Int(0, ctx.IntSort())
 	one := ctx.Int(1, ctx.IntSort())
 
@@ -39,7 +42,11 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 			continue
 		}
 
+		idToCourses[course.ID] = course
+
 		for _, participant := range unassignedParticipants {
+			idToParticipants[participant.ID] = participant
+
 			idTuple := AssignmentIdTuple{ParticipantId: participant.ID, CourseId: course.ID}
 			varName := fmt.Sprintf("%d%s%d", participant.ID, separator, course.ID)
 			variable := ctx.Const(ctx.Symbol(varName), ctx.IntSort())
@@ -66,7 +73,8 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 
 	// respect maxCap for Course
 	for courseId, variableForOneCourse := range courseIdToVariables {
-		course := FindCourse(availableCourses, courseId)
+		// TODO: handle not ok? 
+		course, _ := idToCourses[courseId] 
 		o.Assert(zero.Add(variableForOneCourse...).Le(ctx.Int(course.RemainingCapacity(), ctx.IntSort())))
 	}
 
@@ -83,7 +91,10 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 
 		if solution == 1 {
 			idTuple := ParseAssignmentTuple(varName)
-			assignments = append(assignments, FullAssignmentFromTuple(idTuple, availableCourses, unassignedParticipants))
+			course, _ := idToCourses[idTuple.CourseId]
+			participant, _ := idToParticipants[idTuple.ParticipantId]
+			assignment := Assignment{Course: course, Participant: participant}
+			assignments = append(assignments, assignment)
 		}
 	}
 
@@ -110,10 +121,6 @@ func ParseAssignmentTuple(varName string) AssignmentIdTuple {
 	return AssignmentIdTuple{ParticipantId: participantId, CourseId: courseId}
 }
 
-func FullAssignmentFromTuple(tuple AssignmentIdTuple, courses []Course, participants []Participant) Assignment {
-	return Assignment{Course: FindCourse(courses, tuple.CourseId), Participant: FindParticipant(participants, tuple.ParticipantId)}
-}
-
 func Head[T any](s []T) T {
 	return s[0]
 }
@@ -122,24 +129,3 @@ func RemoveHead[T any](s []T) []T {
 	return slices.Delete(s, 0, 1)
 }
 
-func FindCourse(courses []Course, id int) Course {
-	for _, c := range courses {
-		if c.ID == id {
-			return c
-		}
-	}
-
-	// TODO: is this a good idea???
-	panic(fmt.Sprintf("No Course found with id: %d", id))
-}
-
-func FindParticipant(participants []Participant, id int) Participant {
-	for _, p := range participants {
-		if p.ID == id {
-			return p
-		}
-	}
-
-	// TODO: is this a good idea???
-	panic(fmt.Sprintf("No Participant found with id: %d", id))
-}
