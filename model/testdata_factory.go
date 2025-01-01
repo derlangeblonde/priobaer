@@ -16,33 +16,54 @@ func SeededUUID() uuid.UUID {
 	return uuid.NewMD5(namespace, []byte(oneTimeSeedStr))
 }
 
-func RandomCourse() Course {
+type CourseOption func(*Course)
+type ParticipantOption func(*Participant)
+
+func RandomCourse(options ...CourseOption) Course {
 	name := SeededUUID()
 
 	minCap := SeededRand.Intn(30)
 	maxCap := minCap + SeededRand.Intn(30)
 
-	return Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
+	c := Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
+
+	for _, option := range options {
+		option(&c)
+	}
+
+	return c
 }
 
-func RandomNameCourse(id, minCap, maxCap int) Course {
-	name := SeededUUID()
-
-	return Course{ID: id, Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
+func WithCourseId(id int) CourseOption {
+	return func(c *Course) {
+		c.ID = id
+	}
 }
 
-func RandomParticipant() Participant {
+func WithCapacity(min, max int) CourseOption {
+	return func(c *Course) {
+		c.MinCapacity = min
+		c.MaxCapacity = max
+	}
+}
+
+func RandomParticipant(options ...ParticipantOption) Participant {
 	prename := SeededUUID()
 	surname := SeededUUID()
 
-	return Participant{Prename: prename.String(), Surname: surname.String()}
-}
+	p := Participant{Prename: prename.String(), Surname: surname.String()}
 
-func RandomNameParticipant(id int) Participant {
-	p := RandomParticipant()
-	p.ID = id
+	for _, option := range options {
+		option(&p)
+	}
 
 	return p
+}
+
+func WithParticipantId(id int) ParticipantOption {
+	return func(p *Participant) {
+		p.ID = id
+	}
 }
 
 func RandomCourses(n int) (result []Course) {

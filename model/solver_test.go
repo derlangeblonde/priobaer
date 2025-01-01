@@ -11,15 +11,15 @@ func TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 	is := is.New(t)
 
 	courses := []Course{
-		RandomNameCourse(1, 0, 2),
-		RandomNameCourse(2, 0, 2),
-		RandomNameCourse(3, 0, 2),
+		RandomCourse(WithCourseId(1), WithCapacity(0, 2)),
+		RandomCourse(WithCourseId(2), WithCapacity(0, 2)),
+		RandomCourse(WithCourseId(3), WithCapacity(0, 2)),
 	}
 
 	var particpants []Participant
 
 	for i := 0; i < 5; i++ {
-		particpants = append(particpants, RandomNameParticipant(i+1))
+		particpants = append(particpants, RandomParticipant(WithParticipantId(i+1)))
 	}
 
 	assignments := SolveAssignment(courses, particpants)
@@ -31,9 +31,9 @@ func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 	is := is.New(t)
 
 	courses := []Course{
-		RandomNameCourse(1, 0, 4),
-		RandomNameCourse(2, 0, 3),
-		RandomNameCourse(3, 0, 2),
+		RandomCourse(WithCourseId(1), WithCapacity(0, 4)),
+		RandomCourse(WithCourseId(2), WithCapacity(0, 3)),
+		RandomCourse(WithCourseId(3), WithCapacity(0, 2)),
 	}
 
 	capacityTotal := 0
@@ -45,7 +45,7 @@ func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 	var particpants []Participant
 
 	for i := 0; i < 10; i++ {
-		particpants = append(particpants, RandomNameParticipant(i+1))
+		particpants = append(particpants, RandomParticipant(WithParticipantId(i+1)))
 	}
 
 	assignments := SolveAssignment(courses, particpants)
