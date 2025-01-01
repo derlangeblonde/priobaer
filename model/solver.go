@@ -27,8 +27,6 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	ctx := z3.NewContext(config)
 	config.Close()
 	defer ctx.Close()
-	s := ctx.NewSolver()
-	defer s.Close()
 	o := ctx.NewOptimizer()
 	defer o.Close()
 
