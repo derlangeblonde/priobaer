@@ -10,7 +10,7 @@
 
 {{ end }}
 
-	<div id="participants-list">
+	<div id="participants-column">
 		<h2>Teilnehmende</h2>
 
 		{{ range .participants }}
@@ -25,7 +25,7 @@
 			<p> Keine Teilnehmenden </p>
 		{{ end }}
 
-		<button hx-get="participants/new" hx-target="#participants-list">Neuer Teilnehmende</button>
+		<button hx-get="participants/new" hx-target="#participants-column">Neuer Teilnehmende</button>
 	</div>
 
 {{ if .fullPage}}
