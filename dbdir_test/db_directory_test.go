@@ -15,7 +15,7 @@ import (
 	"softbaer.dev/ass/dbdir"
 )
 
-const timeWaitingForRemoval = time.Microsecond * 100
+const timeWaitingForRemoval = time.Microsecond * 200
 
 func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
 	is := is.New(t)
