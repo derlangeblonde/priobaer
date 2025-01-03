@@ -37,14 +37,14 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 
 	d.entries[dbId] = &entry{conn: db}
 	db.AutoMigrate(d.models...)
-	db.AutoMigrate(&session{})
+	db.AutoMigrate(&Session{})
 	db.Exec("PRAGMA foreign_keys = ON;")
 
 	var count int64
-	db.Model(&session{}).Count(&count)
+	db.Model(&Session{}).Count(&count)
 
 	if count == 0 {
-		db.Create(&session{ExpiresAt: d.clock.Now().Add(d.maxAge)})
+		db.Create(&Session{ExpiresAt: d.clock.Now().Add(d.maxAge)})
 	}
 
 	if count > 1 {

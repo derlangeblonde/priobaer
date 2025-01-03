@@ -22,7 +22,7 @@ type entry struct {
 	expirationTimer clockwork.Timer
 }
 
-type session struct {
+type Session struct {
 	gorm.Model
 	ExpiresAt time.Time
 }

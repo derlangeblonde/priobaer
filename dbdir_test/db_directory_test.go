@@ -1,10 +1,18 @@
 package dbdir_test
 
 import (
+	"errors"
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jonboulle/clockwork"
 	"github.com/matryer/is"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"softbaer.dev/ass/dbdir"
 )
 
 func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
@@ -175,4 +183,44 @@ func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T)
 	is.True(conn1 != conn3) //conn2 should be expired by now, therefore conn3 should be a new connection
 
 	connHasNoRows(conn3, is)
+}
+
+func TestNewDbDirectory_RemovesExpiredDbs(t *testing.T) {
+	is := is.New(t)
+
+	clock := clockwork.NewFakeClockAt(time.Date(2025, 1, 1, 9, 5, 30, 0, time.Local))
+	tmpDir := t.TempDir()
+	dbPath := fmt.Sprintf("%s/%s.sqlite", tmpDir, uuid.New().String())
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	is.NoErr(err) // error while creating db
+
+	session := dbdir.Session{ExpiresAt: clock.Now()}
+	db.AutoMigrate(&dbdir.Session{})
+	db.Create(&session)
+
+	clock.Advance(time.Second * 10)
+	
+	deadlockPrevention := time.After(time.Second * 1)
+	done := make(chan bool, 0)
+
+	go func(){
+		_, err = dbdir.New(tmpDir, time.Second*60, clock, []any{})
+		is.NoErr(err) // err while creating dbdir
+		done <- true
+	}()
+
+	select {
+		case <- deadlockPrevention:
+			t.Fatalf("dbdir.New took too long, probably deadlocked")
+		case <- done:
+			t.Log("dbdir.New terminated")
+	}
+
+	if _, err := os.Stat(dbPath); err == nil {
+		t.Fatal("db-file still exists")
+
+	} else if errors.Is(err, os.ErrNotExist) {
+	} else {
+		t.Fatalf("could not open file for other reason then 'ErrNotExist': %v", err)
+	}
 }
