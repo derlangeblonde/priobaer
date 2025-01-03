@@ -28,7 +28,6 @@ func AssignmentsIndex(c *gin.Context) {
 	}
 
 	if req.Solve {
-		slog.Error("do solve")
 		err := db.Transaction(
 			func(tx *gorm.DB) error {
 				var availableCourses []model.Course
@@ -46,11 +45,9 @@ func AssignmentsIndex(c *gin.Context) {
 					return err
 				}
 
-				for _, assignment := range assignments {
-					slog.Error("applying assignment", "partID", assignment.Participant.ID, "courseID", assignment.Course.ID)
-					if result := tx.Model(model.Participant{}).Where("ID = ?", assignment.Participant.ID).Update("course_id", assignment.Course.ID); result.Error != nil {
-						return result.Error
-					}
+				err = model.ApplyAssignments(tx, assignments)
+				if err != nil {
+					return err
 				}
 
 				return nil	
@@ -63,9 +60,7 @@ func AssignmentsIndex(c *gin.Context) {
 
 			return
 		}
-	} else {
-		slog.Error("do not solve--------------------------------------")
-	}
+	} 
 
 	participants := make([]model.Participant, 0)
 	var result *gorm.DB
