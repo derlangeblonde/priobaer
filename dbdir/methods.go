@@ -49,7 +49,7 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("Critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count)
 	}
 
-	d.scheduleRemoval(dbId)
+	d.scheduleRemove(dbId)
 
 	return db, err
 }

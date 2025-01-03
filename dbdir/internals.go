@@ -76,7 +76,7 @@ func (d *DbDirectory) remove(dbId string) error {
 	return nil
 }
 
-func (d *DbDirectory) scheduleRemoval(dbId string) {
+func (d *DbDirectory) scheduleRemove(dbId string) {
 	expirationDate, err := d.getExpirationDate(dbId)
 
 	if err != nil {
