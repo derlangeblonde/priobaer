@@ -179,12 +179,11 @@ func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T)
 	c.FakeClock.Advance(expiration)
 	time.Sleep(timeWaitingForRemoval)
 
-	conn3, err := sutNew.Open(c.DbId.String())
+	conn2, err := sutNew.Open(c.DbId.String())
 	is.NoErr(err)
 
-	is.True(conn1 != conn3) //conn2 should be expired by now, therefore conn3 should be a new connection
-
-	connHasNoRows(conn3, is)
+	is.True(conn1 != conn2) // conn's where opened by different instances of dbdir, so that they should not be equal
+	connHasNoRows(conn2, is)
 }
 
 func TestNewDbDirectory_RemovesExpiredDbs(t *testing.T) {
