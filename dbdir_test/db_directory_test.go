@@ -15,6 +15,8 @@ import (
 	"softbaer.dev/ass/dbdir"
 )
 
+const timeWaitingForRemoval = time.Microsecond * 100
+
 func TestOpen_ReturnsSameConnection_WhenCalledMultipleTimes(t *testing.T) {
 	is := is.New(t)
 
@@ -72,7 +74,7 @@ func TestOpen_YieldsNewConnection_AfterExpired(t *testing.T) {
 	is.NoErr(err)
 
 	c.FakeClock.Advance(expiration)
-	time.Sleep(40 * time.Microsecond)
+	time.Sleep(timeWaitingForRemoval)
 
 	conn2, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
@@ -98,7 +100,7 @@ func TestOpen_DataIsErased_AfterExpired(t *testing.T) {
 	is.NoErr(result.Error)
 
 	c.FakeClock.Advance(expiration)
-	time.Sleep(40 * time.Microsecond)
+	time.Sleep(timeWaitingForRemoval)
 
 	conn2, err := sut.Open(c.DbId.String())
 	is.NoErr(err)
@@ -142,7 +144,7 @@ func TestNewDbDirectory_RestoresDataAndExpirationFromExistingDbFiles(t *testing.
 	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
 
 	c.FakeClock.Advance(expiration)
-	time.Sleep(100 * time.Microsecond)
+	time.Sleep(timeWaitingForRemoval)
 
 	conn3, err := sutNew.Open(c.DbId.String())
 	is.NoErr(err)
@@ -175,7 +177,7 @@ func TestNewDbDirectory_RestoresExpiration_AlthoughDbNeverAccessed(t *testing.T)
 	defer sutNew.Close()
 
 	c.FakeClock.Advance(expiration)
-	time.Sleep(40 * time.Microsecond)
+	time.Sleep(timeWaitingForRemoval)
 
 	conn3, err := sutNew.Open(c.DbId.String())
 	is.NoErr(err)
@@ -199,21 +201,21 @@ func TestNewDbDirectory_RemovesExpiredDbs(t *testing.T) {
 	db.Create(&session)
 
 	clock.Advance(time.Second * 10)
-	
+
 	deadlockPrevention := time.After(time.Second * 1)
 	done := make(chan bool, 0)
 
-	go func(){
+	go func() {
 		_, err = dbdir.New(tmpDir, time.Second*60, clock, []any{})
 		is.NoErr(err) // err while creating dbdir
 		done <- true
 	}()
 
 	select {
-		case <- deadlockPrevention:
-			t.Fatalf("dbdir.New took too long, probably deadlocked")
-		case <- done:
-			t.Log("dbdir.New terminated")
+	case <-deadlockPrevention:
+		t.Fatalf("dbdir.New took too long, probably deadlocked")
+	case <-done:
+		t.Log("dbdir.New terminated")
 	}
 
 	if _, err := os.Stat(dbPath); err == nil {
