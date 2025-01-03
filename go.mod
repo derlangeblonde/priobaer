@@ -1,6 +1,6 @@
 module softbaer.dev/ass
 
-go 1.22.0
+go 1.23.4
 
 require (
 	github.com/gin-contrib/sessions v1.0.1
@@ -8,11 +8,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jonboulle/clockwork v0.4.0
 	github.com/matryer/is v1.4.1
+	github.com/mitchellh/go-z3 v0.0.0-20191228203228-4cbedeba863f
 	golang.org/x/exp v0.0.0-20241210194714-1829a127f884
 	golang.org/x/net v0.30.0
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12
-	github.com/mitchellh/go-z3 v0.0.0-20191228203228-4cbedeba863f
 )
 
 require (

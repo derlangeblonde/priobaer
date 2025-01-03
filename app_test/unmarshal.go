@@ -1,4 +1,4 @@
-package cmdtest
+package apptest
 
 import (
 	"errors"

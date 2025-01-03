@@ -10,7 +10,7 @@
 
 	{{ end }}
 
-	<div id="courses-list">
+	<div id="courses-column">
 		<h2>Kurse</h2>
 
 		{{ range .courses }}
@@ -27,7 +27,7 @@
 		<p> Keine Kurse </p>
 		{{ end }}
 
-		<button hx-get="courses/new" hx-target="#courses-list">Neuer Kurs</button>
+		<button hx-get="courses/new" hx-target="#courses-column">Neuer Kurs</button>
 	</div>
 
 	{{ if .fullPage}}

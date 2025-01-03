@@ -14,6 +14,7 @@ import (
 func AssignmentsIndex(c *gin.Context) {
 	type request struct {
 		CourseIdSelected *int `form:"selected-course"`
+		Solve bool `form:"solve"`
 	}
 
 	db := GetDB(c)
@@ -25,6 +26,41 @@ func AssignmentsIndex(c *gin.Context) {
 		slog.Error("Bad request on AssignmentsIndex", "err", err)
 		return
 	}
+
+	if req.Solve {
+		err := db.Transaction(
+			func(tx *gorm.DB) error {
+				var availableCourses []model.Course
+				if result := tx.Preload("Participants").Find(&availableCourses); result.Error != nil {
+					return result.Error
+				}
+
+				var unassignedParticipants []model.Participant
+				if result := tx.Where("course_id is null").Find(&unassignedParticipants); result.Error != nil {
+					return result.Error
+				}
+
+				assignments, err := model.SolveAssignment(availableCourses, unassignedParticipants)
+				if err != nil {
+					return err
+				}
+
+				err = model.ApplyAssignments(tx, assignments)
+				if err != nil {
+					return err
+				}
+
+				return nil	
+			},
+		)		
+
+		if err != nil {
+			slog.Error("Error while trying to solve assignment", "err", err)
+			c.AbortWithStatus(500)
+
+			return
+		}
+	} 
 
 	participants := make([]model.Participant, 0)
 	var result *gorm.DB

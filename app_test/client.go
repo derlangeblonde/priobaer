@@ -1,4 +1,4 @@
-package cmdtest
+package apptest
 
 import (
 	"bytes"
@@ -138,23 +138,38 @@ func (c *TestClient) CoursesIndexAction() []view.Course {
 	return courses
 }
 
-func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []model.Participant {
+func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Course, []model.Participant) {
+	if len(queryParams) % 2 != 0 {
+		c.T.Fatal("Number of queryParams has to be even")
+	}
 	is := is.New(c.T)
 
 	endpoint := c.Endpoint("assignments")
 
-	if courseIdSelected.Valid {
-		endpoint = endpoint + fmt.Sprintf("?selected-course=%d", courseIdSelected.Value)
+	var foo [] string
+	for keyValueSlice := range slices.Chunk(queryParams, 2) {
+		keyValuePair := fmt.Sprintf("%s=%s", keyValueSlice[0], keyValueSlice[1])
+		foo = append(foo, keyValuePair)
 	}
+
+	queryString := "?" + strings.Join(foo, "&")
+
+	endpoint += queryString
 
 	resp, err := c.client.Get(endpoint)
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
 	defer resp.Body.Close()
 
-	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
+	bodyBytes, err := io.ReadAll(resp.Body)
+	is.NoErr(err) // error while reading resp.Body to bytes
 
-	return participants
+	participants, err := unmarshalAll[model.Participant](bytes.NewReader(bodyBytes), "participant-")
+	is.NoErr(err) // error while unmarshalling pariticpants
+	courses, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
+	is.NoErr(err) // error while unmarshalling courses 
+
+	return courses, participants
 }
 
 type AssignmentViewUpdate struct {
@@ -185,7 +200,7 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
-	is.NoErr(err) // Ensure no error occurs
+	is.NoErr(err) // error while reading resp.Body to bytes
 
 	coursesUpdated, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
 	is.NoErr(err)
