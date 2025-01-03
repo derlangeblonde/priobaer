@@ -99,22 +99,22 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 			continue
 		}
 
-		idTuple, err := ParseAssignmentTuple(varName)
+		assignmentId, err := ParseAssignmentId(varName)
 
 		if err != nil {
 			return assignments, err
 		}
 
-		course, ok := coursesById[idTuple.CourseId]
+		course, ok := coursesById[assignmentId.CourseId]
 
 		if !ok {
-			return assignments, fmt.Errorf("Did not find course with id: %d", idTuple.CourseId)
+			return assignments, fmt.Errorf("Did not find course with id: %d", assignmentId.CourseId)
 		}
 
-		participant, ok := participantsById[idTuple.ParticipantId]
+		participant, ok := participantsById[assignmentId.ParticipantId]
 
 		if !ok {
-			return assignments, fmt.Errorf("Did not find participant with id: %d", idTuple.ParticipantId)
+			return assignments, fmt.Errorf("Did not find participant with id: %d", assignmentId.ParticipantId)
 		}
 
 		assignment := Assignment{Course: course, Participant: participant}
@@ -133,23 +133,23 @@ func NewZ3Optimizer() (*z3.Context, *z3.Optimize) {
 	return ctx, o
 }
 
-func ParseAssignmentTuple(varName string) (tuple AssignmentID, err error) {
+func ParseAssignmentId(varName string) (assignmentId AssignmentID, err error) {
 	idsAsStr := strings.Split(varName, separator)
 
 	if len(idsAsStr) != 2 {
-		return tuple, fmt.Errorf("Splitting of varName did not give exactly two ids. VarName: %s", varName)
+		return assignmentId, fmt.Errorf("Splitting of varName did not give exactly two ids. VarName: %s", varName)
 	}
 
 	participantId, err := strconv.Atoi(idsAsStr[0])
 
 	if err != nil {
-		return tuple, fmt.Errorf("Could not parse participantId: %d, err: %s", participantId, err)
+		return assignmentId, fmt.Errorf("Could not parse participantId: %d, err: %s", participantId, err)
 	}
 
 	courseId, err := strconv.Atoi(idsAsStr[1])
 
 	if err != nil {
-		return tuple, fmt.Errorf("Could not parse courseId: %d, err: %s", courseId, err)
+		return assignmentId, fmt.Errorf("Could not parse courseId: %d, err: %s", courseId, err)
 	}
 
 	return AssignmentID{ParticipantId: participantId, CourseId: courseId}, err
