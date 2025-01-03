@@ -142,7 +142,7 @@ func TestNewDbDirectory_RestoresDataAndExpirationFromExistingDbFiles(t *testing.
 	is.Equal(actualData.Number, expectedNumber) // did not got the same number set earlier
 
 	c.FakeClock.Advance(expiration)
-	time.Sleep(40 * time.Microsecond)
+	time.Sleep(100 * time.Microsecond)
 
 	conn3, err := sutNew.Open(c.DbId.String())
 	is.NoErr(err)
