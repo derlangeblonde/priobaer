@@ -21,7 +21,7 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 	d.bigLock.Lock()
 	defer d.bigLock.Unlock()
 
-	existingEntry, ok := d.entries[dbId]
+	existingEntry, ok := d.getEntry(dbId)
 
 	if ok {
 		return existingEntry.conn, nil
@@ -35,7 +35,7 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	d.entries[dbId] = &entry{conn: db}
+	d.setEntry(dbId, &entry{conn: db})
 	db.AutoMigrate(d.models...)
 	db.AutoMigrate(&Session{})
 	db.Exec("PRAGMA foreign_keys = ON;")
@@ -61,7 +61,7 @@ func (d *DbDirectory) Close() []error {
 	defer d.bigLock.Unlock()
 
 	errs := make([]error, 0)
-	for dbId, entry := range d.entries {
+	for dbId, entry := range d.iterEntries() {
 		conn, err := entry.conn.DB()
 
 		if err != nil {

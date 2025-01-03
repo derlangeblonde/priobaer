@@ -2,6 +2,7 @@ package dbdir
 
 import (
 	"fmt"
+	"iter"
 	"log/slog"
 	"os"
 	"path"
@@ -11,17 +12,39 @@ import (
 	"github.com/google/uuid"
 )
 
+func (d *DbDirectory) getEntry(dbId string) (*entry, bool) {
+	entry, ok := d.entries[dbId]
+
+	return entry, ok
+}
+
+func (d *DbDirectory) setEntry(dbId string, entry *entry) {
+	d.entries[dbId] = entry
+}
+
+func (d *DbDirectory) deleteEntry(dbId string) {
+	delete(d.entries, dbId)
+}
+
+func (d *DbDirectory) iterEntries() iter.Seq2[string, *entry]{
+	return func(yield func(k string, v *entry) bool) {
+		for dbId, entry := range d.entries {
+			yield(dbId, entry)
+		}
+	}
+}
+
 func (d *DbDirectory) remove(dbId string) error {
 	d.bigLock.Lock()
 	defer d.bigLock.Unlock()
 
-	entry, ok := d.entries[dbId]
+	entry, ok := d.getEntry(dbId)
 
 	if !ok {
 		slog.Warn("Tried to remove db, but was not in map", "dbId", dbId)
 	}
 
-	defer delete(d.entries, dbId)
+	defer d.deleteEntry(dbId) 
 
 	conn, err := entry.conn.DB()
 
@@ -75,7 +98,10 @@ func (d *DbDirectory) scheduleRemoval(dbId string) {
 		}
 	})
 
-	d.entries[dbId].expirationTimer = expirationTimer
+	entry, _ := d.getEntry(dbId)
+	entry.expirationTimer = expirationTimer
+	// TODO: is this needed?
+	// d.entries[dbId].expirationTimer = expirationTimer
 }
 
 func (d *DbDirectory) restoreExistingDbs() error {
@@ -109,7 +135,7 @@ func (d *DbDirectory) restoreExistingDbs() error {
 }
 
 func (d *DbDirectory) getExpirationDate(dbId string) (time.Time, error) {
-	entry, ok := d.entries[dbId]
+	entry, ok := d.getEntry(dbId)
 
 	if !ok {
 		return time.Time{}, fmt.Errorf("Requested expiration date for db that is not known to dbDirectory. dbId=%s", dbId)

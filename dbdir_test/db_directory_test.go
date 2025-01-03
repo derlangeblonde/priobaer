@@ -220,6 +220,7 @@ func TestNewDbDirectory_RemovesExpiredDbs(t *testing.T) {
 		t.Fatal("db-file still exists")
 
 	} else if errors.Is(err, os.ErrNotExist) {
+		t.Log("all good, file is gone :)")
 	} else {
 		t.Fatalf("could not open file for other reason then 'ErrNotExist': %v", err)
 	}
