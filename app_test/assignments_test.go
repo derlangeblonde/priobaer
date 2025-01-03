@@ -2,6 +2,7 @@ package apptest
 
 import (
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/matryer/is"
@@ -21,7 +22,7 @@ func TestParticipantsAreUnassignedIntially(t *testing.T) {
 
 	testClient.ParticipantsCreateAction(expectedParticipant, nil)
 
-	unassignedParticipants := testClient.AssignmentsIndexAction(util.NoneInt())
+	unassignedParticipants := testClient.AssignmentsIndexAction()
 
 	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one
 
@@ -44,7 +45,7 @@ func TestAssignParticipant(t *testing.T) {
 	testClient.ParticipantsCreateAction(expectedParticipant, nil)
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
-	unassignedParticipants := testClient.AssignmentsIndexAction(util.NoneInt())
+	unassignedParticipants := testClient.AssignmentsIndexAction()
 	allCourses := testClient.CoursesIndexAction()
 
 	is.Equal(len(unassignedParticipants), 1) // expect exactly one participant after creating one
@@ -55,21 +56,21 @@ func TestAssignParticipant(t *testing.T) {
 
 	testClient.AssignmentsUpdateAction(idParticipantToAssign, util.JustInt(courseIdToAssignTo))
 
-	unassignedParticipants = testClient.AssignmentsIndexAction(util.NoneInt())
+	unassignedParticipants = testClient.AssignmentsIndexAction()
 
 	is.Equal(len(unassignedParticipants), 0) // expect exactly no unassigned participant after assigning the only one
 
-	participantsAssignedToCourse := testClient.AssignmentsIndexAction(util.JustInt(courseIdToAssignTo))
+	participantsAssignedToCourse := testClient.AssignmentsIndexAction("selected-course", strconv.Itoa(courseIdToAssignTo))
 
 	is.Equal(len(participantsAssignedToCourse), 1) // expect exactly one participant after creating one
 
 	testClient.AssignmentsUpdateAction(idParticipantToAssign, util.NoneInt())
 
-	unassignedParticipants = testClient.AssignmentsIndexAction(util.NoneInt())
+	unassignedParticipants = testClient.AssignmentsIndexAction()
 
 	is.Equal(len(unassignedParticipants), 1) // expect exactly one unassigned participant after unassigne participant again
 
-	participantsAssignedToCourse = testClient.AssignmentsIndexAction(util.JustInt(courseIdToAssignTo))
+	participantsAssignedToCourse = testClient.AssignmentsIndexAction("selected-course", strconv.Itoa(courseIdToAssignTo))
 
 	is.Equal(len(participantsAssignedToCourse), 0) // expect no participant assinged to course after unassigning
 }

@@ -138,14 +138,23 @@ func (c *TestClient) CoursesIndexAction() []view.Course {
 	return courses
 }
 
-func (c *TestClient) AssignmentsIndexAction(courseIdSelected util.MaybeInt) []model.Participant {
+func (c *TestClient) AssignmentsIndexAction(queryParams ...string) []model.Participant {
+	if len(queryParams) % 2 != 0 {
+		c.T.Fatal("Number of queryParams has to be even")
+	}
 	is := is.New(c.T)
 
 	endpoint := c.Endpoint("assignments")
 
-	if courseIdSelected.Valid {
-		endpoint = endpoint + fmt.Sprintf("?selected-course=%d", courseIdSelected.Value)
+	var foo [] string
+	for keyValueSlice := range slices.Chunk(queryParams, 2) {
+		keyValuePair := fmt.Sprintf("%s=%s", keyValueSlice[0], keyValueSlice[1])
+		foo = append(foo, keyValuePair)
 	}
+
+	queryString := "?" + strings.Join(foo, "&")
+
+	endpoint += queryString
 
 	resp, err := c.client.Get(endpoint)
 	is.NoErr(err)                  // get request failed
