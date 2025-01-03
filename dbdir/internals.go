@@ -110,8 +110,6 @@ func (d *DbDirectory) scheduleRemoval(dbId string) {
 
 	entry, _ := d.getEntry(dbId)
 	entry.expirationTimer = expirationTimer
-	// TODO: is this needed?
-	// d.entries[dbId].expirationTimer = expirationTimer
 }
 
 func (d *DbDirectory) restoreExistingDbs() error {
