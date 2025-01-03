@@ -2,6 +2,7 @@ package dbdir
 
 import (
 	"fmt"
+	"iter"
 	"log/slog"
 	"os"
 	"path"
@@ -11,17 +12,49 @@ import (
 	"github.com/google/uuid"
 )
 
-func (d *DbDirectory) remove(dbId string) error {
-	d.bigLock.Lock()
-	defer d.bigLock.Unlock()
+func (d *DbDirectory) getEntry(dbId string) (*entry, bool) {
+	entryUntyped, ok := d.entries.Load(dbId)
+	entry, ok := entryUntyped.(*entry)
 
-	entry, ok := d.entries[dbId]
+	return entry, ok
+}
+
+func (d *DbDirectory) getAndDeleteEntry(dbId string) (*entry, bool) {
+	entryUntyped, ok := d.entries.LoadAndDelete(dbId)
+	entry, ok := entryUntyped.(*entry)
+
+	return entry, ok
+}
+
+func (d *DbDirectory) setEntry(dbId string, entry *entry) {
+	d.entries.Store(dbId, entry)
+}
+
+func (d *DbDirectory) iterEntries() iter.Seq2[string, *entry] {
+	return func(yield func(k string, v *entry) bool) {
+		d.entries.Range(func(key, value any) bool {
+			keyTyped, ok := key.(string)
+			if !ok {
+				return false
+			}
+			valueTyped, ok := key.(*entry)
+			if !ok {
+				return false
+			}
+
+			return yield(keyTyped, valueTyped)
+		})
+	}
+}
+
+func (d *DbDirectory) remove(dbId string) error {
+	entry, ok := d.getAndDeleteEntry(dbId)
 
 	if !ok {
 		slog.Warn("Tried to remove db, but was not in map", "dbId", dbId)
-	}
 
-	defer delete(d.entries, dbId)
+		return nil
+	}
 
 	conn, err := entry.conn.DB()
 
@@ -43,7 +76,7 @@ func (d *DbDirectory) remove(dbId string) error {
 	return nil
 }
 
-func (d *DbDirectory) scheduleRemoval(dbId string) {
+func (d *DbDirectory) scheduleRemove(dbId string) {
 	expirationDate, err := d.getExpirationDate(dbId)
 
 	if err != nil {
@@ -75,7 +108,8 @@ func (d *DbDirectory) scheduleRemoval(dbId string) {
 		}
 	})
 
-	d.entries[dbId].expirationTimer = expirationTimer
+	entry, _ := d.getEntry(dbId)
+	entry.expirationTimer = expirationTimer
 }
 
 func (d *DbDirectory) restoreExistingDbs() error {
@@ -109,13 +143,13 @@ func (d *DbDirectory) restoreExistingDbs() error {
 }
 
 func (d *DbDirectory) getExpirationDate(dbId string) (time.Time, error) {
-	entry, ok := d.entries[dbId]
+	entry, ok := d.getEntry(dbId)
 
 	if !ok {
 		return time.Time{}, fmt.Errorf("Requested expiration date for db that is not known to dbDirectory. dbId=%s", dbId)
 	}
 
-	var session session
+	var session Session
 	result := entry.conn.First(&session)
 
 	if result.Error != nil {

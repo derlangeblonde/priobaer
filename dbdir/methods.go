@@ -2,6 +2,7 @@ package dbdir
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/jonboulle/clockwork"
@@ -10,7 +11,7 @@ import (
 )
 
 func New(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) (*DbDirectory, error) {
-	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: make(map[string]*entry, 0), clock: clock, models: models}
+	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: sync.Map{}, clock: clock, models: models}
 
 	err := dbdir.restoreExistingDbs()
 
@@ -18,10 +19,7 @@ func New(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []a
 }
 
 func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
-	d.bigLock.Lock()
-	defer d.bigLock.Unlock()
-
-	existingEntry, ok := d.entries[dbId]
+	existingEntry, ok := d.getEntry(dbId)
 
 	if ok {
 		return existingEntry.conn, nil
@@ -35,33 +33,30 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	d.entries[dbId] = &entry{conn: db}
+	d.setEntry(dbId, &entry{conn: db})
 	db.AutoMigrate(d.models...)
-	db.AutoMigrate(&session{})
+	db.AutoMigrate(&Session{})
 	db.Exec("PRAGMA foreign_keys = ON;")
 
 	var count int64
-	db.Model(&session{}).Count(&count)
+	db.Model(&Session{}).Count(&count)
 
 	if count == 0 {
-		db.Create(&session{ExpiresAt: d.clock.Now().Add(d.maxAge)})
+		db.Create(&Session{ExpiresAt: d.clock.Now().Add(d.maxAge)})
 	}
 
 	if count > 1 {
 		return nil, fmt.Errorf("Critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count)
 	}
 
-	d.scheduleRemoval(dbId)
+	d.scheduleRemove(dbId)
 
 	return db, err
 }
 
 func (d *DbDirectory) Close() []error {
-	d.bigLock.Lock()
-	defer d.bigLock.Unlock()
-
 	errs := make([]error, 0)
-	for dbId, entry := range d.entries {
+	for dbId, entry := range d.iterEntries() {
 		conn, err := entry.conn.DB()
 
 		if err != nil {

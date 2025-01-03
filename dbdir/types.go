@@ -11,10 +11,9 @@ import (
 type DbDirectory struct {
 	rootDir string
 	maxAge  time.Duration
-	entries map[string]*entry
+	entries sync.Map 
 	clock   clockwork.Clock
 	models  []any
-	bigLock sync.Mutex
 }
 
 type entry struct {
@@ -22,7 +21,7 @@ type entry struct {
 	expirationTimer clockwork.Timer
 }
 
-type session struct {
+type Session struct {
 	gorm.Model
 	ExpiresAt time.Time
 }
