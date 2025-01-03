@@ -13,24 +13,34 @@ import (
 )
 
 func (d *DbDirectory) getEntry(dbId string) (*entry, bool) {
-	entry, ok := d.entries[dbId]
+	entryUntyped, ok := d.entries.Load(dbId)
+	entry, ok := entryUntyped.(*entry)
 
 	return entry, ok
 }
 
 func (d *DbDirectory) setEntry(dbId string, entry *entry) {
-	d.entries[dbId] = entry
+	d.entries.Store(dbId, entry)
 }
 
 func (d *DbDirectory) deleteEntry(dbId string) {
-	delete(d.entries, dbId)
+	d.entries.Delete(dbId)
 }
 
 func (d *DbDirectory) iterEntries() iter.Seq2[string, *entry]{
 	return func(yield func(k string, v *entry) bool) {
-		for dbId, entry := range d.entries {
-			yield(dbId, entry)
-		}
+		d.entries.Range(func(key, value any) bool{
+			keyTyped, ok := key.(string)
+			if !ok {
+				return false
+			}
+			valueTyped, ok := key.(*entry)
+			if !ok{
+				return false
+			}
+
+			return yield(keyTyped, valueTyped)
+		})
 	}
 }
 

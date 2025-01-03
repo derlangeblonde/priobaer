@@ -2,6 +2,7 @@ package dbdir
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/jonboulle/clockwork"
@@ -10,7 +11,7 @@ import (
 )
 
 func New(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) (*DbDirectory, error) {
-	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: make(map[string]*entry, 0), clock: clock, models: models}
+	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: sync.Map{}, clock: clock, models: models}
 
 	err := dbdir.restoreExistingDbs()
 

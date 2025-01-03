@@ -11,7 +11,7 @@ import (
 type DbDirectory struct {
 	rootDir string
 	maxAge  time.Duration
-	entries map[string]*entry
+	entries sync.Map 
 	clock   clockwork.Clock
 	models  []any
 	bigLock sync.Mutex
