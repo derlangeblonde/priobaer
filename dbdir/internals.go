@@ -19,23 +19,26 @@ func (d *DbDirectory) getEntry(dbId string) (*entry, bool) {
 	return entry, ok
 }
 
+func (d *DbDirectory) getAndDeleteEntry(dbId string) (*entry, bool) {
+	entryUntyped, ok := d.entries.LoadAndDelete(dbId)
+	entry, ok := entryUntyped.(*entry)
+
+	return entry, ok
+}
+
 func (d *DbDirectory) setEntry(dbId string, entry *entry) {
 	d.entries.Store(dbId, entry)
 }
 
-func (d *DbDirectory) deleteEntry(dbId string) {
-	d.entries.Delete(dbId)
-}
-
-func (d *DbDirectory) iterEntries() iter.Seq2[string, *entry]{
+func (d *DbDirectory) iterEntries() iter.Seq2[string, *entry] {
 	return func(yield func(k string, v *entry) bool) {
-		d.entries.Range(func(key, value any) bool{
+		d.entries.Range(func(key, value any) bool {
 			keyTyped, ok := key.(string)
 			if !ok {
 				return false
 			}
 			valueTyped, ok := key.(*entry)
-			if !ok{
+			if !ok {
 				return false
 			}
 
@@ -45,16 +48,13 @@ func (d *DbDirectory) iterEntries() iter.Seq2[string, *entry]{
 }
 
 func (d *DbDirectory) remove(dbId string) error {
-	d.bigLock.Lock()
-	defer d.bigLock.Unlock()
-
-	entry, ok := d.getEntry(dbId)
+	entry, ok := d.getAndDeleteEntry(dbId)
 
 	if !ok {
 		slog.Warn("Tried to remove db, but was not in map", "dbId", dbId)
-	}
 
-	defer d.deleteEntry(dbId) 
+		return nil
+	}
 
 	conn, err := entry.conn.DB()
 

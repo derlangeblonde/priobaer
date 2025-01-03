@@ -14,7 +14,6 @@ type DbDirectory struct {
 	entries sync.Map 
 	clock   clockwork.Clock
 	models  []any
-	bigLock sync.Mutex
 }
 
 type entry struct {

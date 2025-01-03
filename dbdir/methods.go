@@ -19,9 +19,6 @@ func New(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []a
 }
 
 func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
-	d.bigLock.Lock()
-	defer d.bigLock.Unlock()
-
 	existingEntry, ok := d.getEntry(dbId)
 
 	if ok {
@@ -58,9 +55,6 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 }
 
 func (d *DbDirectory) Close() []error {
-	d.bigLock.Lock()
-	defer d.bigLock.Unlock()
-
 	errs := make([]error, 0)
 	for dbId, entry := range d.iterEntries() {
 		conn, err := entry.conn.DB()
