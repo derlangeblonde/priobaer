@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -42,12 +43,40 @@ func (c *Course) Valid() map[string]string {
 }
 
 // TODO: forbid quotes and/or csv-delimiters in all string props (participants too)
-func (c *Course) CsvRow() []string {
+func (c *Course) MarshalRecord() []string {
 	return []string{
 		strconv.Itoa(c.ID),
-		// fmt.Sprintf("\"%s\"", c.Name),
 		c.Name,
 		strconv.Itoa(c.MinCapacity),
 		strconv.Itoa(c.MaxCapacity),
 	}
+}
+
+func (c *Course) UnmarshalRecord(record []string) error {
+	const recordLen int = 4
+	if len(record) != recordLen {
+		return fmt.Errorf("Record to construct course from has to have length: %d, this one has length: %d", recordLen, len(record))
+	}
+
+	if id, err := strconv.Atoi(record[0]); err == nil {
+		c.ID = id
+	} else {
+		return err
+	}
+
+	c.Name = record[1]
+
+	if minCap, err := strconv.Atoi(record[2]); err == nil {
+		c.MinCapacity = minCap
+	} else {
+		return err
+	}
+
+	if maxCap, err := strconv.Atoi(record[3]); err == nil {
+		c.MaxCapacity = maxCap
+	} else {
+		return err
+	}
+
+	return nil 
 }

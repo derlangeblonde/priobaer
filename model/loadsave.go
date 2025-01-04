@@ -12,7 +12,7 @@ func toCsvBytes(courses []Course, participants []Participant) ([]byte, error) {
 	writer := csv.NewWriter(buf)
 
 	for _, course := range courses {
-		writer.Write(course.CsvRow())	
+		writer.Write(course.MarshalRecord())	
 	}
 
 	writer.Flush()
@@ -23,8 +23,10 @@ func toCsvBytes(courses []Course, participants []Participant) ([]byte, error) {
 func fromCsvBytes(csvBytes []byte) (courses []Course, participants []Participant, err error) {
 	reader := csv.NewReader(bytes.NewReader(csvBytes))
 	
-	for _, err := reader.Read(); err != io.EOF; _, err = reader.Read(){
-		courses = append(courses, Course{})
+	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
+		course := Course{}
+		course.UnmarshalRecord(record)
+		courses = append(courses, course)
 	}
 
 
