@@ -1,7 +1,7 @@
 package model
 
 import (
-	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/matryer/is"
@@ -22,35 +22,15 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 	}
 	participants := []Participant{}
 
-	bytes, err := toCsvBytes(coursesInput, participants)
+	bytes, err := toExcelBytes(coursesInput, participants)
 	is.NoErr(err)
 
-	coursesOutput, _, err := fromCsvBytes(bytes)
+	coursesOutput, _, err := fromExcelBytes(bytes)
 
 	is.Equal(len(coursesInput), len(coursesOutput))
 
 	for i := 0; i < len(coursesInput); i++ {
-		err := coursesInput[i].ShallowEqual(coursesOutput[i])
-		is.NoErr(err)
+		is.True(reflect.DeepEqual(coursesInput[i], coursesOutput[i]))
 	}
 }
 
-func (c *Course) ShallowEqual(other Course) error {
-	if c.ID != other.ID {
-		return fmt.Errorf("IDs: %d != %d", c.ID, other.ID)
-	}
-
-	if c.MinCapacity!= other.MinCapacity {
-		return fmt.Errorf("MinCapacities: %d != %d", c.MinCapacity, other.MinCapacity)
-	}
-
-	if c.MaxCapacity!= other.MaxCapacity {
-		return fmt.Errorf("MaxCapacities: %d != %d", c.MaxCapacity, other.MaxCapacity)
-	}
-
-	if c.Name != other.Name {
-		return fmt.Errorf("Names: %s != %s", c.Name, other.Name)
-	}
-
-	return nil
-}
