@@ -49,6 +49,10 @@ func fromExcelBytes(csvBytes []byte) (courses []Course, participants []Participa
 	}
 	
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
+		if err != nil {
+			return courses, participants, err
+		}
+
 		course := Course{}
 		course.UnmarshalRecord(record)
 		courses = append(courses, course)
@@ -59,6 +63,10 @@ func fromExcelBytes(csvBytes []byte) (courses []Course, participants []Participa
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
+		if err != nil {
+			return courses, participants, err
+		}
+
 		participant := Participant{}
 		participant.UnmarshalRecord(record)
 		participants = append(participants, participant)
