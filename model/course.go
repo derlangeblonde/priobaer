@@ -1,6 +1,10 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"strconv"
+
+	"gorm.io/gorm"
+)
 
 type Course struct {
 	gorm.Model
@@ -35,4 +39,15 @@ func (c *Course) Valid() map[string]string {
 	validateNonEmpty(c.Name, "name", "Name darf nicht leer sein", errors)
 
 	return errors
+}
+
+// TODO: forbid quotes and/or csv-delimiters in all string props (participants too)
+func (c *Course) CsvRow() []string {
+	return []string{
+		strconv.Itoa(c.ID),
+		// fmt.Sprintf("\"%s\"", c.Name),
+		c.Name,
+		strconv.Itoa(c.MinCapacity),
+		strconv.Itoa(c.MaxCapacity),
+	}
 }
