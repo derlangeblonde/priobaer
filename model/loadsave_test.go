@@ -6,9 +6,9 @@ import (
 	"github.com/matryer/is"
 )
 
-// var expectedBytes []byte = []byte(`ID,Name,MinCapacity,MaxCapacity
+// var byteFixture []byte = []byte(`ID,Name,MinCapacity,MaxCapacity
 // 1,foo,5,25`)
-var expectedBytes []byte = []byte(`1,foo,5,25
+var byteFixture []byte = []byte(`1,foo,5,25
 2,bar,0,9000
 `)
 
@@ -24,6 +24,15 @@ func TestToCsvBytes_WritesCoursesCorrectly(t *testing.T) {
 	actualBytes, err := toCsvBytes(courses, participants)
 	is.NoErr(err)
 
-	is.Equal(len(actualBytes), len(expectedBytes))
-	is.Equal(actualBytes, expectedBytes)
+	is.Equal(len(actualBytes), len(byteFixture))
+	is.Equal(actualBytes, byteFixture)
+}
+
+func TestFromCsvBytes_ReadsCoursesCorrectly(t *testing.T) {
+	is := is.New(t)
+
+	courses, _, err := fromCsvBytes(byteFixture)
+	is.NoErr(err)
+
+	is.Equal(len(courses), 2)
 }
