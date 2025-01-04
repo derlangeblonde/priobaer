@@ -20,6 +20,15 @@ func toExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 		writer.Write(course.MarshalRecord())	
 	}
 
+	writer, err = NewSheetWriter(file, "Teilnehmer")
+	if err != nil {
+		return make([]byte, 0), err
+	}
+
+	for _, participant := range participants {
+		writer.Write(participant.MarshalRecord())	
+	}
+
 	var buf bytes.Buffer
 	if err := file.Write(&buf); err != nil {
 		fmt.Printf("Error writing Excel file to buffer: %v\n", err)
@@ -43,6 +52,16 @@ func fromExcelBytes(csvBytes []byte) (courses []Course, participants []Participa
 		course := Course{}
 		course.UnmarshalRecord(record)
 		courses = append(courses, course)
+	}
+
+	reader, err = NewSheetReader(file, "Teilnehmer")
+	if err != nil {
+		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
+	}
+	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
+		participant := Participant{}
+		participant.UnmarshalRecord(record)
+		participants = append(participants, participant)
 	}
 
 

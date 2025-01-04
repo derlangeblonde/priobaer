@@ -52,6 +52,7 @@ func (c *Course) MarshalRecord() []string {
 	}
 }
 
+// TODO: we might want to call Valid in or after this function
 func (c *Course) UnmarshalRecord(record []string) error {
 	const recordLen int = 4
 	if len(record) != recordLen {
