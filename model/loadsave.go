@@ -2,26 +2,42 @@ package model
 
 import (
 	"bytes"
-	"encoding/csv"
+	"fmt"
 	"io"
+
+	"github.com/xuri/excelize/v2"
 )
 
 // TODO: do we want to write a version to the saved files???
-func toCsvBytes(courses []Course, participants []Participant) ([]byte, error) {
-	buf := bytes.NewBuffer(make([]byte, 0))
-	writer := csv.NewWriter(buf)
+func toExcelBytes(courses []Course, participants []Participant) ([]byte, error) {
+	file := excelize.NewFile()
+	writer, err := NewSheetWriter(file, "Kurse")
+	if err != nil {
+		return make([]byte, 0), err
+	}
 
 	for _, course := range courses {
 		writer.Write(course.MarshalRecord())	
 	}
 
-	writer.Flush()
+	var buf bytes.Buffer
+	if err := file.Write(&buf); err != nil {
+		fmt.Printf("Error writing Excel file to buffer: %v\n", err)
+		return buf.Bytes(), err
+	}
 
 	return buf.Bytes(), nil
 }
 
-func fromCsvBytes(csvBytes []byte) (courses []Course, participants []Participant, err error) {
-	reader := csv.NewReader(bytes.NewReader(csvBytes))
+func fromExcelBytes(csvBytes []byte) (courses []Course, participants []Participant, err error) {
+	file, err := excelize.OpenReader(bytes.NewReader(csvBytes))
+	if err != nil {
+		return courses, participants, fmt.Errorf("failed to create Excel file from bytes: %w", err)
+	}
+	reader, err := NewSheetReader(file, "Kurse")
+	if err != nil {
+		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
+	}
 	
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
 		course := Course{}
