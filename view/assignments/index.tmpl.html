@@ -41,6 +41,7 @@
 		<div id="action-column" class="margin-lr">
 			<h2>Aktionen</h2>
 			<button hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML">Zuteilen</button>
+			<a hx-boost="false" href="/save"> Speichern </a>
 		</div>
 	</div>
 {{ if .fullPage }}
