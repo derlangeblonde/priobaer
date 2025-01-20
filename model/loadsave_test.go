@@ -1,6 +1,7 @@
 package model
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 
@@ -19,10 +20,10 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 		{ID: 2, Prename: "Breathe", Surname: "Flow"},
 	}
 
-	bytes, err := ToExcelBytes(coursesInput, participantsInput)
+	excelBytes, err := ToExcelBytes(coursesInput, participantsInput)
 	is.NoErr(err)
 
-	coursesOutput, participantsOutput, err := FromExcelBytes(bytes)
+	coursesOutput, participantsOutput, err := FromExcelBytes(bytes.NewReader(excelBytes))
 
 	is.Equal(len(coursesInput), len(coursesOutput)) // count of courses same after marshal-roundtrip
 

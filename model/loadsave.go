@@ -38,8 +38,8 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-func FromExcelBytes(csvBytes []byte) (courses []Course, participants []Participant, err error) {
-	file, err := excelize.OpenReader(bytes.NewReader(csvBytes))
+func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Participant, err error) {
+	file, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create Excel file from bytes: %w", err)
 	}

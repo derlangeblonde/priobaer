@@ -8,7 +8,7 @@ h1 {
 	justify-content: flex-start;
 }
 
-.column{
+.column {
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-start;
