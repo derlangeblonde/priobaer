@@ -55,7 +55,9 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 		is.Equal(len(tc.participantsInput), len(participantsOutput)) // count of participants same after marshal-roundtrip
 
 		for i := 0; i < len(tc.participantsInput); i++ {
-			is.True(reflect.DeepEqual(tc.participantsInput[i], participantsOutput[i]))
+			if !reflect.DeepEqual(tc.participantsInput[i], participantsOutput[i]) {
+				t.Fatalf("Participant not equal. Got=%v, Want=%v", participantsOutput[i], tc.participantsInput[i])
+			}
 		}
 	}
 }

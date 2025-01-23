@@ -10,15 +10,6 @@ import (
 
 const separator = "[in]"
 
-type Assignment struct {
-	Participant Participant
-	Course      Course
-}
-
-type AssignmentID struct {
-	ParticipantId int
-	CourseId      int
-}
 
 func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant) (assignments []Assignment, err error) {
 	ctx, o := NewZ3Optimizer()

@@ -31,7 +31,7 @@ func (p *Participant) Valid() map[string]string {
 }
 
 func (p *Participant) UnmarshalRecord(record []string) error {
-	const recordLen int = 3
+	const recordLen int = 4
 	if len(record) != recordLen {
 		return fmt.Errorf("Record to construct participant from has to have length: %d, this one has length: %d", recordLen, len(record))
 	}
@@ -45,14 +45,29 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 	p.Prename = record[1]
 	p.Surname = record[2]
 
+	// TODO: in this case trimming (in excel reader) is escpecially important
+	if record[3] != "null" {
+		if courseId, err := strconv.Atoi(record[3]); err == nil {
+			p.CourseID = sql.NullInt64{Valid: true, Int64: int64(courseId)}
+		} else {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (p *Participant) MarshalRecord() []string {
+	courseIdMarshalled := "null"
+	if p.CourseID.Valid {
+		courseIdMarshalled = strconv.Itoa(int(p.CourseID.Int64))
+	}
+
 	return []string{
 		strconv.Itoa(p.ID),
 		p.Prename,
 		p.Surname,
+		courseIdMarshalled,
 	}
 }
 
