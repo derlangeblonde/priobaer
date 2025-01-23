@@ -8,7 +8,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// TODO: do we want to write a version to the saved files???
 func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) {
 	file := excelize.NewFile()
 	writer, err := NewSheetWriter(file, "Kurse")
@@ -28,6 +27,13 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 	for _, participant := range participants {
 		writer.Write(participant.MarshalRecord())	
 	}
+
+	writer, err = NewSheetWriter(file, "Version")
+	if err != nil {
+		return make([]byte, 0), err
+	}
+
+	writer.Write([]string{"1.0"})
 
 	var buf bytes.Buffer
 	if err := file.Write(&buf); err != nil {

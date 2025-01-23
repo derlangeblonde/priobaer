@@ -42,6 +42,7 @@ func (sw *SheetWriter) Write(row []string) error {
 	sw.currentRow++
 	return nil
 }
+
 type SheetReader struct {
 	file      *excelize.File
 	sheetName string
