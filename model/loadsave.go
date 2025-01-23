@@ -29,6 +29,13 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 		writer.Write(participant.MarshalRecord())	
 	}
 
+	writer, err = NewSheetWriter(file, "Version")
+	if err != nil {
+		return make([]byte, 0), err
+	}
+
+	writer.Write([]string{"1.0"})
+
 	var buf bytes.Buffer
 	if err := file.Write(&buf); err != nil {
 		fmt.Printf("Error writing Excel file to buffer: %v\n", err)
