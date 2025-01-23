@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/xuri/excelize/v2"
+	"slices"
 )
 
 func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) {
@@ -15,6 +16,7 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 		return make([]byte, 0), err
 	}
 
+	writer.Write(Course{}.RecordHeader())
 	for _, course := range courses {
 		writer.Write(course.MarshalRecord())	
 	}
@@ -24,6 +26,7 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 		return make([]byte, 0), err
 	}
 
+	writer.Write(Participant{}.RecordHeader())
 	for _, participant := range participants {
 		writer.Write(participant.MarshalRecord())	
 	}
@@ -54,6 +57,13 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
 	
+	courseHeader, err := reader.Read()
+	if err != nil && err != io.EOF {
+		return courses, participants, err
+	}
+	if !slices.Equal(courseHeader, Course{}.RecordHeader()) {
+		return courses, participants, fmt.Errorf("Headers for courses differ. Got=%v, Want=%v", courseHeader, Course{}.RecordHeader()) 
+	}
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
 		if err != nil {
 			return courses, participants, err
@@ -67,6 +77,13 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 	reader, err = NewSheetReader(file, "Teilnehmer")
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
+	}
+	participantHeader, err := reader.Read()
+	if err != nil && err != io.EOF {
+		return courses, participants, err
+	}
+	if !slices.Equal(participantHeader, Participant{}.RecordHeader()) {
+		return courses, participants, fmt.Errorf("Headers for participants differ. Got=%v, Want=%v", participantHeader, Participant{}.RecordHeader()) 
 	}
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
 		if err != nil {
