@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"github.com/xuri/excelize/v2"
 )
 
 func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
@@ -63,5 +64,36 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 				t.Fatalf("Participant not equal. Got=%v, Want=%v", participantsOutput[i], tc.participantsInput[i])
 			}
 		}
+	}
+}
+
+
+func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
+	is := is.New(t)
+	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
+
+	invalidExcelFile := excelize.NewFile()
+	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
+	is.NoErr(err)
+
+	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
+	is.NoErr(sheetWriter.Write(onlyStringParticipant))
+
+	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
+	is.NoErr(err)
+	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
+
+	var buf bytes.Buffer
+	err = invalidExcelFile.Write(&buf)
+	is.NoErr(err)
+
+	_, _, err = FromExcelBytes(bytes.NewReader(buf.Bytes()))
+	if err == nil {
+		t.Fatal("Want err (because we tried to Unmarshal an invalid file), but got nil")
+	}
+
+	_, ok := err.(*ValidationError)
+	if !ok {
+		t.Fatalf("Want NumError, Got: %v", err)
 	}
 }

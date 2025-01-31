@@ -31,6 +31,8 @@ func (p *Participant) Valid() map[string]string {
 }
 
 func (p *Participant) UnmarshalRecord(record []string) error {
+	const structType string = "Teilnehmer"
+
 	const recordLen int = 4
 	if len(record) != recordLen {
 		return fmt.Errorf("Record to construct participant from has to have length: %d, this one has length: %d", recordLen, len(record))
@@ -39,7 +41,7 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 	if id, err := strconv.Atoi(record[0]); err == nil {
 		p.ID = id
 	} else {
-		return err
+		return validationError(structType, "ID", fmt.Sprintf("%s ist keine valide Zahl", record[0]), err) 
 	}
 
 	p.Prename = record[1]
