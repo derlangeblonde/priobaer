@@ -46,7 +46,6 @@ func (c *Course) Valid() map[string]string {
 	return errors
 }
 
-// TODO: forbid quotes and/or csv-delimiters in all string props (participants too)
 func (c *Course) MarshalRecord() []string {
 	return []string{
 		strconv.Itoa(c.ID),

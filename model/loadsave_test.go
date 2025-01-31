@@ -37,6 +37,10 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 			[]Course{},
 			[]Participant{},
 		},
+		{
+			[]Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
+			[]Participant{{ID:1, Prename: "\\ \"", Surname: "''"}},
+		},
 	}
 
 	for _, tc := range testcases {
