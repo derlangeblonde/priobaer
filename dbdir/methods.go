@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func New(rootDir string, maxAge time.Duration, clock clockwork.Clock, models []any) (*DbDirectory, error) {
-	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, entries: sync.Map{}, clock: clock, models: models}
+func New(rootDir string, maxAge time.Duration, gracePeriod time.Duration, clock clockwork.Clock, models []any) (*DbDirectory, error) {
+	dbdir := &DbDirectory{rootDir: rootDir, maxAge: maxAge, gracePeriodBetweenMapAndDiskRemove: gracePeriod, entries: sync.Map{}, clock: clock, models: models}
 
 	err := dbdir.restoreExistingDbs()
 

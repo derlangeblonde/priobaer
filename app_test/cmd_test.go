@@ -65,7 +65,6 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 	}
 
 	for _, actualCourse := range actualCourses {
-		actualCourse.ID = 0
 		is.True(slices.Contains(expectedNames, actualCourse.Name)) // actualCourse not in expectedCourses
 	}
 
@@ -85,7 +84,10 @@ func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
 	is.NoErr(err)             // failure while counting sqlite files
 	is.Equal(dbFilesCount, 1) // there should be exactly *one* db-file after first user request
 
-	fakeClock.Advance(maxAgeDefault * time.Second)
+	timeToWait := (maxAgeDefault + gracePeriodDefault + 3)* time.Second
+	t.Logf("ONLY MAX AGE: %d --------------------------------------------------", (maxAgeDefault * time.Second).Milliseconds())
+	t.Logf("TIME TO WAIT: %d --------------------------------------------------", timeToWait.Milliseconds())
+	fakeClock.Advance(timeToWait)
 	time.Sleep(100 * time.Microsecond)
 
 	dbFilesCount, err = countSQLiteFiles(sut.dbDir)
@@ -98,7 +100,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PORT", strconv.Itoa(port))
+	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PORT", strconv.Itoa(port), "GRACE_PERIOD", strconv.Itoa(gracePeriodDefault))
 
 	ctx, cancel := context.WithCancel(context.Background())
 

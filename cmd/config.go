@@ -10,6 +10,7 @@ import (
 type Config struct {
 	DbRootDir     string
 	SessionMaxAge time.Duration
+	GracePeriod   time.Duration
 	Port          int
 }
 
@@ -31,6 +32,14 @@ func ParseConfig(getenv func(string) string) (Config, error) {
 	}
 
 	config.SessionMaxAge = time.Second * time.Duration(sessionMaxAge)
+
+	gracePeriod, err := GetInt(getenv, "GRACE_PERIOD")
+
+	if err != nil {
+		return config, err
+	}
+
+	config.GracePeriod = time.Second * time.Duration(gracePeriod)
 
 	port, err := GetInt(getenv, "PORT")
 
