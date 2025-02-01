@@ -10,6 +10,15 @@ import (
 	"softbaer.dev/ass/model"
 )
 
+type LoadError struct {
+	Controller string
+	*model.ValidationError
+}
+
+func loadError(inner *model.ValidationError) *LoadError {
+	return &LoadError{Controller: "Excel-Datei konnte nicht geladen werden.", ValidationError: inner}	
+}
+
 func Load(c *gin.Context) {
 	const batchSize = 10
 	db := GetDB(c)
@@ -28,11 +37,28 @@ func Load(c *gin.Context) {
 	if err != nil {
 		slog.Error("Could not open formFile", "err", err)
 		c.AbortWithError(500, err)
-
 		return
 	}
 
 	courses, participants, err := model.FromExcelBytes(file)
+
+	if err != nil {
+		slog.Error("Could not unmarshal models from excel-file", "err", err)
+		c.Header("HX-Retarget", "body")
+		c.Header("HX-Reswap", "beforeend")
+
+		switch err.(type) {
+		case *model.ValidationError:
+			validationErr, _ := err.(*model.ValidationError)
+			loadErr := loadError(validationErr)
+			c.HTML(422, "dialogs/validation-error", loadErr)
+		default:
+			c.HTML(500, "dialogs/generic-error", err)
+		}
+
+		// TODO: is this always a client error?
+		return
+	}
 
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := db.CreateInBatches(&courses, batchSize).Error; err != nil {
@@ -44,7 +70,7 @@ func Load(c *gin.Context) {
 		}
 
 		return nil
-	})	
+	})
 
 	if err != nil {
 		slog.Error("Error while inserting unmarshalled structs into db", "err", err)
@@ -53,11 +79,10 @@ func Load(c *gin.Context) {
 		return
 	}
 
-
 	c.Redirect(http.StatusSeeOther, "/assignments")
 }
 
-//TODO: Register handler to logger that adds the caller and maybe attach logging to context
+// TODO: Register handler to logger that adds the caller and maybe attach logging to context
 func Save(c *gin.Context) {
 	db := GetDB(c)
 
@@ -78,7 +103,7 @@ func Save(c *gin.Context) {
 		return
 	}
 
-	excelBytes, err := model.ToExcelBytes(courses, participants) 
+	excelBytes, err := model.ToExcelBytes(courses, participants)
 
 	if err != nil {
 		slog.Error("Error while exporting models to ExcelBytes", "err", err)
@@ -88,8 +113,8 @@ func Save(c *gin.Context) {
 	}
 
 	extraHeaders := map[string]string{
-			// TODO: adjust that to app name
-			"Content-Disposition": `attachment; filename="export.xlsx"`,
+		// TODO: adjust that to app name
+		"Content-Disposition": `attachment; filename="export.xlsx"`,
 	}
 
 	c.DataFromReader(200, int64(len(excelBytes)), "application/octet-stream", bytes.NewReader(excelBytes), extraHeaders)

@@ -1,0 +1,13 @@
+<dialog open>
+	<h1 class="error">Fehler</h1>
+	{{ if .Controller }}
+		<h3> {{ .Controller }} </h3>
+	{{ end }}
+	<p>Tabellenblatt: {{ .StructType }}</p>
+	<p>Spalte: {{ .FieldName }}</p>
+	<p>Grund: <span>{{ .Msg }}</span></p>
+	<form method="dialog">
+		<button>OK</button>
+	</form>
+</dialog>
+
