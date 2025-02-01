@@ -205,7 +205,7 @@ func TestNewDbDirectory_RemovesExpiredDbs(t *testing.T) {
 	done := make(chan bool, 0)
 
 	go func() {
-		_, err = dbdir.New(tmpDir, time.Second*60, clock, []any{})
+		_, err = dbdir.New(tmpDir, time.Second*60, time.Second, clock, []any{})
 		is.NoErr(err) // err while creating dbdir
 		done <- true
 	}()

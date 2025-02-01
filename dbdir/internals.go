@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,6 +46,45 @@ func (d *DbDirectory) iterEntries() iter.Seq2[string, *entry] {
 			return yield(keyTyped, valueTyped)
 		})
 	}
+}
+
+
+func (d *DbDirectory) removeAfterInSteps(dbId string, expireIn time.Duration) error {
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	d.clock.AfterFunc(expireIn, func() {
+		defer wg.Done()
+		entry, ok := d.getAndDeleteEntry(dbId)
+
+		if !ok {
+			slog.Warn("Tried to remove db, but was not in map", "dbId", dbId)
+
+			return
+		}
+
+		conn, err := entry.conn.DB()
+
+		if err == nil {
+			err = conn.Close()
+		}
+
+		if err != nil {
+			slog.Warn("Tried to close connection do db, but got an error", "err", err)
+		}
+	})
+	wg.Wait()
+
+	d.clock.AfterFunc(d.gracePeriodBetweenMapAndDiskRemove, func() {
+		dbPath := d.path(dbId)
+		err := os.Remove(dbPath)
+
+		if err != nil {
+			slog.Error("os.Remove failed", "dbPath", dbPath)
+		}
+	})
+
+	return nil
 }
 
 func (d *DbDirectory) remove(dbId string) error {

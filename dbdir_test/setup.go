@@ -11,12 +11,13 @@ import (
 )
 
 type config struct {
-	TmpDir     string
-	FakeClock  clockwork.FakeClock
-	DbId       uuid.UUID
-	Expiration time.Duration
-	Models     []any
-	T          *testing.T
+	TmpDir      string
+	FakeClock   clockwork.FakeClock
+	DbId        uuid.UUID
+	Expiration  time.Duration
+	GracePeriod time.Duration
+	Models      []any
+	T           *testing.T
 }
 
 type testData struct {
@@ -26,12 +27,13 @@ type testData struct {
 
 func newConfig(t *testing.T) *config {
 	return &config{
-		TmpDir:     t.TempDir(),
-		FakeClock:  clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local)),
-		DbId:       uuid.New(),
-		Expiration: 60 * time.Second,
-		Models:     []any{&testData{}},
-		T:          t,
+		TmpDir:      t.TempDir(),
+		FakeClock:   clockwork.NewFakeClockAt(time.Date(2024, 9, 9, 22, 5, 0, 0, time.Local)),
+		DbId:        uuid.New(),
+		Expiration:  60 * time.Second,
+		GracePeriod: 1 * time.Second,
+		Models:      []any{&testData{}},
+		T:           t,
 	}
 }
 
@@ -42,7 +44,7 @@ func (c *config) withExpiration(e time.Duration) *config {
 }
 
 func (c *config) createSut() *dbdir.DbDirectory {
-	sut, err := dbdir.New(c.TmpDir, c.Expiration, c.FakeClock, c.Models)
+	sut, err := dbdir.New(c.TmpDir, c.Expiration, c.GracePeriod, c.FakeClock, c.Models)
 
 	if err != nil {
 		c.T.Fatalf("Could not create sut, err: %v", err)

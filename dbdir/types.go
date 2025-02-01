@@ -9,11 +9,12 @@ import (
 )
 
 type DbDirectory struct {
-	rootDir string
-	maxAge  time.Duration
-	entries sync.Map 
-	clock   clockwork.Clock
-	models  []any
+	rootDir                            string
+	maxAge                             time.Duration
+	gracePeriodBetweenMapAndDiskRemove time.Duration
+	entries                            sync.Map
+	clock                              clockwork.Clock
+	models                             []any
 }
 
 type entry struct {
