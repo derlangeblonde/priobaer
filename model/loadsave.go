@@ -18,7 +18,7 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 
 	writer.Write(Course{}.RecordHeader())
 	for _, course := range courses {
-		writer.Write(course.MarshalRecord())	
+		writer.Write(course.MarshalRecord())
 	}
 
 	writer, err = NewSheetWriter(file, "Teilnehmer")
@@ -28,7 +28,7 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 
 	writer.Write(Participant{}.RecordHeader())
 	for _, participant := range participants {
-		writer.Write(participant.MarshalRecord())	
+		writer.Write(participant.MarshalRecord())
 	}
 
 	writer, err = NewSheetWriter(file, "Version")
@@ -47,7 +47,25 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
+type UnmarshalExcelBytesError struct {
+	Sheet string
+	Inner error
+}
+
+func (e *UnmarshalExcelBytesError) Error() string {
+	return "Tabellenblatt: " + e.Sheet 
+}
+
+func (e *UnmarshalExcelBytesError) Unwrap() error {
+	return e.Inner
+}
+
+func unmarshalExcelBytesError(sheet string, err error) *UnmarshalExcelBytesError {
+	return &UnmarshalExcelBytesError{Sheet: sheet, Inner: err}
+}
+
 func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Participant, err error) {
+	const participantsSheet string = "Teilnehmer"
 	file, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create Excel file from bytes: %w", err)
@@ -56,15 +74,15 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
-	
+
 	courseHeader, err := reader.Read()
 	if err != nil && err != io.EOF {
 		return courses, participants, err
 	}
 	if !slices.Equal(courseHeader, Course{}.RecordHeader()) {
-		return courses, participants, fmt.Errorf("Headers for courses differ. Got=%v, Want=%v", courseHeader, Course{}.RecordHeader()) 
+		return courses, participants, fmt.Errorf("Headers for courses differ. Got=%v, Want=%v", courseHeader, Course{}.RecordHeader())
 	}
-	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
+	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
 		if err != nil {
 			return courses, participants, err
 		}
@@ -74,7 +92,7 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		courses = append(courses, course)
 	}
 
-	reader, err = NewSheetReader(file, "Teilnehmer")
+	reader, err = NewSheetReader(file, participantsSheet)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
@@ -83,20 +101,19 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		return courses, participants, err
 	}
 	if !slices.Equal(participantHeader, Participant{}.RecordHeader()) {
-		return courses, participants, fmt.Errorf("Headers for participants differ. Got=%v, Want=%v", participantHeader, Participant{}.RecordHeader()) 
+		return courses, participants, fmt.Errorf("Headers for participants differ. Got=%v, Want=%v", participantHeader, Participant{}.RecordHeader())
 	}
-	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read(){
+	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
 		if err != nil {
 			return courses, participants, err
 		}
 
 		participant := Participant{}
 		if err = participant.UnmarshalRecord(record); err != nil {
-			return courses, participants, err
+			return courses, participants, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheet, err)
 		}
 		participants = append(participants, participant)
 	}
-
 
 	return courses, participants, err
 }

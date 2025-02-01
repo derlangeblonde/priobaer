@@ -2,7 +2,9 @@ package model
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -31,6 +33,7 @@ func (p *Participant) Valid() map[string]string {
 }
 
 func (p *Participant) UnmarshalRecord(record []string) error {
+	const fn string = "UnmarshalRecord"
 	const structType string = "Teilnehmer"
 
 	const recordLen int = 4
@@ -41,7 +44,8 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 	if id, err := strconv.Atoi(record[0]); err == nil {
 		p.ID = id
 	} else {
-		return validationError(structType, "ID", fmt.Sprintf("%s ist keine valide Zahl", record[0]), err) 
+		slog.Error(fn + ": Could not parse int", "err", err)
+		return errors.New(fmt.Sprintf("Spalte: ID\n%s ist keine valide Zahl", record[0])) 
 	}
 
 	p.Prename = record[1]

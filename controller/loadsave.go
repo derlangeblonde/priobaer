@@ -2,23 +2,25 @@ package controller
 
 import (
 	"bytes"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
 )
 
-type LoadError struct {
-	Controller string
-	*model.ValidationError
-}
-
-func loadError(inner *model.ValidationError) *LoadError {
-	return &LoadError{Controller: "Excel-Datei konnte nicht geladen werden.", ValidationError: inner}	
-}
-
+// type LoadError struct {
+// 	Controller string
+// 	*model.ValidationError
+// }
+//
+// func loadError(inner *model.ValidationError) *LoadError {
+// 	return &LoadError{Controller: "Excel-Datei konnte nicht geladen werden.", ValidationError: inner}
+// }
+//
 func Load(c *gin.Context) {
 	const batchSize = 10
 	db := GetDB(c)
@@ -46,17 +48,11 @@ func Load(c *gin.Context) {
 		slog.Error("Could not unmarshal models from excel-file", "err", err)
 		c.Header("HX-Retarget", "body")
 		c.Header("HX-Reswap", "beforeend")
+		err := fmt.Errorf("Excel-Datei konnte nicht geladen werden.\n%w", err)
 
-		switch err.(type) {
-		case *model.ValidationError:
-			validationErr, _ := err.(*model.ValidationError)
-			loadErr := loadError(validationErr)
-			c.HTML(422, "dialogs/validation-error", loadErr)
-		default:
-			c.HTML(500, "dialogs/generic-error", err)
-		}
-
+		stackedErrs := strings.Split(err.Error(), "\n")
 		// TODO: is this always a client error?
+		c.HTML(422, "dialogs/validation-error", stackedErrs)
 		return
 	}
 

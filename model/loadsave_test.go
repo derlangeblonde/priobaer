@@ -3,6 +3,7 @@ package model
 import (
 	"bytes"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/matryer/is"
@@ -70,6 +71,8 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 
 func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 	is := is.New(t)
+	wantErrorMsgKeywords := []string{"Spalte", "ID", "valide"}
+
 	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
 
 	invalidExcelFile := excelize.NewFile()
@@ -92,8 +95,10 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		t.Fatal("Want err (because we tried to Unmarshal an invalid file), but got nil")
 	}
 
-	_, ok := err.(*ValidationError)
-	if !ok {
-		t.Fatalf("Want NumError, Got: %v", err)
+	for _, wantKeyword := range wantErrorMsgKeywords {
+		if !strings.Contains(err.Error(), wantKeyword) {
+			t.Fatalf("Want: '%s' (to be contained), Got: %s", wantKeyword, err.Error())
+		}
 	}
+
 }
