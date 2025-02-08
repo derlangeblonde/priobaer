@@ -79,6 +79,7 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t)},
 		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t)},
 		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t)},
+		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t)},
 	}
 
 	for _, tc := range testcases {
@@ -94,6 +95,45 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		}
 	}
 
+}
+
+func scenarioSurnameEmpty(t *testing.T) []byte {
+	participantWithEmptySurname := []string{"1", "foo", "", "null"}
+
+	return buildExcelFile(t, [][]string{{}}, [][]string{participantWithEmptySurname}, true, true)
+}
+
+func scenarioMaxCapacitySmallerThanMinCapacity(t *testing.T) []byte {
+	courseWithInvalidCapacity := []string{"1", "foo", "25", "5"}
+
+	return buildExcelFile(t, [][]string{courseWithInvalidCapacity}, [][]string{}, true, true)
+}
+
+func scenarioInvalidRowLengthInCoursesSheet(t *testing.T) []byte {
+	return buildExcelFile(t, [][]string{{"1", "foo", "bar", "baz", "qux", "more", "than", "expected", "values"}}, [][]string{}, true, true)
+}
+
+func scenarioInvalidRowLengthInParticipantsSheet(t *testing.T) []byte {
+	invalidRowLengthParticipant := []string{"1", "foo", "bar"}
+	return buildExcelFile(t, [][]string{{}}, [][]string{invalidRowLengthParticipant}, true, true)
+}
+
+func scenarioInvalidHeaderParticipantsSheet(t *testing.T) []byte {
+	invalidHeaderParticipant := []string{"das", "ist", "kein", "header"}
+
+	return buildExcelFile(t, [][]string{{}}, [][]string{invalidHeaderParticipant}, true, false)
+}
+
+func scenarioInvalidHeaderCourseSheet(t *testing.T) []byte {
+	invalidHeaderCourse := []string{"das", "ist", "kein", "header"}
+
+	return buildExcelFile(t, [][]string{invalidHeaderCourse}, [][]string{}, false, true)
+}
+
+func scenarioOnlyStringValuesInParticipantsSheet(t *testing.T) []byte {
+	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
+
+	return buildExcelFile(t, [][]string{{}}, [][]string{onlyStringParticipant}, true, true)
 }
 
 func buildParticipantSheet(t *testing.T, excelFile *excelize.File, participants [][]string, writeHeader bool) {
@@ -139,37 +179,4 @@ func buildExcelFile(t *testing.T, courses, participants [][]string, writeCourseH
 	is.NoErr(err)
 
 	return buf.Bytes()
-}
-
-func scenarioMaxCapacitySmallerThanMinCapacity(t *testing.T) []byte {
-	courseWithInvalidCapacity := []string{"1", "foo", "25", "5"}
-
-	return buildExcelFile(t, [][]string{courseWithInvalidCapacity}, [][]string{}, true, true)
-}
-
-func scenarioInvalidRowLengthInCoursesSheet(t *testing.T) []byte {
-	return buildExcelFile(t, [][]string{{"1", "foo", "bar", "baz", "qux", "more", "than", "expected", "values"}}, [][]string{}, true, true)
-}
-
-func scenarioInvalidRowLengthInParticipantsSheet(t *testing.T) []byte {
-	invalidRowLengthParticipant := []string{"1", "foo", "bar"}
-	return buildExcelFile(t, [][]string{{}}, [][]string{invalidRowLengthParticipant}, true, true)
-}
-
-func scenarioInvalidHeaderParticipantsSheet(t *testing.T) []byte {
-	invalidHeaderParticipant := []string{"das", "ist", "kein", "header"}
-
-	return buildExcelFile(t, [][]string{{}}, [][]string{invalidHeaderParticipant}, true, false)
-}
-
-func scenarioInvalidHeaderCourseSheet(t *testing.T) []byte {
-	invalidHeaderCourse := []string{"das", "ist", "kein", "header"}
-
-	return buildExcelFile(t, [][]string{invalidHeaderCourse}, [][]string{}, false, true)
-}
-
-func scenarioOnlyStringValuesInParticipantsSheet(t *testing.T) []byte {
-	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
-
-	return buildExcelFile(t, [][]string{{}}, [][]string{onlyStringParticipant}, true, true)
 }

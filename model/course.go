@@ -84,16 +84,18 @@ func (c *Course) UnmarshalRecord(record []string) error {
 		return err
 	}
 
-	validationErrs := c.Valid() 
+	return stackValidationErrors(c.Valid())
+}
 
-	if len(validationErrs) > 0 {
-		validErrMessages := make([]string, 0)
-		for _, value := range validationErrs {
-			validErrMessages= append(validErrMessages, value)
-		}			
-
-		return errors.New(strings.Join(validErrMessages, "\n"))
+func stackValidationErrors(validationErrors map[string]string) error {
+	if len(validationErrors) == 0 {
+		return nil
 	}
 
-	return nil
+	validErrMessages := make([]string, 0)
+	for _, value := range validationErrors {
+		validErrMessages= append(validErrMessages, value)
+	}			
+
+	return errors.New(strings.Join(validErrMessages, "\n"))
 }

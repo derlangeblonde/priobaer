@@ -60,7 +60,7 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 		}
 	}
 
-	return nil
+	return stackValidationErrors(p.Valid()) 
 }
 
 func (p *Participant) MarshalRecord() []string {
