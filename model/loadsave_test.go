@@ -32,7 +32,7 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 			[]Participant{{ID: 143920, Prename: "we have", Surname: "no courses"}},
 		},
 		{
-			[]Course{{ID: 42904, Name: "I am" , MinCapacity: 741, MaxCapacity: 4920}},
+			[]Course{{ID: 42904, Name: "I am", MinCapacity: 741, MaxCapacity: 4920}},
 			[]Participant{},
 		},
 		{
@@ -41,7 +41,7 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 		},
 		{
 			[]Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
-			[]Participant{{ID:1, Prename: "\\ \"", Surname: "''"}},
+			[]Participant{{ID: 1, Prename: "\\ \"", Surname: "''"}},
 		},
 	}
 
@@ -68,11 +68,11 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 	}
 }
 
-
 func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
-	testcases := []struct{
+	testcases := []struct {
 		wantErrorMsgKeywords []string
-		excelBytes []byte}{
+		excelBytes           []byte
+	}{
 		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t)},
 		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t)},
 		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t)},
@@ -96,138 +96,80 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 
 }
 
-func scenarioMaxCapacitySmallerThanMinCapacity(t *testing.T) []byte {
+func buildParticipantSheet(t *testing.T, excelFile *excelize.File, participants [][]string, writeHeader bool) {
 	is := is.New(t)
 
-	courseWithInvalidCapacity := []string{"1", "foo", "25", "5"}
-
-	invalidExcelFile := excelize.NewFile()
-	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
+	sheetWriter, err := NewSheetWriter(excelFile, "Teilnehmer")
 	is.NoErr(err)
 
-	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
+	if writeHeader {
+		is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
+	}
 
-	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
+	for _, participant := range participants {
+		is.NoErr(sheetWriter.Write(participant))
+	}
+}
+
+func buildCourseSheet(t *testing.T, excelFile *excelize.File, courses [][]string, writeHeader bool) {
+	is := is.New(t)
+
+	sheetWriter, err := NewSheetWriter(excelFile, "Kurse")
 	is.NoErr(err)
-	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
-	is.NoErr(sheetWriter.Write(courseWithInvalidCapacity))
+
+	if writeHeader {
+		is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
+	}
+
+	for _, course := range courses {
+		is.NoErr(sheetWriter.Write(course))
+	}
+}
+
+func buildExcelFile(t *testing.T, courses, participants [][]string, writeCourseHeader, writeParticipantHeader bool) []byte {
+	is := is.New(t)
+
+	excelFile := excelize.NewFile()
+
+	buildCourseSheet(t, excelFile, courses, writeCourseHeader)
+	buildParticipantSheet(t, excelFile, participants, writeParticipantHeader)
 
 	var buf bytes.Buffer
-	err = invalidExcelFile.Write(&buf)
+	err := excelFile.Write(&buf)
 	is.NoErr(err)
 
 	return buf.Bytes()
+}
+
+func scenarioMaxCapacitySmallerThanMinCapacity(t *testing.T) []byte {
+	courseWithInvalidCapacity := []string{"1", "foo", "25", "5"}
+
+	return buildExcelFile(t, [][]string{courseWithInvalidCapacity}, [][]string{}, true, true)
 }
 
 func scenarioInvalidRowLengthInCoursesSheet(t *testing.T) []byte {
-	is := is.New(t)
-
-	invalidRowLengthCourse := []string{"1", "foo", "bar", "baz", "qux", "more", "than", "expected", "values"}
-
-	invalidExcelFile := excelize.NewFile()
-	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
-	is.NoErr(err)
-
-	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
-
-	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
-	is.NoErr(err)
-	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
-	is.NoErr(sheetWriter.Write(invalidRowLengthCourse))
-
-	var buf bytes.Buffer
-	err = invalidExcelFile.Write(&buf)
-	is.NoErr(err)
-
-	return buf.Bytes()
+	return buildExcelFile(t, [][]string{{"1", "foo", "bar", "baz", "qux", "more", "than", "expected", "values"}}, [][]string{}, true, true)
 }
 
 func scenarioInvalidRowLengthInParticipantsSheet(t *testing.T) []byte {
-	is := is.New(t)
-
 	invalidRowLengthParticipant := []string{"1", "foo", "bar"}
-
-	invalidExcelFile := excelize.NewFile()
-	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
-	is.NoErr(err)
-
-	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
-	is.NoErr(sheetWriter.Write(invalidRowLengthParticipant))
-
-	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
-	is.NoErr(err)
-	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
-
-	var buf bytes.Buffer
-	err = invalidExcelFile.Write(&buf)
-	is.NoErr(err)
-
-	return buf.Bytes()
+	return buildExcelFile(t, [][]string{{}}, [][]string{invalidRowLengthParticipant}, true, true)
 }
 
 func scenarioInvalidHeaderParticipantsSheet(t *testing.T) []byte {
-	is := is.New(t)
-
 	invalidHeaderParticipant := []string{"das", "ist", "kein", "header"}
 
-	invalidExcelFile := excelize.NewFile()
-	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
-	is.NoErr(err)
-
-	is.NoErr(sheetWriter.Write(invalidHeaderParticipant))
-
-	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
-	is.NoErr(err)
-	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
-
-	var buf bytes.Buffer
-	err = invalidExcelFile.Write(&buf)
-	is.NoErr(err)
-
-	return buf.Bytes()
+	return buildExcelFile(t, [][]string{{}}, [][]string{invalidHeaderParticipant}, true, false)
 }
 
 func scenarioInvalidHeaderCourseSheet(t *testing.T) []byte {
-	is := is.New(t)
-
 	invalidHeaderCourse := []string{"das", "ist", "kein", "header"}
 
-	invalidExcelFile := excelize.NewFile()
-	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
-	is.NoErr(err)
-
-	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
-
-	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
-	is.NoErr(err)
-	is.NoErr(sheetWriter.Write(invalidHeaderCourse))
-
-	var buf bytes.Buffer
-	err = invalidExcelFile.Write(&buf)
-	is.NoErr(err)
-
-	return buf.Bytes()
+	return buildExcelFile(t, [][]string{invalidHeaderCourse}, [][]string{}, false, true)
 }
 
 func scenarioOnlyStringValuesInParticipantsSheet(t *testing.T) []byte {
-	is := is.New(t)
-
 	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
 
-	invalidExcelFile := excelize.NewFile()
-	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
-	is.NoErr(err)
-
-	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
-	is.NoErr(sheetWriter.Write(onlyStringParticipant))
-
-	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
-	is.NoErr(err)
-	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
-
-	var buf bytes.Buffer
-	err = invalidExcelFile.Write(&buf)
-	is.NoErr(err)
-
-	return buf.Bytes()
+	return buildExcelFile(t, [][]string{{}}, [][]string{onlyStringParticipant}, true, true)
 }
