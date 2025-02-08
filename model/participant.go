@@ -20,7 +20,7 @@ type Participant struct {
 }
 
 func (p Participant) RecordHeader() []string {
-	return []string{"ID", "Vorname", "Nachname"}
+	return []string{"ID", "Vorname", "Nachname", "Zuteilung (Kurs ID)"}
 }
 
 func (p *Participant) Valid() map[string]string {
