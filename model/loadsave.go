@@ -11,9 +11,13 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+const participantsSheetName = "Teilnehmer"
+const courseSheetName = "Kurse"
+const versionSheetName = "Version"
+
 func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) {
 	file := excelize.NewFile()
-	writer, err := NewSheetWriter(file, "Kurse")
+	writer, err := NewSheetWriter(file, courseSheetName)
 	if err != nil {
 		return make([]byte, 0), err
 	}
@@ -23,7 +27,7 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 		writer.Write(course.MarshalRecord())
 	}
 
-	writer, err = NewSheetWriter(file, "Teilnehmer")
+	writer, err = NewSheetWriter(file, participantsSheetName)
 	if err != nil {
 		return make([]byte, 0), err
 	}
@@ -33,7 +37,7 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 		writer.Write(participant.MarshalRecord())
 	}
 
-	writer, err = NewSheetWriter(file, "Version")
+	writer, err = NewSheetWriter(file, versionSheetName)
 	if err != nil {
 		return make([]byte, 0), err
 	}
@@ -49,30 +53,14 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-type UnmarshalExcelBytesError struct {
-	Sheet string
-	Inner error
-}
-
-func (e *UnmarshalExcelBytesError) Error() string {
-	return "Tabellenblatt: " + e.Sheet 
-}
-
-func (e *UnmarshalExcelBytesError) Unwrap() error {
-	return e.Inner
-}
-
-func unmarshalExcelBytesError(sheet string, err error) *UnmarshalExcelBytesError {
-	return &UnmarshalExcelBytesError{Sheet: sheet, Inner: err}
-}
-
 func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Participant, err error) {
-	const participantsSheet string = "Teilnehmer"
+	exisingCourseIds := make(map[int]bool)
+
 	file, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create Excel file from bytes: %w", err)
 	}
-	reader, err := NewSheetReader(file, "Kurse")
+	reader, err := NewSheetReader(file, courseSheetName)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
@@ -82,7 +70,7 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		return courses, participants, err
 	}
 	if !slices.Equal(courseHeader, Course{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError("Kurse", courseHeader, Course{}.RecordHeader())
+		return courses, participants, invalidHeaderError(courseSheetName, courseHeader, Course{}.RecordHeader())
 	}
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
 		if err != nil {
@@ -95,9 +83,10 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 			return courses, participants, fmt.Errorf("Tabellenblatt: Kurse\n%w", err)
 		}
 		courses = append(courses, course)
+		exisingCourseIds[course.ID] = true
 	}
 
-	reader, err = NewSheetReader(file, participantsSheet)
+	reader, err = NewSheetReader(file, participantsSheetName)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
@@ -106,7 +95,7 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		return courses, participants, err
 	}
 	if !slices.Equal(participantHeader, Participant{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError("Teilnehmer", participantHeader, Participant{}.RecordHeader()) 
+		return courses, participants, invalidHeaderError(participantsSheetName, participantHeader, Participant{}.RecordHeader()) 
 	}
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
 		if err != nil {
@@ -115,7 +104,10 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 
 		participant := Participant{}
 		if err = participant.UnmarshalRecord(record); err != nil {
-			return courses, participants, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheet, err)
+			return courses, participants, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
+		}
+		if _, exists := exisingCourseIds[int(participant.CourseID.Int64)]; participant.CourseID.Valid && !exists {
+			return courses, participants, fmt.Errorf("Tabellenblatt: %s\nTeilnehmer %d kann Kurs %d nicht zugeordnet werden. Dieser Kurs existiert nicht", participantsSheetName, participant.ID, participant.CourseID.Int64)
 		}
 		participants = append(participants, participant)
 	}

@@ -2,6 +2,7 @@ package model
 
 import (
 	"bytes"
+	"database/sql"
 	"reflect"
 	"strings"
 	"testing"
@@ -43,6 +44,10 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 			[]Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
 			[]Participant{{ID: 1, Prename: "\\ \"", Surname: "''"}},
 		},
+		{
+			[]Course{{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25}},
+			[]Participant{{ID: 1, Prename: "nicht", Surname: "zugeteilt"}, {ID: 2, Prename: "der", Surname: "schon", CourseID: sql.NullInt64{Valid: true, Int64: 1}}},
+		},
 	}
 
 	for _, tc := range testcases {
@@ -80,6 +85,7 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t)},
 		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t)},
 		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t)},
+		{[]string{"Kurs", "existiert", "nicht"}, scenarioAssignmentToExistentCourse(t)},
 	}
 
 	for _, tc := range testcases {
@@ -95,6 +101,25 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		}
 	}
 
+}
+
+func scenarioAssignmentToExistentCourse(t *testing.T) []byte {
+	return buildExcelFile(
+		t,
+		[][]string{
+			{"1", "foo", "5", "25"},
+			{"2", "bar", "25", "30"},
+			{"3", "baz", "10", "20"},
+		},
+		[][]string{
+			{"1", "foo", "bar", "2"},
+			{"2", "bar", "baz", "3"},
+			{"3", "baz", "foo", "1"},
+			{"4", "qux", "quux", "5"},
+		},
+		true,
+		true,
+	)	
 }
 
 func scenarioSurnameEmpty(t *testing.T) []byte {
