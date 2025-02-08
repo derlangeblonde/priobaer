@@ -78,6 +78,7 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t)},
 		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t)},
 		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t)},
+		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t)},
 	}
 
 	for _, tc := range testcases {
@@ -93,6 +94,29 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		}
 	}
 
+}
+
+func scenarioMaxCapacitySmallerThanMinCapacity(t *testing.T) []byte {
+	is := is.New(t)
+
+	courseWithInvalidCapacity := []string{"1", "foo", "25", "5"}
+
+	invalidExcelFile := excelize.NewFile()
+	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
+	is.NoErr(err)
+
+	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
+
+	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
+	is.NoErr(err)
+	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
+	is.NoErr(sheetWriter.Write(courseWithInvalidCapacity))
+
+	var buf bytes.Buffer
+	err = invalidExcelFile.Write(&buf)
+	is.NoErr(err)
+
+	return buf.Bytes()
 }
 
 func scenarioInvalidRowLengthInCoursesSheet(t *testing.T) []byte {

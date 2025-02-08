@@ -1,8 +1,10 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -82,5 +84,16 @@ func (c *Course) UnmarshalRecord(record []string) error {
 		return err
 	}
 
-	return nil 
+	validationErrs := c.Valid() 
+
+	if len(validationErrs) > 0 {
+		validErrMessages := make([]string, 0)
+		for _, value := range validationErrs {
+			validErrMessages= append(validErrMessages, value)
+		}			
+
+		return errors.New(strings.Join(validErrMessages, "\n"))
+	}
+
+	return nil
 }
