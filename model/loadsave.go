@@ -90,7 +90,10 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		}
 
 		course := Course{}
-		course.UnmarshalRecord(record)
+		err := course.UnmarshalRecord(record)
+		if err != nil {
+			return courses, participants, fmt.Errorf("Tabellenblatt: Kurse\n%w", err)
+		}
 		courses = append(courses, course)
 	}
 

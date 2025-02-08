@@ -76,6 +76,8 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t)},
 		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t)},
 		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t)},
+		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t)},
+		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t)},
 	}
 
 	for _, tc := range testcases {
@@ -91,6 +93,52 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		}
 	}
 
+}
+
+func scenarioInvalidRowLengthInCoursesSheet(t *testing.T) []byte {
+	is := is.New(t)
+
+	invalidRowLengthCourse := []string{"1", "foo", "bar", "baz", "qux", "more", "than", "expected", "values"}
+
+	invalidExcelFile := excelize.NewFile()
+	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
+	is.NoErr(err)
+
+	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
+
+	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
+	is.NoErr(err)
+	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
+	is.NoErr(sheetWriter.Write(invalidRowLengthCourse))
+
+	var buf bytes.Buffer
+	err = invalidExcelFile.Write(&buf)
+	is.NoErr(err)
+
+	return buf.Bytes()
+}
+
+func scenarioInvalidRowLengthInParticipantsSheet(t *testing.T) []byte {
+	is := is.New(t)
+
+	invalidRowLengthParticipant := []string{"1", "foo", "bar"}
+
+	invalidExcelFile := excelize.NewFile()
+	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
+	is.NoErr(err)
+
+	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
+	is.NoErr(sheetWriter.Write(invalidRowLengthParticipant))
+
+	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
+	is.NoErr(err)
+	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
+
+	var buf bytes.Buffer
+	err = invalidExcelFile.Write(&buf)
+	is.NoErr(err)
+
+	return buf.Bytes()
 }
 
 func scenarioInvalidHeaderParticipantsSheet(t *testing.T) []byte {

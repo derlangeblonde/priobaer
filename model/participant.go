@@ -38,7 +38,7 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 
 	const recordLen int = 4
 	if len(record) != recordLen {
-		return fmt.Errorf("Record to construct participant from has to have length: %d, this one has length: %d", recordLen, len(record))
+		return fmt.Errorf("Die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet.", len(record), recordLen)
 	}
 
 	if id, err := strconv.Atoi(record[0]); err == nil {
