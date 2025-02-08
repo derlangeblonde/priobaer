@@ -74,6 +74,8 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		wantErrorMsgKeywords []string
 		excelBytes []byte}{
 		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t)},
+		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t)},
+		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t)},
 	}
 
 	for _, tc := range testcases {
@@ -89,6 +91,50 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		}
 	}
 
+}
+
+func scenarioInvalidHeaderParticipantsSheet(t *testing.T) []byte {
+	is := is.New(t)
+
+	invalidHeaderParticipant := []string{"das", "ist", "kein", "header"}
+
+	invalidExcelFile := excelize.NewFile()
+	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
+	is.NoErr(err)
+
+	is.NoErr(sheetWriter.Write(invalidHeaderParticipant))
+
+	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
+	is.NoErr(err)
+	is.NoErr(sheetWriter.Write(Course{}.RecordHeader()))
+
+	var buf bytes.Buffer
+	err = invalidExcelFile.Write(&buf)
+	is.NoErr(err)
+
+	return buf.Bytes()
+}
+
+func scenarioInvalidHeaderCourseSheet(t *testing.T) []byte {
+	is := is.New(t)
+
+	invalidHeaderCourse := []string{"das", "ist", "kein", "header"}
+
+	invalidExcelFile := excelize.NewFile()
+	sheetWriter, err := NewSheetWriter(invalidExcelFile, "Teilnehmer")
+	is.NoErr(err)
+
+	is.NoErr(sheetWriter.Write(Participant{}.RecordHeader()))
+
+	sheetWriter, err = NewSheetWriter(invalidExcelFile, "Kurse")
+	is.NoErr(err)
+	is.NoErr(sheetWriter.Write(invalidHeaderCourse))
+
+	var buf bytes.Buffer
+	err = invalidExcelFile.Write(&buf)
+	is.NoErr(err)
+
+	return buf.Bytes()
 }
 
 func scenarioOnlyStringValuesInParticipantsSheet(t *testing.T) []byte {

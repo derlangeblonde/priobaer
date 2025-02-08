@@ -80,7 +80,7 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		return courses, participants, err
 	}
 	if !slices.Equal(courseHeader, Course{}.RecordHeader()) {
-		return courses, participants, fmt.Errorf("Headers for courses differ. Got=%v, Want=%v", courseHeader, Course{}.RecordHeader())
+		return courses, participants, invalidHeaderError("Kurse", courseHeader, Course{}.RecordHeader())
 	}
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
 		if err != nil {
@@ -101,7 +101,7 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		return courses, participants, err
 	}
 	if !slices.Equal(participantHeader, Participant{}.RecordHeader()) {
-		return courses, participants, fmt.Errorf("Headers for participants differ. Got=%v, Want=%v", participantHeader, Participant{}.RecordHeader())
+		return courses, participants, invalidHeaderError("Teilnehmer", participantHeader, Participant{}.RecordHeader()) 
 	}
 	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
 		if err != nil {
@@ -116,4 +116,8 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 	}
 
 	return courses, participants, err
+}
+
+func invalidHeaderError(sheetName string, gotHeader, wantHeader []string) error {
+	return fmt.Errorf("Kopfzeile im Tabellenblatt '%s' anders als erwartet. Gefunden: %v, Erwartet=%v", sheetName, gotHeader, wantHeader)
 }
