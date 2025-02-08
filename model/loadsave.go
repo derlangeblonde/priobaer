@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
+
+	"slices"
 
 	"github.com/xuri/excelize/v2"
-	"slices"
 )
 
 func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) {
@@ -119,5 +121,10 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 }
 
 func invalidHeaderError(sheetName string, gotHeader, wantHeader []string) error {
-	return fmt.Errorf("Kopfzeile im Tabellenblatt '%s' anders als erwartet. Gefunden: %v, Erwartet=%v", sheetName, gotHeader, wantHeader)
+	return fmt.Errorf(
+		"Tabellenblatt: %s\nKopfzeile anders als erwartet. Gefunden: '%v', Erwartet: '%v'",
+		sheetName,
+		strings.Join(gotHeader, ", "),
+		strings.Join(wantHeader, ", "),
+	)
 }
