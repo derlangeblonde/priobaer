@@ -70,8 +70,29 @@ func TestMarshalCourseIsRoundTripConsistent(t *testing.T) {
 
 
 func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
+	testcases := []struct{
+		wantErrorMsgKeywords []string
+		excelBytes []byte}{
+		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t)},
+	}
+
+	for _, tc := range testcases {
+		_, _, err := FromExcelBytes(bytes.NewReader(tc.excelBytes))
+		if err == nil {
+			t.Fatal("Want err (because we tried to Unmarshal an invalid file), but got nil")
+		}
+
+		for _, wantKeyword := range tc.wantErrorMsgKeywords {
+			if !strings.Contains(err.Error(), wantKeyword) {
+				t.Fatalf("Want: '%s' (to be contained), Got: %s", wantKeyword, err.Error())
+			}
+		}
+	}
+
+}
+
+func scenarioOnlyStringValuesInParticipantsSheet(t *testing.T) []byte {
 	is := is.New(t)
-	wantErrorMsgKeywords := []string{"Spalte", "ID", "valide"}
 
 	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
 
@@ -90,15 +111,5 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 	err = invalidExcelFile.Write(&buf)
 	is.NoErr(err)
 
-	_, _, err = FromExcelBytes(bytes.NewReader(buf.Bytes()))
-	if err == nil {
-		t.Fatal("Want err (because we tried to Unmarshal an invalid file), but got nil")
-	}
-
-	for _, wantKeyword := range wantErrorMsgKeywords {
-		if !strings.Contains(err.Error(), wantKeyword) {
-			t.Fatalf("Want: '%s' (to be contained), Got: %s", wantKeyword, err.Error())
-		}
-	}
-
+	return buf.Bytes()
 }
