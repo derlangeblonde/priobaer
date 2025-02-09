@@ -5,7 +5,7 @@
 
 {{ template "general/head" }}
 
-<body>
+<body class="column center-cross-axis">
 	{{ block "action-column" . }}
 		<div class="row gap-10" id="action-row">
 			<a hx-get="/load" hx-target="#assignments" hx-swap="afterbegin" class="link">Laden</a>
@@ -15,6 +15,7 @@
 			<a hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML" class="link">Zuteilen</a>
 		</div>
 	{{ end }}
+
 	<h1>Priobär</h1>
 
 {{ end }}
