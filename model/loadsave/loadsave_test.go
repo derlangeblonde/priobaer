@@ -80,14 +80,14 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		excelBytes           []byte
 		name string
 	}{
-		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t), "scenarioOnlyStringValuesInParticipantsSheet"},
-		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t), "scenarioInvalidHeaderParticipantsSheet"},
-		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t), "scenarioInvalidHeaderCourseSheet"},
-		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t), "scenarioInvalidRowLengthInParticipantsSheet"},
-		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t), "scenarioInvalidRowLengthInCoursesSheet"},
-		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t), "scenarioMaxCapacitySmallerThanMinCapacity"},
-		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t), "scenarioSurnameEmpty"},
-		{[]string{"Kurs", "existiert", "nicht"}, scenarioAssignmentToExistentCourse(t), "scenarioAssignmentToExistentCourse"},
+		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t), "OnlyStringValuesInParticipantsSheet"},
+		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t), "InvalidHeaderParticipantsSheet"},
+		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t), "InvalidHeaderCourseSheet"},
+		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t), "InvalidRowLengthInParticipantsSheet"},
+		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t), "InvalidRowLengthInCoursesSheet"},
+		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t), "MaxCapacitySmallerThanMinCapacity"},
+		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t), "SurnameEmpty"},
+		{[]string{"Kurs", "existiert", "nicht"}, scenarioAssignmentToNonExistentCourse(t), "AssignmentToNonExistentCourse"},
 	}
 
 	for _, tc := range testcases {
@@ -105,7 +105,7 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 
 }
 
-func scenarioAssignmentToExistentCourse(t *testing.T) []byte {
+func scenarioAssignmentToNonExistentCourse(t *testing.T) []byte {
 	return buildExcelFile(
 		t,
 		[][]string{
