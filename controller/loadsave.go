@@ -78,7 +78,6 @@ func Load(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/assignments")
 }
 
-// TODO: Register handler to logger that adds the caller and maybe attach logging to context
 func Save(c *gin.Context) {
 	db := GetDB(c)
 
@@ -109,7 +108,6 @@ func Save(c *gin.Context) {
 	}
 
 	extraHeaders := map[string]string{
-		// TODO: adjust that to app name
 		"Content-Disposition": `attachment; filename="export.xlsx"`,
 	}
 

@@ -45,7 +45,13 @@ func (c *Course) Valid() map[string]string {
 
 	validateNonEmpty(c.Name, "name", "Name darf nicht leer sein", errors)
 
+	c.TrimFields()
+
 	return errors
+}
+
+func (c *Course) TrimFields()  {
+	c.Name = strings.TrimSpace(c.Name)
 }
 
 func (c *Course) MarshalRecord() []string {
@@ -57,7 +63,6 @@ func (c *Course) MarshalRecord() []string {
 	}
 }
 
-// TODO: we might want to call Valid in or after this function
 func (c *Course) UnmarshalRecord(record []string) error {
 	const recordLen int = 4
 	if len(record) != recordLen {
