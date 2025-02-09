@@ -98,7 +98,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	dbDir := MakeTestingDbDir(t)
 
-	mockEnv := setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PORT", strconv.Itoa(port))
+	mockEnv := setupMockEnv("PRIOBAER_DB_ROOT_DIR", dbDir, "PRIOBAER_SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PRIOBAER_PORT", strconv.Itoa(port), "PRIOBAER_SECRET", "secret")
 
 	ctx, cancel := context.WithCancel(context.Background())
 

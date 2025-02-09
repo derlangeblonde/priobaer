@@ -5,14 +5,24 @@
 
 {{ template "general/head" }}
 
-<body>
-	<h1>Ass</h1>
+<body class="column center-cross-axis">
+	{{ block "action-column" . }}
+		<div class="row gap-10" id="action-row">
+			<a hx-get="/load" hx-target="#assignments" hx-swap="afterbegin" class="link">Laden</a>
+
+			<a hx-boost="false" href="/save"> Speichern </a>
+
+			<a hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML" class="link">Zuteilen</a>
+		</div>
+	{{ end }}
+
+	<h1>🐻 Priobär</h1>
 
 {{ end }}
 	<div class="row" id="assignments">
-		<div id="courses-column" class="margin-lr">
-			<h2>Kurse</h2>
-			{{ block "assignments/course-list" .courseList}}
+		{{ block "assignments/course-list" .courseList}}
+			<div id="courses-column" class="margin-lr width-fifth">
+				<h2>Kurse</h2>
 				{{ block "assignments/unassigned-entry" .UnassignedEntry }}
 					{{ if .ShouldRender }}
 						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
@@ -31,35 +41,24 @@
 						{{ template "courses/_show" . }}
 					{{ end }}
 				{{ end }}
-			{{ end }}
 
-			{{ template "courses/_new-button" }}
-		</div>
-
-		{{ template "assignments/_participants-column" .participants }}
-
-		{{ block "action-column" . }}
-		<div id="action-column" class="column margin-lr">
-			<h2>Aktionen</h2>
-
-			<button hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML">Zuteilen</button>
-
-			<a hx-boost="false" href="/save"> Speichern </a>
-
-			<form id='form' hx-encoding='multipart/form-data' hx-post='/load' hx-target="#assignments" hx-swap="outerHTML">
-				<input type='file' name='file'>
-				<button>
-				    Upload
-				</button>
-				<!-- <progress id='progress' value='0' max='100'></progress> -->
-			</form>
-			<!-- <script> -->
-			<!-- 	htmx.on('#form', 'htmx:xhr:progress', function(evt) { -->
-			<!-- 	  htmx.find('#progress').setAttribute('value', evt.detail.loaded/evt.detail.total * 100) -->
-			<!-- 	}); -->
-			<!-- </script> -->
-		</div>
+				{{ template "courses/_new-button" }}
+			</div>
 		{{ end }}
+
+		{{ block "assignments/_participants-column" .participants }}
+
+			<div id="participants-column" class="margin-lr width-fifth">
+				<h2>Teilnehmer</h2>
+
+				{{ range . }}
+				{{ template "participants/_show" . }}
+				{{ end }}
+
+				{{ template "participants/_new-button" }}
+			</div>
+		{{ end }}
+
 	</div>
 {{ if .fullPage }}
 </body>

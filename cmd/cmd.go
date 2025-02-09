@@ -37,8 +37,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		sessionMaxAgeSeconds = 1
 	}
 
-	// TODO: (Prod) read secret from file
-	cookieStore := cookie.NewStore([]byte("secret"))
+	cookieStore := cookie.NewStore([]byte(config.Secret))
 	cookieStore.Options(
 		sessions.Options{
 			Secure:   true,

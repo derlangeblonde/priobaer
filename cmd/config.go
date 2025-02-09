@@ -11,20 +11,29 @@ type Config struct {
 	DbRootDir     string
 	SessionMaxAge time.Duration
 	Port          int
+	Secret        string
 }
 
 func ParseConfig(getenv func(string) string) (Config, error) {
 	config := Config{}
 
-	dbRootDir := getenv("DB_ROOT_DIR")
+	secret := getenv("PRIOBAER_SECRET")
+
+	if secret == "" {
+		return config, errors.New("PRIOBAER_SECRET not set")
+	}
+
+	config.Secret = secret
+
+	dbRootDir := getenv("PRIOBAER_DB_ROOT_DIR")
 
 	if dbRootDir == "" {
-		return config, errors.New("DB_ROOT_DIR not set")
+		return config, errors.New("PRIOBAER_DB_ROOT_DIR not set")
 	}
 
 	config.DbRootDir = dbRootDir
 
-	sessionMaxAge, err := GetInt(getenv, "SESSION_MAX_AGE")
+	sessionMaxAge, err := GetInt(getenv, "PRIOBAER_SESSION_MAX_AGE")
 
 	if err != nil {
 		return config, err
@@ -32,7 +41,7 @@ func ParseConfig(getenv func(string) string) (Config, error) {
 
 	config.SessionMaxAge = time.Second * time.Duration(sessionMaxAge)
 
-	port, err := GetInt(getenv, "PORT")
+	port, err := GetInt(getenv, "PRIOBAER_PORT")
 
 	if err != nil {
 		return config, err

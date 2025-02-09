@@ -28,7 +28,7 @@ func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, 
 	dbDir := MakeTestingDbDir(t)
 
 	if env == nil {
-		env = setupMockEnv("DB_ROOT_DIR", dbDir, "SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PORT", strconv.Itoa(port))
+		env = setupMockEnv("PRIOBAER_DB_ROOT_DIR", dbDir, "PRIOBAER_SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PRIOBAER_PORT", strconv.Itoa(port), "PRIOBAER_SECRET", "secret")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
