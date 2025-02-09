@@ -1,0 +1,14 @@
+<dialog open>
+	<h1>Datei laden</h1>
+	<form id='form' hx-encoding='multipart/form-data' hx-post='/load' hx-target="#assignments" hx-swap="outerHTML">		
+		<label for='file'>Datei auswählen</label>
+		<input id="file" type='file' name='file'>
+		<button>
+		   Laden 
+		</button>
+	</form>
+	<form method="dialog">
+		<button>Schließen</button>
+	</form>
+</dialog>
+
