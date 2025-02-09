@@ -3,6 +3,7 @@ package loadsave
 import (
 	"bytes"
 	"database/sql"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -78,15 +79,16 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 	testcases := []struct {
 		wantErrorMsgKeywords []string
 		excelBytes           []byte
+		name string
 	}{
-		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t)},
-		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t)},
-		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t)},
-		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t)},
-		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t)},
-		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t)},
-		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t)},
-		{[]string{"Kurs", "existiert", "nicht"}, scenarioAssignmentToExistentCourse(t)},
+		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t), "scenarioOnlyStringValuesInParticipantsSheet"},
+		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t), "scenarioInvalidHeaderParticipantsSheet"},
+		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t), "scenarioInvalidHeaderCourseSheet"},
+		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t), "scenarioInvalidRowLengthInParticipantsSheet"},
+		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t), "scenarioInvalidRowLengthInCoursesSheet"},
+		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t), "scenarioMaxCapacitySmallerThanMinCapacity"},
+		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t), "scenarioSurnameEmpty"},
+		{[]string{"Kurs", "existiert", "nicht"}, scenarioAssignmentToExistentCourse(t), "scenarioAssignmentToExistentCourse"},
 	}
 
 	for _, tc := range testcases {
@@ -97,7 +99,7 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 
 		for _, wantKeyword := range tc.wantErrorMsgKeywords {
 			if !strings.Contains(err.Error(), wantKeyword) {
-				t.Fatalf("Want: '%s' (to be contained), Got: %s", wantKeyword, err.Error())
+				t.Fatalf("'%s':Want: '%s' (to be contained), Got: %s", tc.name, wantKeyword, err.Error())
 			}
 		}
 	}
