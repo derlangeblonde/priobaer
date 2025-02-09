@@ -38,10 +38,28 @@
 
 		{{ template "assignments/_participants-column" .participants }}
 
-		<div id="action-column" class="margin-lr">
+		{{ block "action-column" . }}
+		<div id="action-column" class="column margin-lr">
 			<h2>Aktionen</h2>
+
 			<button hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML">Zuteilen</button>
+
+			<a hx-boost="false" href="/save"> Speichern </a>
+
+			<form id='form' hx-encoding='multipart/form-data' hx-post='/load' hx-target="#assignments" hx-swap="outerHTML">
+				<input type='file' name='file'>
+				<button>
+				    Upload
+				</button>
+				<!-- <progress id='progress' value='0' max='100'></progress> -->
+			</form>
+			<!-- <script> -->
+			<!-- 	htmx.on('#form', 'htmx:xhr:progress', function(evt) { -->
+			<!-- 	  htmx.find('#progress').setAttribute('value', evt.detail.loaded/evt.detail.total * 100) -->
+			<!-- 	}); -->
+			<!-- </script> -->
 		</div>
+		{{ end }}
 	</div>
 {{ if .fullPage }}
 </body>

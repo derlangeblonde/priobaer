@@ -1,0 +1,10 @@
+<dialog open>
+	<h1 class="error">Fehler</h1>
+	{{ range . }}
+		<p> {{ . }} </p>
+	{{ end }}
+	<form method="dialog">
+		<button>OK</button>
+	</form>
+</dialog>
+
