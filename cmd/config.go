@@ -11,10 +11,19 @@ type Config struct {
 	DbRootDir     string
 	SessionMaxAge time.Duration
 	Port          int
+	Secret        string
 }
 
 func ParseConfig(getenv func(string) string) (Config, error) {
 	config := Config{}
+
+	secret := getenv("PRIOBAER_SECRET")
+
+	if secret == "" {
+		return config, errors.New("PRIOBAER_SECRET not set")
+	}
+
+	config.Secret = secret
 
 	dbRootDir := getenv("PRIOBAER_DB_ROOT_DIR")
 
