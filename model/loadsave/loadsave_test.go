@@ -3,7 +3,6 @@ package loadsave
 import (
 	"bytes"
 	"database/sql"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
