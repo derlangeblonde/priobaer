@@ -20,9 +20,9 @@
 
 {{ end }}
 	<div class="row" id="assignments">
-		<div id="courses-column" class="margin-lr width-fifth">
-			<h2>Kurse</h2>
-			{{ block "assignments/course-list" .courseList}}
+		{{ block "assignments/course-list" .courseList}}
+			<div id="courses-column" class="margin-lr width-fifth">
+				<h2>Kurse</h2>
 				{{ block "assignments/unassigned-entry" .UnassignedEntry }}
 					{{ if .ShouldRender }}
 						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
@@ -41,12 +41,23 @@
 						{{ template "courses/_show" . }}
 					{{ end }}
 				{{ end }}
-			{{ end }}
 
-			{{ template "courses/_new-button" }}
-		</div>
+				{{ template "courses/_new-button" }}
+			</div>
+		{{ end }}
 
-		{{ template "assignments/_participants-column" .participants }}
+		{{ block "assignments/_participants-column" .participants }}
+
+			<div id="participants-column" class="margin-lr width-fifth">
+				<h2>Teilnehmer</h2>
+
+				{{ range . }}
+				{{ template "participants/_show" . }}
+				{{ end }}
+
+				{{ template "participants/_new-button" }}
+			</div>
+		{{ end }}
 
 	</div>
 {{ if .fullPage }}
