@@ -1,4 +1,4 @@
-package model
+package loadsave
 
 import (
 	"fmt"
@@ -6,13 +6,13 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-type SheetWriter struct {
+type sheetWriter struct {
 	file       *excelize.File
 	sheetName  string
 	currentRow int
 }
 
-func NewSheetWriter(file *excelize.File, sheetName string) (*SheetWriter, error) {
+func newSheetWriter(file *excelize.File, sheetName string) (*sheetWriter, error) {
 	index, err := file.GetSheetIndex(sheetName)
 	if err != nil {
 		return nil, err
@@ -21,14 +21,14 @@ func NewSheetWriter(file *excelize.File, sheetName string) (*SheetWriter, error)
 		file.NewSheet(sheetName)
 	}
 
-	return &SheetWriter{
+	return &sheetWriter{
 		file:       file,
 		sheetName:  sheetName,
 		currentRow: 1,
 	}, nil
 }
 
-func (sw *SheetWriter) Write(row []string) error {
+func (sw *sheetWriter) write(row []string) error {
 	for colIndex, value := range row {
 		cell, err := excelize.CoordinatesToCellName(colIndex+1, sw.currentRow)
 		if err != nil {

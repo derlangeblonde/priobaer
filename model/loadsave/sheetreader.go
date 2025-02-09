@@ -1,4 +1,4 @@
-package model
+package loadsave
 
 import (
 	"fmt"
@@ -7,13 +7,13 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-type SheetReader struct {
+type sheetReader struct {
 	file      *excelize.File
 	sheetName string
 	currentRow int
 }
 
-func NewSheetReader(file *excelize.File, sheetName string) (*SheetReader, error) {
+func newSheetReader(file *excelize.File, sheetName string) (*sheetReader, error) {
 	index, err := file.GetSheetIndex(sheetName)
 	if err != nil {
 		return nil, err
@@ -22,14 +22,14 @@ func NewSheetReader(file *excelize.File, sheetName string) (*SheetReader, error)
 		file.NewSheet(sheetName)
 	}
 
-	return &SheetReader{
+	return &sheetReader{
 		file:      file,
 		sheetName: sheetName,
 		currentRow: 1,
 	}, nil
 }
 
-func (sr *SheetReader) Read() ([]string, error) {
+func (sr *sheetReader) read() ([]string, error) {
 	row, err := sr.file.GetRows(sr.sheetName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read rows from sheet: %w", err)

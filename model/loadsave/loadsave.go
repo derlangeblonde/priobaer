@@ -1,4 +1,4 @@
-package model
+package loadsave
 
 import (
 	"bytes"
@@ -9,40 +9,41 @@ import (
 	"slices"
 
 	"github.com/xuri/excelize/v2"
+	"softbaer.dev/ass/model"
 )
 
 const participantsSheetName = "Teilnehmer"
 const courseSheetName = "Kurse"
 const versionSheetName = "Version"
 
-func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) {
+func ToExcelBytes(courses []model.Course, participants []model.Participant) ([]byte, error) {
 	file := excelize.NewFile()
-	writer, err := NewSheetWriter(file, courseSheetName)
+	writer, err := newSheetWriter(file, courseSheetName)
 	if err != nil {
 		return make([]byte, 0), err
 	}
 
-	writer.Write(Course{}.RecordHeader())
+	writer.write(model.Course{}.RecordHeader())
 	for _, course := range courses {
-		writer.Write(course.MarshalRecord())
+		writer.write(course.MarshalRecord())
 	}
 
-	writer, err = NewSheetWriter(file, participantsSheetName)
+	writer, err = newSheetWriter(file, participantsSheetName)
 	if err != nil {
 		return make([]byte, 0), err
 	}
 
-	writer.Write(Participant{}.RecordHeader())
+	writer.write(model.Participant{}.RecordHeader())
 	for _, participant := range participants {
-		writer.Write(participant.MarshalRecord())
+		writer.write(participant.MarshalRecord())
 	}
 
-	writer, err = NewSheetWriter(file, versionSheetName)
+	writer, err = newSheetWriter(file, versionSheetName)
 	if err != nil {
 		return make([]byte, 0), err
 	}
 
-	writer.Write([]string{"1.0"})
+	writer.write([]string{"1.0"})
 
 	var buf bytes.Buffer
 	if err := file.Write(&buf); err != nil {
@@ -53,31 +54,31 @@ func ToExcelBytes(courses []Course, participants []Participant) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Participant, err error) {
+func FromExcelBytes(fileReader io.Reader) (courses []model.Course, participants []model.Participant, err error) {
 	exisingCourseIds := make(map[int]bool)
 
 	file, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create Excel file from bytes: %w", err)
 	}
-	reader, err := NewSheetReader(file, courseSheetName)
+	reader, err := newSheetReader(file, courseSheetName)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
 
-	courseHeader, err := reader.Read()
+	courseHeader, err := reader.read()
 	if err != nil && err != io.EOF {
 		return courses, participants, err
 	}
-	if !slices.Equal(courseHeader, Course{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError(courseSheetName, courseHeader, Course{}.RecordHeader())
+	if !slices.Equal(courseHeader, model.Course{}.RecordHeader()) {
+		return courses, participants, invalidHeaderError(courseSheetName, courseHeader, model.Course{}.RecordHeader())
 	}
-	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
+	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
 		if err != nil {
 			return courses, participants, err
 		}
 
-		course := Course{}
+		course := model.Course{}
 		err := course.UnmarshalRecord(record)
 		if err != nil {
 			return courses, participants, fmt.Errorf("Tabellenblatt: Kurse\n%w", err)
@@ -86,23 +87,23 @@ func FromExcelBytes(fileReader io.Reader) (courses []Course, participants []Part
 		exisingCourseIds[course.ID] = true
 	}
 
-	reader, err = NewSheetReader(file, participantsSheetName)
+	reader, err = newSheetReader(file, participantsSheetName)
 	if err != nil {
 		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
 	}
-	participantHeader, err := reader.Read()
+	participantHeader, err := reader.read()
 	if err != nil && err != io.EOF {
 		return courses, participants, err
 	}
-	if !slices.Equal(participantHeader, Participant{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError(participantsSheetName, participantHeader, Participant{}.RecordHeader()) 
+	if !slices.Equal(participantHeader, model.Participant{}.RecordHeader()) {
+		return courses, participants, invalidHeaderError(participantsSheetName, participantHeader, model.Participant{}.RecordHeader()) 
 	}
-	for record, err := reader.Read(); err != io.EOF; record, err = reader.Read() {
+	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
 		if err != nil {
 			return courses, participants, err
 		}
 
-		participant := Participant{}
+		participant := model.Participant{}
 		if err = participant.UnmarshalRecord(record); err != nil {
 			return courses, participants, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
 		}

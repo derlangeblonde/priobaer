@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/model/loadsave"
 )
 
 func Load(c *gin.Context) {
@@ -33,7 +34,7 @@ func Load(c *gin.Context) {
 		return
 	}
 
-	courses, participants, err := model.FromExcelBytes(file)
+	courses, participants, err := loadsave.FromExcelBytes(file)
 
 	if err != nil {
 		slog.Error("Could not unmarshal models from excel-file", "err", err)
@@ -88,7 +89,7 @@ func Save(c *gin.Context) {
 		return
 	}
 
-	excelBytes, err := model.ToExcelBytes(courses, participants)
+	excelBytes, err := loadsave.ToExcelBytes(courses, participants)
 
 	if err != nil {
 		slog.Error("Error while exporting models to ExcelBytes", "err", err)
