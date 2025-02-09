@@ -28,5 +28,6 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/assignments", AssignmentsIndex)
 
 	router.GET("/save", Save)
+	router.GET("/load", LoadDialog)
 	router.POST("/load", Load)
 }

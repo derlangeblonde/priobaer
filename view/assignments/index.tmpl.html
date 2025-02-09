@@ -6,6 +6,15 @@
 {{ template "general/head" }}
 
 <body>
+	{{ block "action-column" . }}
+		<div class="row gap-10" id="action-row">
+			<a hx-get="/load" hx-target="#assignments" hx-swap="afterbegin" class="link">Laden</a>
+
+			<a hx-boost="false" href="/save"> Speichern </a>
+
+			<a hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML" class="link">Zuteilen</a>
+		</div>
+	{{ end }}
 	<h1>Priobär</h1>
 
 {{ end }}
@@ -38,28 +47,6 @@
 
 		{{ template "assignments/_participants-column" .participants }}
 
-		{{ block "action-column" . }}
-		<div id="action-column" class="column margin-lr">
-			<h2>Aktionen</h2>
-
-			<button hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML">Zuteilen</button>
-
-			<a hx-boost="false" href="/save"> Speichern </a>
-
-			<form id='form' hx-encoding='multipart/form-data' hx-post='/load' hx-target="#assignments" hx-swap="outerHTML">
-				<input type='file' name='file'>
-				<button>
-				    Upload
-				</button>
-				<!-- <progress id='progress' value='0' max='100'></progress> -->
-			</form>
-			<!-- <script> -->
-			<!-- 	htmx.on('#form', 'htmx:xhr:progress', function(evt) { -->
-			<!-- 	  htmx.find('#progress').setAttribute('value', evt.detail.loaded/evt.detail.total * 100) -->
-			<!-- 	}); -->
-			<!-- </script> -->
-		</div>
-		{{ end }}
 	</div>
 {{ if .fullPage }}
 </body>

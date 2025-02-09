@@ -13,6 +13,10 @@ import (
 	"softbaer.dev/ass/model/loadsave"
 )
 
+func LoadDialog(c *gin.Context) {
+	c.HTML(200, "dialogs/load", nil)
+}
+
 func Load(c *gin.Context) {
 	const batchSize = 10
 	db := GetDB(c)
