@@ -59,7 +59,6 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 	p.Prename = record[1]
 	p.Surname = record[2]
 
-	// TODO: in this case trimming (in excel reader) is escpecially important
 	if record[3] != "null" {
 		if courseId, err := strconv.Atoi(record[3]); err == nil {
 			p.CourseID = sql.NullInt64{Valid: true, Int64: int64(courseId)}

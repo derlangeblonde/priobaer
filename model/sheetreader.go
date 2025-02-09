@@ -29,8 +29,6 @@ func NewSheetReader(file *excelize.File, sheetName string) (*SheetReader, error)
 	}, nil
 }
 
-// TODO: it might make sense to always trim?
-// Then this should also be done on inserting data via REST-endpoints 
 func (sr *SheetReader) Read() ([]string, error) {
 	row, err := sr.file.GetRows(sr.sheetName)
 	if err != nil {
