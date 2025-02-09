@@ -124,9 +124,6 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-sqlite3 v1.14.24
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
-# github.com/mitchellh/go-z3 v0.0.0-20191228203228-4cbedeba863f
-## explicit
-github.com/mitchellh/go-z3
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent

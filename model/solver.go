@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/go-z3"
+	"softbaer.dev/ass/z3"
 )
 
 const separator = "[in]"
