@@ -2,9 +2,10 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
+	"softbaer.dev/ass/dbdir"
 )
 
-func RegisterRoutes(router *gin.Engine) {
+func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 	router.GET("/health", HealthHandler())
 	router.GET("/index", LandingPage)
 
@@ -30,4 +31,7 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/save", Save)
 	router.GET("/load", LoadDialog)
 	router.POST("/load", Load)
+
+	router.GET("/sessions/new", SessionNew)
+	router.POST("sessions", SessionCreate(dbDirectory))
 }

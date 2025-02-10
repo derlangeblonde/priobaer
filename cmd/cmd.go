@@ -58,7 +58,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 
 	router.SetHTMLTemplate(templates)
 
-	controller.RegisterRoutes(router)
+	controller.RegisterRoutes(router, dbDirectory)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf("localhost:%d", config.Port),

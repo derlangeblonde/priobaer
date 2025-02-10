@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<html lang="de">
+	{{ template "general/head" }}
+
+	<body>
+		<div class="column center-cross-axis">
+			<div class="width-two-thirds">
+			<h1>Nutzung von Priobär</h1>
+
+			<p>Sie können diese Anwendung ohne Registrierung nutzen. Ihre Daten bleiben nur für einen Tag auf dem Server und werden dann automatisch gelöscht. Bitte speichern Sie Ihre Eingaben daher rechtzeitig als Excel-Datei, damit Sie sie jederzeit wiederverwenden können.</p>
+
+			<p>Bei jedem Besuch erhalten Sie eine neue Session, die Ihre Daten vorübergehend speichert. Sobald die Session abläuft, werden alle Informationen unwiderruflich gelöscht. Dieses Vorgehen sorgt dafür, dass keine dauerhaften Kundendaten auf dem Server verbleiben. Da es sich um ein Hobby-Projekt handelt, liegt die Verantwortung für die Datensicherung bei Ihnen. Sie können jederzeit ihre aktuellen Daten als Excel-Datei speichern, in dem Sie in der oberen Leiste auf "Speichern" klicken. Analog können Sie jederzeit auf diesen gespeicherten Daten jederzeit weiterarbeiten, indem sie auf "Laden" klicken. </p>
+
+			<form action="/sessions" method="post">
+				<button type="submit">Ok, einverstanden</button>
+			</form>
+			</div>
+		</div>
+	</body>
+</html>

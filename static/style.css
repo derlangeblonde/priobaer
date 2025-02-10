@@ -1,6 +1,7 @@
 body {
  font-family: sans-serif;
 }
+
 .row {
 	display: flex;
 	flex-direction: row;
@@ -19,6 +20,10 @@ body {
 
 .width-fifth {
 	width: 20vw;
+}
+
+.width-two-thirds{
+	width: 66vw;
 }
 
 .margin-lr {
