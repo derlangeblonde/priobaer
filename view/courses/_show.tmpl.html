@@ -1,5 +1,5 @@
 <div id="course-{{ .ID }}" class="{{if .Selected }}selected{{ end }} clickable" hx-get="/assignments?selected-course={{ .ID }}"
-	hx-target="#assignments" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)"
+	hx-target="#assignments" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"
 	{{ if .AsOobSwap }} hx-swap-oob="outerHtml:#course-{{ .ID }}" {{ end }}>
 		{{ Field "Name" . }} <br>
 		Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }}, Auslastung {{ Field "Allocation" . }} <br>

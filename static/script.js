@@ -20,6 +20,12 @@ function dragStart(e) {
  */
 function allowDrop(e) {
     e.preventDefault();
+    e.target.classList.add("drop-ready")
+}
+
+function dragLeave(e) {
+    e.preventDefault();
+    e.target.classList.remove("drop-ready")
 }
 
 /**

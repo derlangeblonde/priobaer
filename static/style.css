@@ -44,6 +44,14 @@ body {
 	cursor: pointer;
 }
 
+.drop-ready {
+	border: 2px dashed #007BFF; 
+	background-color: #E7F3FE; 
+	box-shadow: 0 0 10px rgba(0, 123, 255, 0.5); 
+	opacity: 0.8; 
+	cursor: grab; 
+}
+
 .error {
 	color: red
 }

@@ -28,7 +28,7 @@
 						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
 							class="{{ if .Selected }}selected{{ end }} clickable"
 							{{ if .AsOobSwap }}hx-swap-oob="outerHTML:#not-assigned"{{ end }}
-							ondragover="allowDrop(event)" ondrop="drop(event)">
+							ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)">
 							Nicht zugeteilt <br>
 							{{ Field "ParticipantsCount" . }} Teilnehmer
 						</div>
