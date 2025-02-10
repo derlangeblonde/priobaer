@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/dbdir"
 )
@@ -24,6 +23,7 @@ func InjectDB(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 			"/static/*filepath",
 			"favicon.png",
 			"favicon.ico",
+			"/sessions/new",
 		}
 
 		if slices.Contains(whitelist, c.FullPath()) {
@@ -32,7 +32,6 @@ func InjectDB(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 			return
 		}
 
-		session := sessions.Default(c)
 		sessionId, ok := getSessionId(c)
 
 		if ok {
@@ -50,31 +49,8 @@ func InjectDB(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 			return
 		}
 
-		newDbId, err := uuid.NewRandom()
+		c.Redirect(http.StatusSeeOther, "/sessions/new")
 
-		if err != nil {
-			slog.Error("Failed while generating uuid", "err", err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
-
-		session.Set(sessionIdKey, newDbId.String())
-		err = session.Save()
-
-		if err != nil {
-			slog.Error("Failed while saving session", "err", err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
-
-		db, err := dbDirectory.Open(newDbId.String())
-
-		if err != nil {
-			slog.Error("Failed while opening new sqlite in-memory connection", "err", err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
-
-		c.Set(dbKey, db)
-
-		c.Next()
 	}
 
 }

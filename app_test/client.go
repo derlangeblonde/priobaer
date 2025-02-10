@@ -49,11 +49,11 @@ func NewTestClient(t *testing.T, baseUrl string) *TestClient {
 func (c *TestClient) AcquireSessionCookie() {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("index"))
+	resp, err := c.client.Post(c.Endpoint("sessions"), "application/x-www-form-urlencoded", bytes.NewReader([]byte{}))
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
-	is.Equal(resp.StatusCode, 200)
+	is.Equal(resp.StatusCode, 303)
 
 	cookies := resp.Cookies()
 	is.Equal(len(cookies), 1)
