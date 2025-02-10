@@ -1,8 +1,8 @@
-<div id="course-{{ .ID }}" {{if .Selected }} class="selected" {{ end }} hx-get="/assignments?selected-course={{ .ID }}"
-	hx-target="#assignments" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)"
+<div id="course-{{ .ID }}" class="{{if .Selected }}selected{{ end }} clickable" hx-get="/assignments?selected-course={{ .ID }}"
+	hx-target="#assignments" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"
 	{{ if .AsOobSwap }} hx-swap-oob="outerHtml:#course-{{ .ID }}" {{ end }}>
 		{{ Field "Name" . }} <br>
 		Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }}, Auslastung {{ Field "Allocation" . }} <br>
-		<a hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" class="link">Löschen</a>
+		<a hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" hx-confirm="Möchten Sie diesen Kurs wirklich löschen? Zugeteilte Teilnehmer werden wieder 'Nicht Zugeteilt' zugeordnet." class="link">Löschen</a>
 		<hr>
 </div>

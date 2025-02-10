@@ -26,9 +26,9 @@
 				{{ block "assignments/unassigned-entry" .UnassignedEntry }}
 					{{ if .ShouldRender }}
 						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
-							{{ if .Selected }}class="selected"{{ end }}
+							class="{{ if .Selected }}selected{{ end }} clickable"
 							{{ if .AsOobSwap }}hx-swap-oob="outerHTML:#not-assigned"{{ end }}
-							ondragover="allowDrop(event)" ondrop="drop(event)">
+							ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)">
 							Nicht zugeteilt <br>
 							{{ Field "ParticipantsCount" . }} Teilnehmer
 						</div>

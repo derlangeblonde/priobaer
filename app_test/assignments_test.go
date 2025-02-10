@@ -221,3 +221,27 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 	is.True(viewUpdate.UnassignedCount.Updated) // expect that unassigned count was updated
 	is.Equal(viewUpdate.UnassignedCount.Value, 1)
 }
+
+func TestParticipantsGetUnassignedWhenTheirAssignedCourseIsDeleted(t *testing.T) {
+	is := is.New(t)
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+
+	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
+
+	var participant model.Participant
+	for i := 0; i < 3; i ++ {
+		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
+		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+	}
+
+	// act
+	testClient.CoursesDeleteAction(course.ID)
+
+	// assert
+	_, unassignedParticipants := testClient.AssignmentsIndexAction()
+	is.Equal(len(unassignedParticipants), 3)
+}

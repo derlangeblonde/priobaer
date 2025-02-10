@@ -111,10 +111,18 @@ func CoursesDelete() gin.HandlerFunc {
 		}
 
 		course := model.Course{ID: req.ID}
-		result := db.Unscoped().Delete(&course)
+		err = db.Transaction(func(tx *gorm.DB) error {
+			err := db.Model(model.Participant{}).Where("course_id = ?", req.ID).Update("course_id", nil).Error
 
-		if result.Error != nil {
-			slog.Error("Delete of course failed on db level", "err", result.Error)
+			if err != nil {
+				return err
+			}
+
+			return db.Unscoped().Delete(&course).Error
+		})
+
+		if err != nil {
+			slog.Error("Delete of course failed on db level", "err", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 
 			return

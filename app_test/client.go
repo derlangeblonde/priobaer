@@ -138,6 +138,17 @@ func (c *TestClient) CoursesIndexAction() []view.Course {
 	return courses
 }
 
+func (c *TestClient) CoursesDeleteAction(courseId int) {
+	is := is.New(c.T)
+
+	req, err := http.NewRequest("DELETE", c.Endpoint(fmt.Sprintf("/courses/%d", courseId)), nil)
+	is.NoErr(err)
+
+	resp, err := c.client.Do(req)
+	is.NoErr(err)
+	is.Equal(resp.StatusCode, 200)
+}
+
 func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Course, []model.Participant) {
 	if len(queryParams) % 2 != 0 {
 		c.T.Fatal("Number of queryParams has to be even")
