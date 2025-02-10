@@ -40,6 +40,10 @@ body {
 	background-color: lightblue;
 }
 
+.clickable {
+	cursor: pointer;
+}
+
 .error {
 	color: red
 }
