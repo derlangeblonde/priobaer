@@ -20,9 +20,9 @@
 
 {{ end }}
 	<div class="row" id="assignments">
-		{{ block "assignments/course-list" .courseList}}
-			<div id="courses-column" class="margin-lr width-fifth">
-				<h2>Kurse</h2>
+		<div id="courses-column" class="margin-lr width-fifth">
+			<h2>Kurse</h2>
+			{{ block "assignments/course-list" .courseList}}
 				{{ block "assignments/unassigned-entry" .UnassignedEntry }}
 					{{ if .ShouldRender }}
 						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
@@ -42,9 +42,9 @@
 					{{ end }}
 				{{ end }}
 
-				{{ template "courses/_new-button" }}
-			</div>
-		{{ end }}
+			{{ end }}
+			{{ template "courses/_new-button" }}
+		</div>
 
 		{{ block "assignments/_participants-column" .participants }}
 
