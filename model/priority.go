@@ -2,7 +2,7 @@ package model
 
 import "gorm.io/gorm"
 
-type PriorityLevel uint32
+type PriorityLevel uint8
 
 type Priority struct {
 	gorm.Model

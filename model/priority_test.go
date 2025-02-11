@@ -31,4 +31,5 @@ func TestCanAddPriorityOfParticipantToCourse(t *testing.T) {
 	db.Preload("Priorities").First(&participant)
 
 	is.Equal(participant.Priorities[0].CourseID, course.ID) // want courseID of participants first priority to be the course for which we added the priority
+	is.Equal(participant.Priorities[0].Level , PriorityLevel(1)) // want priority level to be 1 
 }
