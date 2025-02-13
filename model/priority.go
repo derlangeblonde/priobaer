@@ -2,6 +2,8 @@ package model
 
 import "gorm.io/gorm"
 
+const MaxPriorityLevel int = 24
+
 type PriorityLevel uint8
 
 type Priority struct {
