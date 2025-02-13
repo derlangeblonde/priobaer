@@ -21,13 +21,11 @@ func SetPriorities(tx *gorm.DB, participantID int, courseIDs []int) error {
 	}
 
 	if err := tx.Where("participant_id = ?", participantID).Delete(&model.Priority{}).Error; err != nil {
-		// TODO: wrap in DB error?
-		return err
+		return model.DefaultDbError(err)
 	}
 
 	if err := tx.CreateInBatches(&priorities, model.MaxPriorityLevel).Error; err != nil {
-		// TODO: wrap in DB error?
-		return err
+		return model.DefaultDbError(err) 
 	}
 
 	return nil
