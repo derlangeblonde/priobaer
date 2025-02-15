@@ -18,6 +18,7 @@ type Participant struct {
 	Surname  string
 	CourseID sql.NullInt64
 	Course   Course `gorm:"constraint:OnDelete:SET NULL;"`
+	Priorities []Priority
 }
 
 func (p Participant) RecordHeader() []string {
