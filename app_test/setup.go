@@ -57,7 +57,7 @@ func MakeTestingDbDir(t *testing.T) string {
 }
 
 func defaultWaitForReady() error {
-	return waitForReady(time.Millisecond*200, 20, localhost+"/health")
+	return waitForReady(time.Millisecond*200, 100, localhost+"/health")
 }
 
 func waitForReady(

@@ -92,6 +92,15 @@ func (c *Course) UnmarshalRecord(record []string) error {
 	return stackValidationErrors(c.Valid())
 }
 
+func MapToCourseId(courses []Course) []int{
+	courseIds := make([]int, 0)
+	for _, course := range courses {
+		courseIds = append(courseIds, course.ID)
+	}
+
+	return courseIds
+}
+
 func stackValidationErrors(validationErrors map[string]string) error {
 	if len(validationErrors) == 0 {
 		return nil
