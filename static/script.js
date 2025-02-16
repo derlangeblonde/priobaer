@@ -67,16 +67,34 @@ class PrioInput extends HTMLElement {
         const root = this.attachShadow({ mode: "open" });
         const currentOptions = this.options
         root.innerHTML = `
-            <input list="prio-options" placeholder="Namen der priorisierten Kurse eingeben...">
+            <ol id="selected-prios">
+            </ol>
+            <input id="prio-input" list="prio-options" placeholder="Namen der priorisierten Kurse eingeben...">
             <datalist id="prio-options">
              ${currentOptions.map(opt => `
                 <option value="${opt}">${opt}</option>
               `).join('')}
             </datalist>
+            <button id="add-prio-button">&oplus;</button>
             `
         console.log(root.innerHTML)
+
+        this.selectPrio = this.selectPrio.bind(this);
+        root.querySelector('#add-prio-button').addEventListener('click', this.selectPrio)
+
         // TODO: do we need this?
         // htmx.process(root)
+    }
+
+    selectPrio(_) {
+        const textInput = this.shadowRoot.querySelector('#prio-input');
+
+        if (textInput.value && this.options.includes(textInput.value)) {
+            const selectedPriosList = this.shadowRoot.querySelector('#selected-prios')
+            const li = document.createElement('li');
+            li.textContent = textInput.value;
+            selectedPriosList.appendChild(li)
+        }
     }
 
     get options() {
