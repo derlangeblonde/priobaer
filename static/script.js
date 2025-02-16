@@ -60,6 +60,24 @@ class PrioInput extends HTMLElement {
     constructor() {
         super();
         console.log("PrioInput constructor");
+
+         this.appendHiddenInputs = (event) => {
+            const form = this.closest('form');
+            if (!form) return; // Only proceed if inside a form
+
+            // Remove previous hidden inputs to avoid duplicates
+            form.querySelectorAll(`[name="prio[]"]`).forEach(input => input.remove());
+
+            // Append hidden inputs for each selected value
+            const selectedPriosList = this.shadowRoot.querySelectorAll('#selected-prios li');
+            selectedPriosList.forEach(li => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'prio[]'; // Use array syntax to send multiple values
+                hiddenInput.value = li.textContent;
+                form.appendChild(hiddenInput);
+            });
+        };
     }
 
     connectedCallback() {
@@ -79,14 +97,18 @@ class PrioInput extends HTMLElement {
             `
         console.log(root.innerHTML)
 
-        this.selectPrio = this.selectPrio.bind(this);
-        root.querySelector('#add-prio-button').addEventListener('click', this.selectPrio)
+        this.addSelectedPrio = this.addSelectedPrio.bind(this);
+        root.querySelector('#add-prio-button').addEventListener('click', this.addSelectedPrio)
+        const form = this.closest('form');
+        if (form) {
+            form.addEventListener('submit', this.appendHiddenInputs);
+        }
 
         // TODO: do we need this?
         // htmx.process(root)
     }
 
-    selectPrio(_) {
+    addSelectedPrio(_) {
         const textInput = this.shadowRoot.querySelector('#prio-input');
 
         if (textInput.value && this.options.includes(textInput.value)) {
