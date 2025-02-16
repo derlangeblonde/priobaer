@@ -1,4 +1,3 @@
-// deno-lint-ignore-file no-unused-vars
 window.addEventListener("beforeunload", function (event) {
     const navigationType = performance.getEntriesByType("navigation")[0]?.type;
 
@@ -57,61 +56,40 @@ function extractNumericId(elementId) {
     return elementId.split("-")[1];
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const orderedList = document.getElementById('ordered-list');
+class PrioInput extends HTMLElement {
+    constructor() {
+        super();
+        console.log("PrioInput constructor");
+    }
 
-    // Function to add selected options to the ordered list
-    window.addSelectedOptions = function() {
-        const select = document.getElementById('options');
-        const selectedOptions = Array.from(select.selectedOptions);
+    connectedCallback() {
+        console.log("connected Callback")
+        const root = this.attachShadow({ mode: "open" });
+        const currentOptions = this.options
+        root.innerHTML = `
+            <input list="prio-options" placeholder="Namen der priorisierten Kurse eingeben...">
+            <datalist id="prio-options">
+             ${currentOptions.map(opt => `
+                <option value="${opt}">${opt}</option>
+              `).join('')}
+            </datalist>
+            `
+        console.log(root.innerHTML)
+        // TODO: do we need this?
+        // htmx.process(root)
+    }
 
-        selectedOptions.forEach(option => {
-            const listItem = document.createElement('li');
-            listItem.textContent = option.textContent;
-            listItem.setAttribute('data-value', option.value);
-            orderedList.appendChild(listItem);
+    get options() {
+        const options = [];
+
+        [...this.attributes].forEach(attr => {
+            if (attr.name.includes('option')) {
+            options.push(attr.value);
+            }
         });
 
-        // Clear selected options from the select box
-        selectedOptions.forEach(option => option.selected = false);
-    };
+        return options;
+    }
+}
 
-    // Make the ordered list sortable
-    // new Sortable(orderedList, {
-    //     animation: 150
-    // });
-
-    // Handle form submission
-    document.getElementById('ordered-list-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const orderedValues = Array.from(orderedList.children).map(li => li.getAttribute('data-value'));
-        htmx.ajax("POST", "/prio", {
-            "target": "body",
-            "values": orderedValues,
-        });
-        // You can submit the orderedValues to the server here
-    });
-});
-
-// Sortable library (you can include this from a CDN or install via npm)
-/*!
- * Sortable 1.14.0
- * Released under the MIT license
- * https://github.com/SortableJS/Sortable
- */
-// (function (root, factory) {
-//     if (typeof define === 'function' && define.amd) {
-//         define(factory);
-//     } else if (typeof exports === 'object') {
-//         module.exports = factory();
-//     } else {
-//         root.Sortable = factory();
-//     }
-// }(this, function () {
-//     'use strict';
-//
-//     // ... (Sortable library code)
-//
-//     return Sortable;
-// }));
-
+customElements.define("prio-input", PrioInput)

@@ -10,6 +10,9 @@
 		<input type="text" name="surname" value="{{ .Value.Surname }}">
 		{{ template "general/error-message" index .Errors "surname" }}
 
+		<label>Priortäten</label>
+		<prio-input option-1="Rot" option-2="Gelb" option-3="Blau"> </prio-input>
+
 		<input type="submit" value="Anlegen">
 	</form>
 
