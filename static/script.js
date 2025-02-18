@@ -56,46 +56,44 @@ function extractNumericId(elementId) {
     return elementId.split("-")[1];
 }
 
+
 class PrioInput extends HTMLElement {
     constructor() {
         super();
-        console.log("PrioInput constructor");
 
+        this.optionRegex = /^option-(\d+)$/;
          this.appendHiddenInputs = (event) => {
             const form = this.closest('form');
-            if (!form) return; // Only proceed if inside a form
+            if (!form) return; 
 
-            // Remove previous hidden inputs to avoid duplicates
             form.querySelectorAll(`[name="prio[]"]`).forEach(input => input.remove());
 
-            // Append hidden inputs for each selected value
             const selectedPriosList = this.shadowRoot.querySelectorAll('#selected-prios li');
+            console.log(selectedPriosList)
             selectedPriosList.forEach(li => {
                 const hiddenInput = document.createElement('input');
                 hiddenInput.type = 'hidden';
-                hiddenInput.name = 'prio[]'; // Use array syntax to send multiple values
-                hiddenInput.value = li.textContent;
+                hiddenInput.name = 'prio[]';
+                const courseId = li.attributes['course-id'];
+                hiddenInput.value = courseId;
                 form.appendChild(hiddenInput);
             });
         };
     }
 
     connectedCallback() {
-        console.log("connected Callback")
         const root = this.attachShadow({ mode: "open" });
-        const currentOptions = this.options
+        const courseNames = Object.keys(this.optionNamesToId);
         root.innerHTML = `
-            <ol id="selected-prios">
-            </ol>
+            <ol id="selected-prios"> </ol>
             <input id="prio-input" list="prio-options" placeholder="Namen der priorisierten Kurse eingeben...">
             <datalist id="prio-options">
-             ${currentOptions.map(opt => `
-                <option value="${opt}">${opt}</option>
+             ${courseNames.map(name => `
+                <option value="${name}">${name}</option>
               `).join('')}
             </datalist>
             <button id="add-prio-button">&oplus;</button>
             `
-        console.log(root.innerHTML)
 
         this.addSelectedPrio = this.addSelectedPrio.bind(this);
         root.querySelector('#add-prio-button').addEventListener('click', this.addSelectedPrio)
@@ -111,20 +109,24 @@ class PrioInput extends HTMLElement {
     addSelectedPrio(_) {
         const textInput = this.shadowRoot.querySelector('#prio-input');
 
-        if (textInput.value && this.options.includes(textInput.value)) {
+        if (textInput.value && textInput.value in this.optionNamesToId) {
+            const id = this.optionNamesToId[textInput.value];
             const selectedPriosList = this.shadowRoot.querySelector('#selected-prios')
             const li = document.createElement('li');
+            li.attributes['course-id'] = id;
             li.textContent = textInput.value;
             selectedPriosList.appendChild(li)
         }
     }
 
-    get options() {
-        const options = [];
+    get optionNamesToId() {
+        const options = {};
 
         [...this.attributes].forEach(attr => {
-            if (attr.name.includes('option')) {
-            options.push(attr.value);
+            const match = attr.name.match(this.optionRegex);
+            if (match) {
+                const id = parseInt(match[1]);
+                options[attr.value] = id;
             }
         });
 

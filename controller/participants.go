@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -37,8 +38,9 @@ func ParticipantsNew(c *gin.Context) {
 
 func ParticipantsCreate(c *gin.Context) {
 	type request struct {
-		Prename string `form:"prename"`
-		Surname string `form:"surname"`
+		Prename              string `form:"prename"`
+		Surname              string `form:"surname"`
+		PrioritizedCourseIds []int  `form:"prio[]"`
 	}
 
 	db := GetDB(c)
@@ -49,6 +51,8 @@ func ParticipantsCreate(c *gin.Context) {
 	if err != nil {
 		return
 	}
+
+	fmt.Println(req.PrioritizedCourseIds)
 
 	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
 	validationErrors := participant.Valid()
