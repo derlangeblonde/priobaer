@@ -33,7 +33,20 @@ func ParticipantsIndex(c *gin.Context) {
 }
 
 func ParticipantsNew(c *gin.Context) {
-	c.HTML(http.StatusOK, "participants/_new", gin.H{"Errors": make(map[string]string, 0)})
+	db := GetDB(c)
+	var courses model.Courses 
+	if err := db.Select("id", "name").Find(&courses).Error; err != nil {
+		// TODO: für sqlite3.Error vereinheitlichen!
+		// Ich möchte einen Mechanismus, sodass ich mit wenig Boilerplate und mental-overhead
+		// (automatisch) für den Typ sqlite3.Error einen Dialog im Fronted rendere.
+		// Dialog mit einer entsprechend generischen Fehlermeldung.
+		slog.Error("DB-Operation Failed", "function", "ParticipantsNew", "err", err)
+		c.HTML(http.StatusInternalServerError, "dialogs/generic-error", err)
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "participants/_new", gin.H{"Errors": make(map[string]string, 0), "Courses": courses})
 }
 
 func ParticipantsCreate(c *gin.Context) {

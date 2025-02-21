@@ -92,6 +92,16 @@ func (c *Course) UnmarshalRecord(record []string) error {
 	return stackValidationErrors(c.Valid())
 }
 
+type Courses []Course
+
+func (cs Courses) Names() []string {
+        var names []string
+        for _, course := range cs {
+                names = append(names, course.Name)
+        }
+        return names
+}
+
 func MapToCourseId(courses []Course) []int{
 	courseIds := make([]int, 0)
 	for _, course := range courses {
