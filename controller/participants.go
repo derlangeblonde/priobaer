@@ -34,14 +34,13 @@ func ParticipantsIndex(c *gin.Context) {
 
 func ParticipantsNew(c *gin.Context) {
 	db := GetDB(c)
-	var courses model.Courses 
+	var courses model.Courses
 	if err := db.Select("id", "name").Find(&courses).Error; err != nil {
 		// TODO: für sqlite3.Error vereinheitlichen!
 		// Ich möchte einen Mechanismus, sodass ich mit wenig Boilerplate und mental-overhead
 		// (automatisch) für den Typ sqlite3.Error einen Dialog im Fronted rendere.
 		// Dialog mit einer entsprechend generischen Fehlermeldung.
-		slog.Error("DB-Operation Failed", "function", "ParticipantsNew", "err", err)
-		c.HTML(http.StatusInternalServerError, "dialogs/generic-error", err)
+		DbError(c, err, "ParticipantsNew")
 
 		return
 	}
@@ -51,9 +50,9 @@ func ParticipantsNew(c *gin.Context) {
 
 func ParticipantsCreate(c *gin.Context) {
 	type request struct {
-		Prename              string `form:"prename"`
-		Surname              string `form:"surname"`
-		PrioritizedCourseNames []string  `form:"prio[]"`
+		Prename                string   `form:"prename"`
+		Surname                string   `form:"surname"`
+		PrioritizedCourseNames []string `form:"prio[]"`
 	}
 
 	db := GetDB(c)
@@ -65,7 +64,13 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(req.PrioritizedCourseNames)
+	if len(req.PrioritizedCourseNames) > model.MaxPriorityLevel {
+		c.HTML(422,
+		       "participants/_new",
+		       gin.H{"Errors": map[string]string{"priorities": fmt.Sprintf("Maximale Anzahl an Prioritäten (%d) überschritten", len(req.PrioritizedCourseNames))}},
+		)
+		return
+	}
 
 	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
 	validationErrors := participant.Valid()
@@ -76,22 +81,56 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	result := db.Create(&participant)
+	err = db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Create(&participant)
 
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrCheckConstraintViolated) {
-			slog.Error("Constraint violated while creating particpiant",
-				"err", err,
-				"particpaints.Prename", participant.Prename,
-				"participants.Surname", participant.Surname)
-			c.AbortWithStatus(http.StatusConflict)
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrCheckConstraintViolated) {
+				slog.Error("Constraint violated while creating particpiant",
+					"err", err,
+					"particpaints.ID", participant.ID,
+				)
+				c.AbortWithStatus(http.StatusConflict)
 
-			return
+				return err
+			}
+
+			slog.Error("Unexpected error while creating participant", "err", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+
+			return err
 		}
 
-		slog.Error("Unexpected error while creating participant", "err", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		var prioritizedCourses []model.Course
+		var priorities []model.Priority
 
+		orderByClause := "CASE"
+		for i, name := range req.PrioritizedCourseNames {
+			orderByClause += fmt.Sprintf(" WHEN name = '%s' THEN %d", name, i)
+		}
+		orderByClause += " END"
+
+		if err := tx.Where("name IN ?", req.PrioritizedCourseNames).Select("id").Order(orderByClause).Find(&prioritizedCourses).Error; err != nil {
+			DbError(c, err, "ParticipantsCreate")
+			return err
+		}
+
+		for i, course := range prioritizedCourses {
+			level := model.PriorityLevel(i + 1)
+			priorities = append(priorities, model.Priority{CourseID: course.ID, ParticipantID: participant.ID, Level: level})
+		}
+
+
+		if err := tx.Create(&priorities).Error; err != nil {
+			DbError(c, err, "ParticipantsCreate")
+
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return
 	}
 

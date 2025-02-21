@@ -12,6 +12,7 @@
 
 		<label>Priortäten</label>
 		<prio-input {{ range .Courses }} option-{{ .ID }}="{{ .Name }}" {{ end }}> </prio-input>
+		{{ template "general/error-message" index .Errors "priorities" }}
 
 		<input type="submit" value="Anlegen">
 	</form>
