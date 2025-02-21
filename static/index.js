@@ -60,35 +60,15 @@ function extractNumericId(elementId) {
 class PrioInput extends HTMLElement {
     constructor() {
         super();
-
-        this.optionRegex = /^option-(\d+)$/;
-         this.appendHiddenInputs = (event) => {
-            const form = this.closest('form');
-            if (!form) return; 
-
-            form.querySelectorAll(`[name="prio[]"]`).forEach(input => input.remove());
-
-            const selectedPriosList = this.shadowRoot.querySelectorAll('#selected-prios li');
-            console.log(selectedPriosList)
-            selectedPriosList.forEach(li => {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'prio[]';
-                const courseId = li.attributes['course-id'];
-                hiddenInput.value = courseId;
-                form.appendChild(hiddenInput);
-            });
-        };
     }
 
     connectedCallback() {
         const root = this.attachShadow({ mode: "open" });
-        const courseNames = Object.keys(this.optionNamesToId);
         root.innerHTML = `
             <ol id="selected-prios"> </ol>
             <input id="prio-input" list="prio-options" placeholder="Namen der priorisierten Kurse eingeben...">
             <datalist id="prio-options">
-             ${courseNames.map(name => `
+             ${this.options.map(name => `
                 <option value="${name}">${name}</option>
               `).join('')}
             </datalist>
@@ -96,6 +76,7 @@ class PrioInput extends HTMLElement {
             `
 
         this.addSelectedPrio = this.addSelectedPrio.bind(this);
+        this.appendHiddenInputs = this.appendHiddenInputs.bind(this);
         root.querySelector('#add-prio-button').addEventListener('click', this.addSelectedPrio)
         const form = this.closest('form');
         if (form) {
@@ -109,24 +90,44 @@ class PrioInput extends HTMLElement {
     addSelectedPrio(_) {
         const textInput = this.shadowRoot.querySelector('#prio-input');
 
-        if (textInput.value && textInput.value in this.optionNamesToId) {
-            const id = this.optionNamesToId[textInput.value];
+        if (textInput.value && this.options.includes(textInput.value) && !this.selectedOptions.includes(textInput.value)) {
             const selectedPriosList = this.shadowRoot.querySelector('#selected-prios')
             const li = document.createElement('li');
-            li.attributes['course-id'] = id;
             li.textContent = textInput.value;
             selectedPriosList.appendChild(li)
         }
     }
 
-    get optionNamesToId() {
-        const options = {};
+    appendHiddenInputs(_) {
+            const form = this.closest('form');
+            if (!form) return; 
+
+            form.querySelectorAll(`[name="prio[]"]`).forEach(input => input.remove());
+
+            this.selectedOptions.forEach(opt => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'prio[]';
+                hiddenInput.value = opt;
+                form.appendChild(hiddenInput);
+            });
+    }
+
+    get selectedOptions() {
+        const listItems = this.shadowRoot.querySelectorAll('#selected-prios li');
+        if (listItems.length === 0) return [];
+
+        const result = Array.prototype.map.call(listItems, li => li.textContent);
+
+        return result;
+    }
+
+    get options() {
+        const options = [];
 
         [...this.attributes].forEach(attr => {
-            const match = attr.name.match(this.optionRegex);
-            if (match) {
-                const id = parseInt(match[1]);
-                options[attr.value] = id;
+            if (attr.name.startsWith('option-')) {
+                options.push(attr.value);
             }
         });
 

@@ -40,7 +40,7 @@ func ParticipantsCreate(c *gin.Context) {
 	type request struct {
 		Prename              string `form:"prename"`
 		Surname              string `form:"surname"`
-		PrioritizedCourseIds []int  `form:"prio[]"`
+		PrioritizedCourseNames []string  `form:"prio[]"`
 	}
 
 	db := GetDB(c)
@@ -52,7 +52,7 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(req.PrioritizedCourseIds)
+	fmt.Println(req.PrioritizedCourseNames)
 
 	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
 	validationErrors := participant.Valid()
