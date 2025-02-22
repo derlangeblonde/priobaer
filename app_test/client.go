@@ -94,6 +94,21 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, fin
 	return participants[0]
 }
 
+func (c *TestClient) ParticipantsIndexAction() []model.Participant {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get(c.Endpoint("assignments"))
+	is.NoErr(err)                  // get request failed
+	is.Equal(resp.StatusCode, 200) // get participants did not return 200
+	defer resp.Body.Close()
+
+	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
+	is.NoErr(err)
+
+	return participants
+}
+
+
 func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) view.Course {
 	if finish != nil {
 		defer finish.Done()

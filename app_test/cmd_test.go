@@ -147,6 +147,30 @@ func TestCreateAndReadCourse(t *testing.T) {
 	is.True(reflect.DeepEqual(courses[0].Name, expectedCourse.Name)) // created and retrieved course should be the same
 }
 
+func TestCreateAndReadParticpantWithPrios(t *testing.T) {
+	is := is.New(t)
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer waitForTerminationDefault(sut.cancel)
+
+	ctx := NewTestClient(t, localhost)
+
+	wantCourse := model.RandomCourse()
+	ctx.CoursesCreateAction(wantCourse, nil)
+
+	wantParticipant := model.RandomParticipant()
+	ctx.ParticipantsCreateAction(wantParticipant, nil)
+
+	participants := ctx.ParticipantsIndexAction()
+
+	is.Equal(len(participants), 1)
+
+	actualParticipant := participants[0]
+
+	is.Equal(actualParticipant.Prename, wantParticipant.Prename) // created and retrieved participant should be the same
+	is.Equal(actualParticipant.Surname, wantParticipant.Surname) // created and retrieved participant should be the same
+}
+
 func countSQLiteFiles(dir string) (int, error) {
 	count := 0
 

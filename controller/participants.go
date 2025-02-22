@@ -101,6 +101,10 @@ func ParticipantsCreate(c *gin.Context) {
 			return err
 		}
 
+		if len(req.PrioritizedCourseNames) == 0 {
+			return nil
+		}
+
 		var prioritizedCourses []model.Course
 		var priorities []model.Priority
 
