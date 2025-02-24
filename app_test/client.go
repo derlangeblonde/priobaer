@@ -73,6 +73,11 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, fin
 
 	is := is.New(c.T)
 
+	var prioritizedCourseIDs []int
+	for _, prio := range participant.Priorities {
+		prioritizedCourseIDs = append(prioritizedCourseIDs, prio.CourseID)
+	}
+
 	req := c.RequestWithFormBody(
 		"POST", c.Endpoint("participants"),
 		"prename", participant.Prename,

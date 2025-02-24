@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/cmd"
+	"softbaer.dev/ass/cmd/server"
 	"softbaer.dev/ass/model"
 )
 
@@ -102,7 +102,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, mockEnv, defaultFakeClock())
+	go server.Run(ctx, mockEnv, defaultFakeClock())
 
 	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
@@ -118,7 +118,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	ctx, cancel = context.WithCancel(context.Background())
 	defer waitForTerminationDefault(cancel)
 
-	go cmd.Run(ctx, mockEnv, defaultFakeClock())
+	go server.Run(ctx, mockEnv, defaultFakeClock())
 	err = defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
@@ -159,6 +159,7 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 	ctx.CoursesCreateAction(wantCourse, nil)
 
 	wantParticipant := model.RandomParticipant()
+	wantParticipant.Priorities = []model.Priority{{CourseID: wantCourse.ID, Level: 1}}
 	ctx.ParticipantsCreateAction(wantParticipant, nil)
 
 	participants := ctx.ParticipantsIndexAction()
@@ -167,8 +168,9 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 
 	actualParticipant := participants[0]
 
-	is.Equal(actualParticipant.Prename, wantParticipant.Prename) // created and retrieved participant should be the same
-	is.Equal(actualParticipant.Surname, wantParticipant.Surname) // created and retrieved participant should be the same
+	is.Equal(actualParticipant.Prename, wantParticipant.Prename) // created and retrieved participant should be the same.
+	is.Equal(actualParticipant.Surname, wantParticipant.Surname) // created and retrieved participant should be the same.
+	is.Equal(len(actualParticipant.Priorities), 1) // created a priority that should be retrieved again. 
 }
 
 func countSQLiteFiles(dir string) (int, error) {

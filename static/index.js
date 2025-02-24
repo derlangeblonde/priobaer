@@ -60,6 +60,7 @@ function extractNumericId(elementId) {
 class PrioInput extends HTMLElement {
     constructor() {
         super();
+        this.optionRegex = /option-(\d)/
     }
 
     connectedCallback() {
@@ -77,6 +78,7 @@ class PrioInput extends HTMLElement {
 
         this.addSelectedPrio = this.addSelectedPrio.bind(this);
         this.appendHiddenInputs = this.appendHiddenInputs.bind(this);
+        this.optionNameToId = this.optionNameToId.bind(this);
         root.querySelector('#add-prio-button').addEventListener('click', this.addSelectedPrio)
         const form = this.closest('form');
         if (form) {
@@ -104,13 +106,25 @@ class PrioInput extends HTMLElement {
 
             form.querySelectorAll(`[name="prio[]"]`).forEach(input => input.remove());
 
-            this.selectedOptions.forEach(opt => {
+            this.selectedOptions.forEach(optName => {
                 const hiddenInput = document.createElement('input');
                 hiddenInput.type = 'hidden';
                 hiddenInput.name = 'prio[]';
-                hiddenInput.value = opt;
+                hiddenInput.value = this.optionNameToId(optName);
                 form.appendChild(hiddenInput);
             });
+    }
+
+    optionNameToId(name) {
+        for (const attr of this.attributes) {
+            const match = attr.name.match(this.optionRegex)
+            if (match) {
+                const actualName = attr.value
+                if (name === actualName) {
+                    return match[1] 
+                }
+            }
+        }
     }
 
     get selectedOptions() {
@@ -121,6 +135,7 @@ class PrioInput extends HTMLElement {
 
         return result;
     }
+
 
     get options() {
         const options = [];

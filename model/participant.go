@@ -41,6 +41,13 @@ func (p *Participant) TrimFields() {
 	p.Surname = strings.TrimSpace(p.Surname)
 }
 
+func (p *Participant) PrioritizedCourseIDs() (ids []int) {
+	for _, prio := range p.Priorities {
+		ids = append(ids, prio.CourseID)
+	}
+	return 
+}
+
 func (p *Participant) UnmarshalRecord(record []string) error {
 	const fn string = "UnmarshalRecord"
 	const structType string = "Teilnehmer"
@@ -84,4 +91,5 @@ func (p *Participant) MarshalRecord() []string {
 		courseIdMarshalled,
 	}
 }
+
 

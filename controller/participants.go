@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/model/store"
 )
 
 func ParticipantsIndex(c *gin.Context) {
@@ -50,9 +51,9 @@ func ParticipantsNew(c *gin.Context) {
 
 func ParticipantsCreate(c *gin.Context) {
 	type request struct {
-		Prename                string   `form:"prename"`
-		Surname                string   `form:"surname"`
-		PrioritizedCourseNames []string `form:"prio[]"`
+		Prename              string `form:"prename"`
+		Surname              string `form:"surname"`
+		PrioritizedCourseIDs []int  `form:"prio[]"`
 	}
 
 	db := GetDB(c)
@@ -64,10 +65,10 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	if len(req.PrioritizedCourseNames) > model.MaxPriorityLevel {
+	if len(req.PrioritizedCourseIDs) > model.MaxPriorityLevel {
 		c.HTML(422,
-		       "participants/_new",
-		       gin.H{"Errors": map[string]string{"priorities": fmt.Sprintf("Maximale Anzahl an Prioritäten (%d) überschritten", len(req.PrioritizedCourseNames))}},
+			"participants/_new",
+			gin.H{"Errors": map[string]string{"priorities": fmt.Sprintf("Maximale Anzahl an Prioritäten (%d) überschritten", len(req.PrioritizedCourseIDs))}},
 		)
 		return
 	}
@@ -79,6 +80,11 @@ func ParticipantsCreate(c *gin.Context) {
 		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": participant})
 
 		return
+	}
+
+	for i, courseID := range req.PrioritizedCourseIDs {
+		prio := model.Priority{CourseID: courseID, Level: model.PriorityLevel(i + 1)}
+		participant.Priorities = append(participant.Priorities, prio)
 	}
 
 	err = db.Transaction(func(tx *gorm.DB) error {
@@ -101,33 +107,8 @@ func ParticipantsCreate(c *gin.Context) {
 			return err
 		}
 
-		if len(req.PrioritizedCourseNames) == 0 {
-			return nil
-		}
-
-		var prioritizedCourses []model.Course
-		var priorities []model.Priority
-
-		orderByClause := "CASE"
-		for i, name := range req.PrioritizedCourseNames {
-			orderByClause += fmt.Sprintf(" WHEN name = '%s' THEN %d", name, i)
-		}
-		orderByClause += " END"
-
-		if err := tx.Where("name IN ?", req.PrioritizedCourseNames).Select("id").Order(orderByClause).Find(&prioritizedCourses).Error; err != nil {
+		if err := store.PopulatePrioritizedCourseNames(tx, &participant); err != nil {
 			DbError(c, err, "ParticipantsCreate")
-			return err
-		}
-
-		for i, course := range prioritizedCourses {
-			level := model.PriorityLevel(i + 1)
-			priorities = append(priorities, model.Priority{CourseID: course.ID, ParticipantID: participant.ID, Level: level})
-		}
-
-
-		if err := tx.Create(&priorities).Error; err != nil {
-			DbError(c, err, "ParticipantsCreate")
-
 			return err
 		}
 

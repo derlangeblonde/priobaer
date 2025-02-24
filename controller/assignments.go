@@ -62,14 +62,14 @@ func AssignmentsIndex(c *gin.Context) {
 		}
 	} 
 
-	participants := make([]model.Participant, 0)
+	var participants []model.Participant
 	var result *gorm.DB
 
 	if req.CourseIdSelected == nil {
-		result = db.Where("course_id is null").Find(&participants)
+		result = db.Preload("Priorities.Course").Where("course_id is null").Find(&participants)
 	} else {
 		courseID := *req.CourseIdSelected
-		result = db.Where("course_id = ?", courseID).Find(&participants)
+		result = db.Preload("Priorities.Course").Where("course_id = ?", courseID).Find(&participants)
 	}
 
 	if result.Error != nil {
@@ -80,7 +80,7 @@ func AssignmentsIndex(c *gin.Context) {
 	}
 
 	var courses []model.Course
-	result = db.Model(&model.Course{}).Preload("Participants").Find(&courses)
+	result = db.Preload("Participants").Find(&courses)
 
 	if result.Error != nil {
 		slog.Error("Unexpected error while getting all courses from db", "err", result.Error)

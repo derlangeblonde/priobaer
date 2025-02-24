@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/jonboulle/clockwork"
-	"softbaer.dev/ass/cmd"
+	"softbaer.dev/ass/cmd/server"
 )
 
 type SystemUnderTest struct {
@@ -33,7 +33,7 @@ func StartupSystemUnderTestWithFakeClock(t *testing.T, env func(string) string, 
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, env, fakeClock)
+	go server.Run(ctx, env, fakeClock)
 
 	err := waitForReady(time.Millisecond*200, 16, localhost+"/health")
 
