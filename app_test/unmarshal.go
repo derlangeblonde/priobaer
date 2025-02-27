@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"golang.org/x/net/html"
-	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/view"
 )
 
 var idExtractionRegex *regexp.Regexp = regexp.MustCompile(`\w+-(\d+)`)
@@ -89,7 +89,7 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 		}
 	}
 
-	participant, ok := any(instance).(*model.Participant)
+	participant, ok := any(instance).(*view.Participant)
 
 	if !ok {
 		return nil
@@ -100,12 +100,10 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 	if !ok {
 		return nil
 	}
-	var prios []model.Priority
 	for i, courseName := range prioritizedCourseNames {
-		level := model.PriorityLevel(i + 1)
-		prios = append(prios, model.Priority{Course: model.Course{Name: courseName}, Level: level})
+		level := uint8(i + 1)
+		participant.Priorities = append(participant.Priorities, view.Priority{CourseName: courseName, Level: level})
 	}
-	participant.Priorities = prios
 
 	return nil
 }

@@ -66,7 +66,7 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) ParticipantsCreateAction(participant model.Participant, finish *sync.WaitGroup) model.Participant {
+func (c *TestClient) ParticipantsCreateAction(participant model.Participant, finish *sync.WaitGroup) view.Participant {
 	if finish != nil {
 		defer finish.Done()
 	}
@@ -91,7 +91,7 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, fin
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
-	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
+	participants, err := unmarshalAll[view.Participant](resp.Body, "participant-")
 	is.NoErr(err)
 
 	is.Equal(len(participants), 1)
@@ -99,7 +99,7 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, fin
 	return participants[0]
 }
 
-func (c *TestClient) ParticipantsIndexAction() []model.Participant {
+func (c *TestClient) ParticipantsIndexAction() []view.Participant {
 	is := is.New(c.T)
 
 	resp, err := c.client.Get(c.Endpoint("assignments"))
@@ -107,7 +107,7 @@ func (c *TestClient) ParticipantsIndexAction() []model.Participant {
 	is.Equal(resp.StatusCode, 200) // get participants did not return 200
 	defer resp.Body.Close()
 
-	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
+	participants, err := unmarshalAll[view.Participant](resp.Body, "participant-")
 	is.NoErr(err)
 
 	return participants
@@ -168,7 +168,7 @@ func (c *TestClient) CoursesDeleteAction(courseId int) {
 	is.Equal(resp.StatusCode, 200)
 }
 
-func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Course, []model.Participant) {
+func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Course, []view.Participant) {
 	if len(queryParams)%2 != 0 {
 		c.T.Fatal("Number of queryParams has to be even")
 	}
@@ -194,7 +194,7 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Cours
 	bodyBytes, err := io.ReadAll(resp.Body)
 	is.NoErr(err) // error while reading resp.Body to bytes
 
-	participants, err := unmarshalAll[model.Participant](bytes.NewReader(bodyBytes), "participant-")
+	participants, err := unmarshalAll[view.Participant](bytes.NewReader(bodyBytes), "participant-")
 	is.NoErr(err) // error while unmarshalling pariticpants
 	courses, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
 	is.NoErr(err) // error while unmarshalling courses

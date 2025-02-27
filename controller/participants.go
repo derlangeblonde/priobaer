@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/model/store"
+	"softbaer.dev/ass/view"
 )
 
 func ParticipantsIndex(c *gin.Context) {
@@ -26,9 +27,9 @@ func ParticipantsIndex(c *gin.Context) {
 	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": participants})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants)})
 	} else {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": participants})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants)})
 	}
 
 }
@@ -77,7 +78,7 @@ func ParticipantsCreate(c *gin.Context) {
 	validationErrors := participant.Valid()
 
 	if len(validationErrors) > 0 {
-		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": participant})
+		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": toViewParticipant(participant)})
 
 		return
 	}
@@ -120,7 +121,7 @@ func ParticipantsCreate(c *gin.Context) {
 	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/_show-with-new-button", participant)
+		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant))
 	} else {
 		c.Redirect(http.StatusSeeOther, "/assignments")
 	}
@@ -149,7 +150,6 @@ func ParticipantsDelete(c *gin.Context) {
 		slog.Error("Delete of participants failed on db level", "err", result.Error)
 		c.AbortWithStatus(http.StatusInternalServerError)
 
-		return
 	}
 
 	c.Data(http.StatusOK, "text/html", []byte(""))
@@ -157,4 +157,26 @@ func ParticipantsDelete(c *gin.Context) {
 
 func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
+}
+
+func toViewParticipant(model model.Participant) view.Participant{
+	result := view.Participant{
+		ID:         model.ID,
+		Prename:    model.Prename,
+		Surname:    model.Surname,
+		Priorities: []view.Priority{},
+	}
+
+	for _, prio := range model.Priorities {
+		result.Priorities = append(result.Priorities, view.Priority{CourseName: prio.Course.Name, Level: uint8(prio.Level)})
+	}
+
+	return result
+}
+
+func toViewParticipants(models []model.Participant) (results []view.Participant) {
+	for _, model := range models {
+		results = append(results, toViewParticipant(model))
+	}
+	return
 }

@@ -105,12 +105,12 @@ func AssignmentsIndex(c *gin.Context) {
 	viewCourses.UnassignedEntry.ShouldRender = true
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": participants, "courseList": viewCourses})
+		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants), "courseList": viewCourses})
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": participants, "courseList": viewCourses})
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants), "courseList": viewCourses})
 }
 
 type assignmentUpdateRequest struct {

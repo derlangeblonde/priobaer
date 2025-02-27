@@ -22,3 +22,15 @@ type CourseList struct {
 	UnassignedEntry  UnassignedEntry
 	NoCourseSelected bool
 }
+
+type Priority struct {
+	Level      uint8
+	CourseName string
+}
+
+type Participant struct {
+	ID         int
+	Prename    string
+	Surname    string
+	Priorities []Priority
+}
