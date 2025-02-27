@@ -4,19 +4,26 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"golang.org/x/net/html"
+	"softbaer.dev/ass/model"
 )
 
 var idExtractionRegex *regexp.Regexp = regexp.MustCompile(`\w+-(\d+)`)
 
 func unmarshalAll[T any](body io.Reader, prefix string) (all []T, err error) {
-	doc, err := html.Parse(body)
+	b, err := io.ReadAll(body)
+	str := string(b)
+	if err != nil {
+		return all, err
+	}
+	// slog.Error("[htmldump]", "html", str)
+
+	doc, err := html.Parse(strings.NewReader(str))
 
 	if err != nil {
 		return all, err
@@ -53,7 +60,6 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 	}
 
 	namesToValues, namesToSliceValues := fieldValuesFromDataNodes(node)
-	slog.Error("[debug]", "namesToSliceValues", namesToSliceValues)
 	namesToValues["id"] = id
 
 	typeOfT := v.Type()
@@ -65,7 +71,10 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 
 		value, ok := namesToValues[fieldNameLower]
 
-		if ok {
+		if !ok {
+			continue
+		}
+
 		switch field.Kind() {
 		case reflect.String:
 			field.SetString(value)
@@ -78,26 +87,25 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 
 			field.SetInt(int64(intValue))
 		}
-		}
-
-		values, ok := namesToSliceValues[fieldNameLower]
-
-		if !ok || field.Kind() != reflect.Slice {
-			continue
-		}
-
-		switch field.Elem().Kind() {
-		case reflect.String:
-			slice := reflect.MakeSlice(reflect.TypeOf("string"), 0, 0)
-			for _, v := range values {
-				slice = reflect.AppendSlice(slice, reflect.ValueOf(v))
-			}
-			field.Set(slice)
-		case reflect.Int:
-			panic("IMPLEMENT ME")
-		}
-
 	}
+
+	participant, ok := any(instance).(*model.Participant)
+
+	if !ok {
+		return nil
+	}
+
+	prioritizedCourseNames, ok := namesToSliceValues["priorities"]
+
+	if !ok {
+		return nil
+	}
+	var prios []model.Priority
+	for i, courseName := range prioritizedCourseNames {
+		level := model.PriorityLevel(i + 1)
+		prios = append(prios, model.Priority{Course: model.Course{Name: courseName}, Level: level})
+	}
+	participant.Priorities = prios
 
 	return nil
 }
@@ -161,7 +169,7 @@ func extractId(node *html.Node) (id string, err error) {
 	return id, nil
 }
 
-var slicePropertyNameRegex = regexp.MustCompile(`^(\w+)_(\d+)$`)
+var slicePropertyNameRegex = regexp.MustCompile(`^(\w+)-(\d+)$`)
 
 func fieldValuesFromDataNodes(node *html.Node) (map[string]string, map[string][]string) {
 	dataNodes := findAllDataTags(node)
@@ -179,6 +187,7 @@ func fieldValuesFromDataNodes(node *html.Node) (map[string]string, map[string][]
 			// that dataNodes come in the correct order?
 			// index := match[2]
 			existingSlice, ok := namesToSliceValues[name]
+			// slog.Error("[debug]", "name", name)
 			if ok {
 				namesToSliceValues[name] = append(existingSlice, getInnerTextData(dataNode))
 			} else {

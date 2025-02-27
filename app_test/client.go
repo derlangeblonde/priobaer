@@ -73,15 +73,15 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, fin
 
 	is := is.New(c.T)
 
-	var prioritizedCourseIDs []int
+	var prioritizedCourseIDsArgs []string = []string{"prename", participant.Prename, "surname", participant.Surname}
 	for _, prio := range participant.Priorities {
-		prioritizedCourseIDs = append(prioritizedCourseIDs, prio.CourseID)
+		prioritizedCourseIDsArgs = append(prioritizedCourseIDsArgs, "prio[]")
+		prioritizedCourseIDsArgs = append(prioritizedCourseIDsArgs, strconv.Itoa(prio.CourseID))
 	}
 
 	req := c.RequestWithFormBody(
 		"POST", c.Endpoint("participants"),
-		"prename", participant.Prename,
-		"surname", participant.Surname,
+		prioritizedCourseIDsArgs...,
 	)
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -112,7 +112,6 @@ func (c *TestClient) ParticipantsIndexAction() []model.Participant {
 
 	return participants
 }
-
 
 func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) view.Course {
 	if finish != nil {
@@ -170,14 +169,14 @@ func (c *TestClient) CoursesDeleteAction(courseId int) {
 }
 
 func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Course, []model.Participant) {
-	if len(queryParams) % 2 != 0 {
+	if len(queryParams)%2 != 0 {
 		c.T.Fatal("Number of queryParams has to be even")
 	}
 	is := is.New(c.T)
 
 	endpoint := c.Endpoint("assignments")
 
-	var foo [] string
+	var foo []string
 	for keyValueSlice := range slices.Chunk(queryParams, 2) {
 		keyValuePair := fmt.Sprintf("%s=%s", keyValueSlice[0], keyValueSlice[1])
 		foo = append(foo, keyValuePair)
@@ -198,7 +197,7 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Cours
 	participants, err := unmarshalAll[model.Participant](bytes.NewReader(bodyBytes), "participant-")
 	is.NoErr(err) // error while unmarshalling pariticpants
 	courses, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
-	is.NoErr(err) // error while unmarshalling courses 
+	is.NoErr(err) // error while unmarshalling courses
 
 	return courses, participants
 }

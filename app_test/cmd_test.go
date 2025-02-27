@@ -41,7 +41,6 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 
 	testClient := NewTestClient(t, localhost)
 
-
 	var expectedCourses []model.Course
 
 	for i := 0; i < requestCount; i++ {
@@ -109,7 +108,6 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-
 	expectedCourse := model.RandomCourse()
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
@@ -156,13 +154,13 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 	ctx := NewTestClient(t, localhost)
 
 	wantCourse := model.RandomCourse()
-	ctx.CoursesCreateAction(wantCourse, nil)
+	viewCourse := ctx.CoursesCreateAction(wantCourse, nil)
 
 	wantParticipant := model.RandomParticipant()
-	wantParticipant.Priorities = []model.Priority{{CourseID: wantCourse.ID, Level: 1}}
+	wantParticipant.Priorities = []model.Priority{{CourseID: viewCourse.ID, Level: 1}}
 	ctx.ParticipantsCreateAction(wantParticipant, nil)
 
-	participants := ctx.ParticipantsIndexAction()
+	_, participants := ctx.AssignmentsIndexAction()
 
 	is.Equal(len(participants), 1)
 
@@ -170,7 +168,7 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 
 	is.Equal(actualParticipant.Prename, wantParticipant.Prename) // created and retrieved participant should be the same.
 	is.Equal(actualParticipant.Surname, wantParticipant.Surname) // created and retrieved participant should be the same.
-	is.Equal(len(actualParticipant.Priorities), 1) // created a priority that should be retrieved again. 
+	is.Equal(len(actualParticipant.Priorities), 1)               // created a priority that should be retrieved again.
 }
 
 func countSQLiteFiles(dir string) (int, error) {

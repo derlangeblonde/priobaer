@@ -98,13 +98,13 @@ func ParticipantsCreate(c *gin.Context) {
 				)
 				c.AbortWithStatus(http.StatusConflict)
 
-				return err
+				return result.Error
 			}
 
-			slog.Error("Unexpected error while creating participant", "err", err)
+			slog.Error("Unexpected error while creating participant", "err", result.Error)
 			c.AbortWithStatus(http.StatusInternalServerError)
 
-			return err
+			return result.Error
 		}
 
 		if err := store.PopulatePrioritizedCourseNames(tx, &participant); err != nil {
