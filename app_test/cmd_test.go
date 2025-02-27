@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/cmd/server"
+	"softbaer.dev/ass/internal/server"
 	"softbaer.dev/ass/model"
 )
 

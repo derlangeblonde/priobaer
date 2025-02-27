@@ -3,7 +3,7 @@
 	<label> Prioritäten </label>
 	<ol>
 		{{ range .Priorities }}
-			<li> <data class="priority-{{ .Level }}">{{ .Course.Name }}</data> </li>
+			<li> <data class="priorities-{{ .Level }}">{{ .Course.Name }}</data> </li>
 		{{ end }}
 	</ol>
 	<a hx-delete="participants/{{ .ID }}" hx-target="#participant-{{ .ID }}" hx-confirm="Möchten Sie diesen Teilnehmer wirklich löschen?" class="link">Löschen</a>

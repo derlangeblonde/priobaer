@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/jonboulle/clockwork"
-	"softbaer.dev/ass/cmd/server"
+	"softbaer.dev/ass/internal/server"
 )
 
 type SystemUnderTest struct {

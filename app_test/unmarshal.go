@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -51,7 +52,8 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 		return fmt.Errorf("expected a struct pointer, got %T", instance)
 	}
 
-	namesToValues := fieldValuesFromDataNodes(node)
+	namesToValues, namesToSliceValues := fieldValuesFromDataNodes(node)
+	slog.Error("[debug]", "namesToSliceValues", namesToSliceValues)
 	namesToValues["id"] = id
 
 	typeOfT := v.Type()
@@ -63,10 +65,7 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 
 		value, ok := namesToValues[fieldNameLower]
 
-		if !ok {
-			continue
-		}
-
+		if ok {
 		switch field.Kind() {
 		case reflect.String:
 			field.SetString(value)
@@ -79,6 +78,25 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 
 			field.SetInt(int64(intValue))
 		}
+		}
+
+		values, ok := namesToSliceValues[fieldNameLower]
+
+		if !ok || field.Kind() != reflect.Slice {
+			continue
+		}
+
+		switch field.Elem().Kind() {
+		case reflect.String:
+			slice := reflect.MakeSlice(reflect.TypeOf("string"), 0, 0)
+			for _, v := range values {
+				slice = reflect.AppendSlice(slice, reflect.ValueOf(v))
+			}
+			field.Set(slice)
+		case reflect.Int:
+			panic("IMPLEMENT ME")
+		}
+
 	}
 
 	return nil
@@ -143,16 +161,36 @@ func extractId(node *html.Node) (id string, err error) {
 	return id, nil
 }
 
-func fieldValuesFromDataNodes(node *html.Node) map[string]string {
+var slicePropertyNameRegex = regexp.MustCompile(`^(\w+)_(\d+)$`)
+
+func fieldValuesFromDataNodes(node *html.Node) (map[string]string, map[string][]string) {
 	dataNodes := findAllDataTags(node)
 
 	namesToValues := make(map[string]string)
+	namesToSliceValues := make(map[string][]string)
 
 	for _, dataNode := range dataNodes {
-		namesToValues[getClass(dataNode)] = getInnerTextData(dataNode)
+		name := getClass(dataNode)
+		match := slicePropertyNameRegex.FindStringSubmatch(name)
+
+		if len(match) == 3 {
+			name = match[1]
+			// TODO: not sure if index is important or whether we can rely on
+			// that dataNodes come in the correct order?
+			// index := match[2]
+			existingSlice, ok := namesToSliceValues[name]
+			if ok {
+				namesToSliceValues[name] = append(existingSlice, getInnerTextData(dataNode))
+			} else {
+				namesToSliceValues[name] = []string{getInnerTextData(dataNode)}
+			}
+		} else {
+			namesToValues[name] = getInnerTextData(dataNode)
+		}
+
 	}
 
-	return namesToValues
+	return namesToValues, namesToSliceValues
 }
 
 func findAllDataTags(node *html.Node) []*html.Node {
