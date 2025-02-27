@@ -21,7 +21,6 @@ func unmarshalAll[T any](body io.Reader, prefix string) (all []T, err error) {
 	if err != nil {
 		return all, err
 	}
-	// slog.Error("[htmldump]", "html", str)
 
 	doc, err := html.Parse(strings.NewReader(str))
 
@@ -185,7 +184,6 @@ func fieldValuesFromDataNodes(node *html.Node) (map[string]string, map[string][]
 			// that dataNodes come in the correct order?
 			// index := match[2]
 			existingSlice, ok := namesToSliceValues[name]
-			// slog.Error("[debug]", "name", name)
 			if ok {
 				namesToSliceValues[name] = append(existingSlice, getInnerTextData(dataNode))
 			} else {
