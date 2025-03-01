@@ -36,10 +36,11 @@ func TestCanAddPriorityOfParticipantToCourse(t *testing.T) {
 	err := SetPriorities(db, participant.ID, []int{course.ID})
 	is.NoErr(err) // SetPriorities failed
 
-	db.Preload("Priorities").First(&participant)
+	prioritizedCourseIDs, err := GetPriorities(db, participant.ID)
+	is.NoErr(err)
 
-	is.Equal(participant.Priorities[0].CourseID, course.ID) // want courseID of participants first priority to be the course for which we added the priority
-	is.Equal(participant.Priorities[0].Level , model.PriorityLevel(1)) // want priority level to be 1 
+	is.Equal(len(prioritizedCourseIDs), 1)
+	is.Equal(prioritizedCourseIDs[0], course.ID)
 }
 
 func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
@@ -52,7 +53,7 @@ func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
 	courseIds := make([]int, model.MaxPriorityLevel + 1)
 
 	err := SetPriorities(db, participant.ID, courseIds)
-	is.True(err != nil) // SetPriorities did not fail
+	is.True(err != nil) // want SetPriorities to fail
 }
 
 func TestSetPrioritiesOverwritesExistingPriorities(t *testing.T) {
@@ -70,11 +71,12 @@ func TestSetPrioritiesOverwritesExistingPriorities(t *testing.T) {
 	SetPriorities(db, participant.ID, model.MapToCourseId(oldPrioritizedCourses))
 	SetPriorities(db, participant.ID, model.MapToCourseId(newPrioritizedCourses))
 
-	db.Preload("Priorities").First(&participant)
+	prioritizedCourseIds, err := GetPriorities(db, participant.ID)
+	is.NoErr(err)
 
-	is.Equal(len(participant.Priorities), 5) // want 5 priorities
-	for i, priority := range participant.Priorities {
-		is.Equal(priority.CourseID, newPrioritizedCourses[i].ID) // want the courseID of the priority to be the courseID of the new prioritized course
+	is.Equal(len(prioritizedCourseIds), 5) // want 5 priorities
+	for i, courseId := range prioritizedCourseIds {
+		is.Equal(courseId, newPrioritizedCourses[i].ID) // want the courseID of the priority to be the courseID of the new prioritized course
 	}
 }
 
@@ -96,7 +98,8 @@ func TestSetPrioritiesToLengthZeroEffectivelyDeletesPriorities(t *testing.T) {
 	err := SetPriorities(db, participant.ID, []int{})
 	is.NoErr(err) // SetPriorities failed
 
-	db.Preload("Priorities").First(&participant)
+	prioritizedCourseIds, err := GetPriorities(db, participant.ID)
+	is.NoErr(err)
 
-	is.Equal(len(participant.Priorities), 0) // want no priorities
+	is.Equal(len(prioritizedCourseIds), 0) // want no priorities
 }
