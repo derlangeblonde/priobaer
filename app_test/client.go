@@ -66,17 +66,22 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) ParticipantsCreateAction(participant model.Participant, finish *sync.WaitGroup) model.Participant {
+func (c *TestClient) ParticipantsCreateAction(participant model.Participant, finish *sync.WaitGroup) view.Participant {
 	if finish != nil {
 		defer finish.Done()
 	}
 
 	is := is.New(c.T)
 
+	var prioritizedCourseIDsArgs []string = []string{"prename", participant.Prename, "surname", participant.Surname}
+	for _, prio := range participant.Priorities {
+		prioritizedCourseIDsArgs = append(prioritizedCourseIDsArgs, "prio[]")
+		prioritizedCourseIDsArgs = append(prioritizedCourseIDsArgs, strconv.Itoa(prio.CourseID))
+	}
+
 	req := c.RequestWithFormBody(
 		"POST", c.Endpoint("participants"),
-		"prename", participant.Prename,
-		"surname", participant.Surname,
+		prioritizedCourseIDsArgs...,
 	)
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -86,12 +91,26 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, fin
 	is.NoErr(err) // post request failed
 	defer resp.Body.Close()
 
-	participants, err := unmarshalAll[model.Participant](resp.Body, "participant-")
+	participants, err := unmarshalAll[view.Participant](resp.Body, "participant-")
 	is.NoErr(err)
 
 	is.Equal(len(participants), 1)
 
 	return participants[0]
+}
+
+func (c *TestClient) ParticipantsIndexAction() []view.Participant {
+	is := is.New(c.T)
+
+	resp, err := c.client.Get(c.Endpoint("assignments"))
+	is.NoErr(err)                  // get request failed
+	is.Equal(resp.StatusCode, 200) // get participants did not return 200
+	defer resp.Body.Close()
+
+	participants, err := unmarshalAll[view.Participant](resp.Body, "participant-")
+	is.NoErr(err)
+
+	return participants
 }
 
 func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) view.Course {
@@ -149,15 +168,15 @@ func (c *TestClient) CoursesDeleteAction(courseId int) {
 	is.Equal(resp.StatusCode, 200)
 }
 
-func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Course, []model.Participant) {
-	if len(queryParams) % 2 != 0 {
+func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Course, []view.Participant) {
+	if len(queryParams)%2 != 0 {
 		c.T.Fatal("Number of queryParams has to be even")
 	}
 	is := is.New(c.T)
 
 	endpoint := c.Endpoint("assignments")
 
-	var foo [] string
+	var foo []string
 	for keyValueSlice := range slices.Chunk(queryParams, 2) {
 		keyValuePair := fmt.Sprintf("%s=%s", keyValueSlice[0], keyValueSlice[1])
 		foo = append(foo, keyValuePair)
@@ -175,10 +194,10 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]view.Cours
 	bodyBytes, err := io.ReadAll(resp.Body)
 	is.NoErr(err) // error while reading resp.Body to bytes
 
-	participants, err := unmarshalAll[model.Participant](bytes.NewReader(bodyBytes), "participant-")
+	participants, err := unmarshalAll[view.Participant](bytes.NewReader(bodyBytes), "participant-")
 	is.NoErr(err) // error while unmarshalling pariticpants
 	courses, err := unmarshalAll[view.Course](bytes.NewReader(bodyBytes), "course-")
-	is.NoErr(err) // error while unmarshalling courses 
+	is.NoErr(err) // error while unmarshalling courses
 
 	return courses, participants
 }

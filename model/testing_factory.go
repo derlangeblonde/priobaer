@@ -40,6 +40,12 @@ func WithCourseId(id int) CourseOption {
 	}
 }
 
+func WithCourseName(name string) CourseOption {
+	return func(c *Course) {
+		c.Name = name 
+	}
+}
+
 func WithCapacity(min, max int) CourseOption {
 	return func(c *Course) {
 		c.MinCapacity = min

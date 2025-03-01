@@ -12,8 +12,9 @@ import (
 	"time"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/cmd"
+	"softbaer.dev/ass/internal/server"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/view"
 )
 
 func TestConcurrentRequestsDontCorruptData(t *testing.T) {
@@ -40,7 +41,6 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 	wg.Add(requestCount)
 
 	testClient := NewTestClient(t, localhost)
-
 
 	var expectedCourses []model.Course
 
@@ -102,13 +102,12 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go cmd.Run(ctx, mockEnv, defaultFakeClock())
+	go server.Run(ctx, mockEnv, defaultFakeClock())
 
 	err := defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
 	testClient := NewTestClient(t, localhost)
-
 
 	expectedCourse := model.RandomCourse()
 	testClient.CoursesCreateAction(expectedCourse, nil)
@@ -118,7 +117,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 	ctx, cancel = context.WithCancel(context.Background())
 	defer waitForTerminationDefault(cancel)
 
-	go cmd.Run(ctx, mockEnv, defaultFakeClock())
+	go server.Run(ctx, mockEnv, defaultFakeClock())
 	err = defaultWaitForReady()
 	is.NoErr(err) // Service was not ready
 
@@ -145,6 +144,68 @@ func TestCreateAndReadCourse(t *testing.T) {
 	is.Equal(len(courses), 1)
 
 	is.True(reflect.DeepEqual(courses[0].Name, expectedCourse.Name)) // created and retrieved course should be the same
+}
+
+func TestCreateAndReadParticpantWithPrios(t *testing.T) {
+	is := is.New(t)
+	tcs := []struct {
+		nPrioritizedCourses   int
+		nOtherCourses         int
+		nBackgroundCharacters int
+	}{
+		{1, 1, 4},
+		{3, 4, 6},
+	}
+
+	for _, tc := range tcs {
+		func() {
+			sut := StartupSystemUnderTest(t, nil)
+			defer waitForTerminationDefault(sut.cancel)
+
+			ctx := NewTestClient(t, localhost)
+
+			wantParticipant := model.RandomParticipant()
+
+			var wantCourses []view.Course
+			for i := 0; i < tc.nPrioritizedCourses; i++ {
+				wantCourses = append(wantCourses, ctx.CoursesCreateAction(model.RandomCourse(
+					model.WithCourseName(strconv.Itoa(i + 1)),
+				), nil))
+				wantParticipant.Priorities = append(wantParticipant.Priorities, model.Priority{CourseID: wantCourses[i].ID, Course: model.Course{Name: wantCourses[i].Name}, Level: model.PriorityLevel(i + 1)})
+			}
+			for i := 0; i < tc.nOtherCourses; i++ {
+				ctx.CoursesCreateAction(model.RandomCourse(), nil)
+			}
+
+			ctx.ParticipantsCreateAction(wantParticipant, nil)
+
+			for i := 0; i < tc.nBackgroundCharacters; i++ {
+				ctx.ParticipantsCreateAction(model.RandomParticipant(), nil)
+			}
+
+			_, renderedParticipants := ctx.AssignmentsIndexAction()
+
+			is.Equal(len(renderedParticipants), tc.nBackgroundCharacters+1)
+
+			var gotParticipant view.Participant
+			for _, renderedParticipant := range renderedParticipants {
+				if renderedParticipant.Surname == wantParticipant.Surname {
+					gotParticipant = renderedParticipant
+					break
+				}
+			}
+
+			is.Equal(gotParticipant.Prename, wantParticipant.Prename) // created and retrieved participant should be the same.
+			is.Equal(gotParticipant.Surname, wantParticipant.Surname) // created and retrieved participant should be the same.
+			is.Equal(len(gotParticipant.Priorities), tc.nPrioritizedCourses) // want as many priorities as were created
+
+			for i := 0; i < tc.nPrioritizedCourses; i++ {
+				is.Equal(gotParticipant.Priorities[i].CourseName, wantCourses[i].Name)
+			}
+
+		}()
+	}
+
 }
 
 func countSQLiteFiles(dir string) (int, error) {

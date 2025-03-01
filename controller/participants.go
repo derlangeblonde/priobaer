@@ -2,12 +2,15 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/model/store"
+	"softbaer.dev/ass/view"
 )
 
 func ParticipantsIndex(c *gin.Context) {
@@ -24,21 +27,34 @@ func ParticipantsIndex(c *gin.Context) {
 	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": participants})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants)})
 	} else {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": participants})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants)})
 	}
 
 }
 
 func ParticipantsNew(c *gin.Context) {
-	c.HTML(http.StatusOK, "participants/_new", gin.H{"Errors": make(map[string]string, 0)})
+	db := GetDB(c)
+	var courses model.Courses
+	if err := db.Select("id", "name").Find(&courses).Error; err != nil {
+		// TODO: für sqlite3.Error vereinheitlichen!
+		// Ich möchte einen Mechanismus, sodass ich mit wenig Boilerplate und mental-overhead
+		// (automatisch) für den Typ sqlite3.Error einen Dialog im Fronted rendere.
+		// Dialog mit einer entsprechend generischen Fehlermeldung.
+		DbError(c, err, "ParticipantsNew")
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "participants/_new", gin.H{"Errors": make(map[string]string, 0), "Courses": courses})
 }
 
 func ParticipantsCreate(c *gin.Context) {
 	type request struct {
-		Prename string `form:"prename"`
-		Surname string `form:"surname"`
+		Prename              string `form:"prename"`
+		Surname              string `form:"surname"`
+		PrioritizedCourseIDs []int  `form:"prio[]"`
 	}
 
 	db := GetDB(c)
@@ -50,36 +66,62 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
+	if len(req.PrioritizedCourseIDs) > model.MaxPriorityLevel {
+		c.HTML(422,
+			"participants/_new",
+			gin.H{"Errors": map[string]string{"priorities": fmt.Sprintf("Maximale Anzahl an Prioritäten (%d) überschritten", len(req.PrioritizedCourseIDs))}},
+		)
+		return
+	}
+
 	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
 	validationErrors := participant.Valid()
 
 	if len(validationErrors) > 0 {
-		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": participant})
+		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": toViewParticipant(participant)})
 
 		return
 	}
 
-	result := db.Create(&participant)
+	for i, courseID := range req.PrioritizedCourseIDs {
+		prio := model.Priority{CourseID: courseID, Level: model.PriorityLevel(i + 1)}
+		participant.Priorities = append(participant.Priorities, prio)
+	}
 
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrCheckConstraintViolated) {
-			slog.Error("Constraint violated while creating particpiant",
-				"err", err,
-				"particpaints.Prename", participant.Prename,
-				"participants.Surname", participant.Surname)
-			c.AbortWithStatus(http.StatusConflict)
+	err = db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Create(&participant)
 
-			return
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrCheckConstraintViolated) {
+				slog.Error("Constraint violated while creating particpiant",
+					"err", err,
+					"particpaints.ID", participant.ID,
+				)
+				c.AbortWithStatus(http.StatusConflict)
+
+				return result.Error
+			}
+
+			slog.Error("Unexpected error while creating participant", "err", result.Error)
+			c.AbortWithStatus(http.StatusInternalServerError)
+
+			return result.Error
 		}
 
-		slog.Error("Unexpected error while creating participant", "err", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		if err := store.PopulatePrioritizedCourseNames(tx, &participant); err != nil {
+			DbError(c, err, "ParticipantsCreate")
+			return err
+		}
 
+		return nil
+	})
+
+	if err != nil {
 		return
 	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/_show-with-new-button", participant)
+		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant))
 	} else {
 		c.Redirect(http.StatusSeeOther, "/assignments")
 	}
@@ -103,12 +145,17 @@ func ParticipantsDelete(c *gin.Context) {
 
 	participant := model.Participant{ID: int(req.ID)}
 	result := db.Unscoped().Delete(&participant)
+	// TODO:
+	// 2025/02/28 00:04:31 /home/joni/dev/ass/controller/participants.go:147 FOREIGN KEY constraint failed
+	// [0.681ms] [rows:0] DELETE FROM `participants` WHERE `participants`.`id` = 5
+	// 2025/02/28 00:04:31 ERROR Delete of participants failed on db level err="FOREIGN KEY constraint failed"
+	// [GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 200
+
 
 	if result.Error != nil {
 		slog.Error("Delete of participants failed on db level", "err", result.Error)
 		c.AbortWithStatus(http.StatusInternalServerError)
 
-		return
 	}
 
 	c.Data(http.StatusOK, "text/html", []byte(""))
@@ -116,4 +163,26 @@ func ParticipantsDelete(c *gin.Context) {
 
 func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
+}
+
+func toViewParticipant(model model.Participant) view.Participant{
+	result := view.Participant{
+		ID:         model.ID,
+		Prename:    model.Prename,
+		Surname:    model.Surname,
+		Priorities: []view.Priority{},
+	}
+
+	for _, prio := range model.Priorities {
+		result.Priorities = append(result.Priorities, view.Priority{CourseName: prio.Course.Name, Level: uint8(prio.Level)})
+	}
+
+	return result
+}
+
+func toViewParticipants(models []model.Participant) (results []view.Participant) {
+	for _, model := range models {
+		results = append(results, toViewParticipant(model))
+	}
+	return
 }

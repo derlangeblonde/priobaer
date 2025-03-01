@@ -8,6 +8,7 @@ import (
 	"github.com/matryer/is"
 	"softbaer.dev/ass/model"
 	"softbaer.dev/ass/util"
+	"softbaer.dev/ass/view"
 )
 
 func TestParticipantsAreUnassignedIntially(t *testing.T) {
@@ -183,7 +184,7 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	var participant model.Participant
+	var participant view.Participant
 	for i := 0; i < 3; i ++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
 	}
@@ -208,7 +209,7 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 
 	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 
-	var participant model.Participant
+	var participant view.Participant
 	for i := 0; i < 3; i ++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
@@ -232,7 +233,7 @@ func TestParticipantsGetUnassignedWhenTheirAssignedCourseIsDeleted(t *testing.T)
 
 	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 
-	var participant model.Participant
+	var participant view.Participant
 	for i := 0; i < 3; i ++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))

@@ -1,4 +1,4 @@
-package cmd
+package server
 
 import (
 	"context"
@@ -47,7 +47,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		},
 	)
 
-	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&model.Course{}, &model.Participant{}})
+	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&model.Course{}, &model.Participant{}, &model.Priority{}})
 
 	if err != nil {
 		panic(err)

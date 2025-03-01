@@ -1,5 +1,11 @@
 <div id="participant-{{ .ID }}" class="clickable" draggable="true" ondragstart="dragStart(event)">
 	{{ Field "Surname" . }}, {{ Field "Prename" . }} <br>
+	<label> Prioritäten </label>
+	<ol class="row">
+		{{ range .Priorities }}
+			<li> <data class="priorities-{{ .Level }}">{{ .CourseName }}</data> </li>
+		{{ end }}
+	</ol>
 	<a hx-delete="participants/{{ .ID }}" hx-target="#participant-{{ .ID }}" hx-confirm="Möchten Sie diesen Teilnehmer wirklich löschen?" class="link">Löschen</a>
 	<hr>
 </div>

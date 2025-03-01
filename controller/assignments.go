@@ -14,7 +14,7 @@ import (
 func AssignmentsIndex(c *gin.Context) {
 	type request struct {
 		CourseIdSelected *int `form:"selected-course"`
-		Solve bool `form:"solve"`
+		Solve            bool `form:"solve"`
 	}
 
 	db := GetDB(c)
@@ -50,9 +50,9 @@ func AssignmentsIndex(c *gin.Context) {
 					return err
 				}
 
-				return nil	
+				return nil
 			},
-		)		
+		)
 
 		if err != nil {
 			slog.Error("Error while trying to solve assignment", "err", err)
@@ -60,16 +60,20 @@ func AssignmentsIndex(c *gin.Context) {
 
 			return
 		}
-	} 
+	}
 
-	participants := make([]model.Participant, 0)
+	var participants []model.Participant
 	var result *gorm.DB
 
 	if req.CourseIdSelected == nil {
-		result = db.Where("course_id is null").Find(&participants)
+		result = db.Preload("Priorities", func(db *gorm.DB) *gorm.DB {
+			return db.Order("level ASC")
+		}).Preload("Priorities.Course").Where("course_id is null").Find(&participants)
 	} else {
 		courseID := *req.CourseIdSelected
-		result = db.Where("course_id = ?", courseID).Find(&participants)
+		result = db.Preload("Priorities", func(db *gorm.DB) *gorm.DB {
+			return db.Order("level ASC")
+		}).Preload("Priorities.Course").Where("course_id = ?", courseID).Find(&participants)
 	}
 
 	if result.Error != nil {
@@ -79,8 +83,11 @@ func AssignmentsIndex(c *gin.Context) {
 		return
 	}
 
+	// TODO: this might be possible more effiently?
+	// like fetch all courses with particpants and populate priorities from there
+	// order by could also go into the populate function
 	var courses []model.Course
-	result = db.Model(&model.Course{}).Preload("Participants").Find(&courses)
+	result = db.Preload("Participants").Find(&courses)
 
 	if result.Error != nil {
 		slog.Error("Unexpected error while getting all courses from db", "err", result.Error)
@@ -105,12 +112,12 @@ func AssignmentsIndex(c *gin.Context) {
 	viewCourses.UnassignedEntry.ShouldRender = true
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": participants, "courseList": viewCourses})
+		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants), "courseList": viewCourses})
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": participants, "courseList": viewCourses})
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants), "courseList": viewCourses})
 }
 
 type assignmentUpdateRequest struct {
