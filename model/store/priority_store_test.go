@@ -36,11 +36,12 @@ func TestCanAddPriorityOfParticipantToCourse(t *testing.T) {
 	err := SetPriorities(db, participant.ID, []int{course.ID})
 	is.NoErr(err) // SetPriorities failed
 
-	prioritizedCourseIDs, err := GetPriorities(db, participant.ID)
+	prioritizedCourses, err := GetPriorities(db, participant.ID)
 	is.NoErr(err)
 
-	is.Equal(len(prioritizedCourseIDs), 1)
-	is.Equal(prioritizedCourseIDs[0], course.ID)
+	is.Equal(len(prioritizedCourses), 1)
+	is.Equal(prioritizedCourses[0].ID, course.ID)
+	is.Equal(prioritizedCourses[0].Name, course.Name)
 }
 
 func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
@@ -71,12 +72,13 @@ func TestSetPrioritiesOverwritesExistingPriorities(t *testing.T) {
 	SetPriorities(db, participant.ID, model.MapToCourseId(oldPrioritizedCourses))
 	SetPriorities(db, participant.ID, model.MapToCourseId(newPrioritizedCourses))
 
-	prioritizedCourseIds, err := GetPriorities(db, participant.ID)
+	prioritizedCourses, err := GetPriorities(db, participant.ID)
 	is.NoErr(err)
 
-	is.Equal(len(prioritizedCourseIds), 5) // want 5 priorities
-	for i, courseId := range prioritizedCourseIds {
-		is.Equal(courseId, newPrioritizedCourses[i].ID) // want the courseID of the priority to be the courseID of the new prioritized course
+	is.Equal(len(prioritizedCourses), 5) // want 5 priorities
+	for i, course := range prioritizedCourses {
+		is.Equal(course.ID, newPrioritizedCourses[i].ID) // want the courseID of the priority to be the courseID of the new prioritized course
+		is.Equal(course.Name, newPrioritizedCourses[i].Name) // want the courseName of the priority to be the courseName of the new prioritized course
 	}
 }
 
@@ -98,8 +100,8 @@ func TestSetPrioritiesToLengthZeroEffectivelyDeletesPriorities(t *testing.T) {
 	err := SetPriorities(db, participant.ID, []int{})
 	is.NoErr(err) // SetPriorities failed
 
-	prioritizedCourseIds, err := GetPriorities(db, participant.ID)
+	prioritizedCourses, err := GetPriorities(db, participant.ID)
 	is.NoErr(err)
 
-	is.Equal(len(prioritizedCourseIds), 0) // want no priorities
+	is.Equal(len(prioritizedCourses), 0) // want no priorities
 }

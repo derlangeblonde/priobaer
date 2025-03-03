@@ -30,14 +30,18 @@ func SetPriorities(tx *gorm.DB, participantID int, courseIDs []int) error {
 	return nil
 }
 
-func GetPriorities(tx *gorm.DB, participantID int) (courseIDs []int, err error) {
+func GetPriorities(tx *gorm.DB, participantID int) (courses []model.Course, err error) {
 	var priorities model.Priorities
 	err = tx.Select("course_id").Where("participant_id = ?", participantID).Order("level ASC").Find(&priorities).Error
 	if err != nil {
 		return 
 	}
 
-	return priorities.CourseIDs(), nil
+	if err = tx.Select("id, name").Where("id IN ?", priorities.CourseIDs()).Find(&courses).Error; err != nil {
+		return 
+	}
+
+	return courses, nil
 }
 
 func PopulatePrioritizedCourseNames(tx *gorm.DB, participant *model.Participant) error {
