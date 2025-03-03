@@ -105,3 +105,38 @@ func TestSetPrioritiesToLengthZeroEffectivelyDeletesPriorities(t *testing.T) {
 
 	is.Equal(len(prioritizedCourses), 0) // want no priorities
 }
+
+func TestGetPrioritiesForMultipleReturnsPrioritiesInCorrectOrder(t *testing.T) {
+	is := is.New(t)
+	db := setupTestDb(t)
+
+	participants := model.RandomParticipants(3)
+	is.NoErr(db.Create(&participants).Error) // could not create a participant
+	courses := model.RandomCourses(3)
+	is.NoErr(db.Create(&courses).Error) // could not create a course
+
+	wantMap := make(map[int][]model.Course)
+	wantMap[participants[0].ID] = []model.Course{courses[0], courses[1], courses[2]}
+	wantMap[participants[1].ID] = []model.Course{courses[1], courses[2], courses[0]}
+	wantMap[participants[2].ID] = []model.Course{courses[2], courses[0], courses[1]}
+
+	var participantIDs []int
+	for participantID, wantCourses := range wantMap {
+		SetPriorities(db, participantID, model.MapToCourseId(wantCourses))
+		participantIDs = append(participantIDs, participantID)
+	}
+
+	gotMap, err := GetPrioritiesForMultiple(db, participantIDs)
+	is.NoErr(err)
+
+	is.Equal(len(gotMap), 3) // want 3 entries 
+
+	for participantID, gotPrioritizedCourses := range gotMap {
+		is.Equal(len(gotPrioritizedCourses), 3) // want 3 priorities per participant
+		wantCourses := wantMap[participantID]
+		for i, gotCourse := range gotPrioritizedCourses {
+			is.Equal(gotCourse.ID, wantCourses[i].ID) // prioritized courses in wrong order
+			is.Equal(gotCourse.Name, wantCourses[i].Name) // prioritized courses in wrong order
+		}
+	}
+}
