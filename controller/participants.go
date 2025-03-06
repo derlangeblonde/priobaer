@@ -27,9 +27,9 @@ func ParticipantsIndex(c *gin.Context) {
 	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants)})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, make(map[int][]model.Course))})
 	} else {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants)})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, make(map[int][]model.Course))})
 	}
 
 }
@@ -78,7 +78,7 @@ func ParticipantsCreate(c *gin.Context) {
 	validationErrors := participant.Valid()
 
 	if len(validationErrors) > 0 {
-		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": toViewParticipant(participant)})
+		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": toViewParticipant(participant, make([]model.Course, 0))})
 
 		return
 	}
@@ -121,7 +121,7 @@ func ParticipantsCreate(c *gin.Context) {
 	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant))
+		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant, make([]model.Course, 0)))
 	} else {
 		c.Redirect(http.StatusSeeOther, "/assignments")
 	}
@@ -165,7 +165,7 @@ func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
 }
 
-func toViewParticipant(model model.Participant) view.Participant{
+func toViewParticipant(model model.Participant, priorities []model.Course) view.Participant{
 	result := view.Participant{
 		ID:         model.ID,
 		Prename:    model.Prename,
@@ -173,16 +173,16 @@ func toViewParticipant(model model.Participant) view.Participant{
 		Priorities: []view.Priority{},
 	}
 
-	for _, prio := range model.Priorities {
-		result.Priorities = append(result.Priorities, view.Priority{CourseName: prio.Course.Name, Level: uint8(prio.Level)})
+	for i, prio := range priorities{
+		result.Priorities = append(result.Priorities, view.Priority{CourseName: prio.Name, Level: uint8(i + 1)})
 	}
 
 	return result
 }
 
-func toViewParticipants(models []model.Participant) (results []view.Participant) {
+func toViewParticipants(models []model.Participant, prioritiesById map[int][]model.Course) (results []view.Participant) {
 	for _, model := range models {
-		results = append(results, toViewParticipant(model))
+		results = append(results, toViewParticipant(model, prioritiesById[model.ID]))
 	}
 	return
 }
