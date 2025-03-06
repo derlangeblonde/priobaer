@@ -21,7 +21,7 @@ func TestParticipantsAreUnassignedIntially(t *testing.T) {
 
 	expectedParticipant := model.RandomParticipant()
 
-	testClient.ParticipantsCreateAction(expectedParticipant, nil)
+	testClient.ParticipantsCreateAction(expectedParticipant, make([]int, 0), nil)
 
 	_, unassignedParticipants := testClient.AssignmentsIndexAction()
 
@@ -43,7 +43,7 @@ func TestAssignParticipant(t *testing.T) {
 	expectedParticipant := model.RandomParticipant()
 	expectedCourse := model.RandomCourse()
 
-	testClient.ParticipantsCreateAction(expectedParticipant, nil)
+	testClient.ParticipantsCreateAction(expectedParticipant, make([]int, 0), nil)
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
 	_, unassignedParticipants := testClient.AssignmentsIndexAction()
@@ -114,7 +114,7 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 
 	courseOld := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 	courseNew := testClient.CoursesCreateAction(model.RandomCourse(), nil)
-	participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
+	participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 
 	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseOld.ID))
 
@@ -186,7 +186,7 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant view.Participant
 	for i := 0; i < 3; i ++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
+		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 	}
 
 	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
@@ -211,7 +211,7 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant view.Participant
 	for i := 0; i < 3; i ++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
+		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 	}
 
@@ -235,7 +235,7 @@ func TestParticipantsGetUnassignedWhenTheirAssignedCourseIsDeleted(t *testing.T)
 
 	var participant view.Participant
 	for i := 0; i < 3; i ++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
+		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 	}
 

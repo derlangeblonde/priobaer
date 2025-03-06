@@ -66,22 +66,24 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-func (c *TestClient) ParticipantsCreateAction(participant model.Participant, finish *sync.WaitGroup) view.Participant {
+// TODO: I want to get rid of paricipant.Priority member and replace it with a map[int]int
+// Therefore I need to change this functions signature and its usages
+func (c *TestClient) ParticipantsCreateAction(participant model.Participant, prioritizedCourseIDs []int, finish *sync.WaitGroup) view.Participant {
 	if finish != nil {
 		defer finish.Done()
 	}
 
 	is := is.New(c.T)
 
-	var prioritizedCourseIDsArgs []string = []string{"prename", participant.Prename, "surname", participant.Surname}
-	for _, prio := range participant.Priorities {
-		prioritizedCourseIDsArgs = append(prioritizedCourseIDsArgs, "prio[]")
-		prioritizedCourseIDsArgs = append(prioritizedCourseIDsArgs, strconv.Itoa(prio.CourseID))
+	var requestParameters []string = []string{"prename", participant.Prename, "surname", participant.Surname}
+	for _, courseID := range prioritizedCourseIDs{
+		requestParameters = append(requestParameters, "prio[]")
+		requestParameters = append(requestParameters, strconv.Itoa(courseID))
 	}
 
 	req := c.RequestWithFormBody(
 		"POST", c.Endpoint("participants"),
-		prioritizedCourseIDsArgs...,
+		requestParameters...,
 	)
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -249,7 +251,7 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 		courseIdToAssignedParticipantId[course.ID] = make([]int, 0)
 
 		for i := 0; i < expectedAlloc; i++ {
-			participant := c.ParticipantsCreateAction(model.RandomParticipant(), nil)
+			participant := c.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 
 			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)

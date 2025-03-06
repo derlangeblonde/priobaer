@@ -12,6 +12,7 @@ type Priority struct {
 	CourseID int
 	ParticipantID int
 	Course Course
+	Participant Participant
 }
 
 type Priorities []Priority
