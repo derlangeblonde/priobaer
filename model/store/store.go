@@ -64,21 +64,3 @@ func GetPrioritiesForMultiple(tx *gorm.DB, participantIDs []int) (map[int][]mode
 
 	return result, nil
 }
-
-func PopulatePrioritizedCourseNames(tx *gorm.DB, participant *model.Participant) error {
-	var courses []model.Course
-	if err := tx.Select("id", "name").Where("id IN ?", participant.PrioritizedCourseIDs()).Find(&courses).Error; err != nil {
-		return err
-	}
-
-	for i := range participant.Priorities {
-		for _, course := range courses {
-			if course.ID == participant.Priorities[i].CourseID {
-				participant.Priorities[i].Course.Name = course.Name
-				break
-			}
-		}
-	}
-
-	return nil
-}
