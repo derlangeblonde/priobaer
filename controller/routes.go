@@ -17,13 +17,11 @@ func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 	router.GET("/favicon.png", FaviconHandler)
 
 	router.GET("/courses/new", CoursesNew())
-	router.GET("/courses", CoursesIndex())
 	router.POST("/courses", CoursesCreate())
 	router.DELETE("/courses/:id", CoursesDelete())
 	router.GET("/courses/button-new", CoursesButtonNew)
 
 	router.GET("/participants/new", ParticipantsNew)
-	router.GET("/participants", ParticipantsIndex)
 	router.POST("/participants", ParticipantsCreate)
 	router.DELETE("/participants/:id", ParticipantsDelete)
 	router.GET("/participants/button-new", ParticipantsButtonNew)

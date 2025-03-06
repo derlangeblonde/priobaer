@@ -12,35 +12,6 @@ import (
 	"softbaer.dev/ass/view"
 )
 
-func ParticipantsIndex(c *gin.Context) {
-	fnName := "ParticipantsIndex"
-	db := GetDB(c)
-
-	participants := make([]model.Participant, 0)
-	result := db.Find(&participants)
-
-	if result.Error != nil {
-		slog.Error("Unexpected error while showing course index", "err", result.Error)
-		c.AbortWithStatus(http.StatusInternalServerError)
-
-		return
-	}
-	
-	priorities, err := store.GetPrioritiesForMultiple(db, model.ParticipantIds(participants)) 
-
-	if err != nil {
-		DbError(c, err, fnName)
-		return
-	}
-
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, priorities)})
-	} else {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, priorities)})
-	}
-
-}
-
 func ParticipantsNew(c *gin.Context) {
 	db := GetDB(c)
 	var courses model.Courses
@@ -86,7 +57,6 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-
 	var priorities []model.Course
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&participant).Error; err != nil {
@@ -111,8 +81,6 @@ func ParticipantsCreate(c *gin.Context) {
 		DbError(c, err, "ParticipantsCreate")
 		return
 	}
-
-
 
 	if c.GetHeader("HX-Request") == "true" {
 		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant, priorities))
