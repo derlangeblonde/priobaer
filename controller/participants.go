@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 )
 
 func ParticipantsIndex(c *gin.Context) {
+	fnName := "ParticipantsIndex"
 	db := GetDB(c)
 
 	participants := make([]model.Participant, 0)
@@ -25,11 +25,18 @@ func ParticipantsIndex(c *gin.Context) {
 
 		return
 	}
+	
+	priorities, err := store.GetPrioritiesForMultiple(db, model.ParticipantIds(participants)) 
+
+	if err != nil {
+		DbError(c, err, fnName)
+		return
+	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, make(map[int][]model.Course))})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, priorities)})
 	} else {
-		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, make(map[int][]model.Course))})
+		c.HTML(http.StatusOK, "participants/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, priorities)})
 	}
 
 }
@@ -38,10 +45,6 @@ func ParticipantsNew(c *gin.Context) {
 	db := GetDB(c)
 	var courses model.Courses
 	if err := db.Select("id", "name").Find(&courses).Error; err != nil {
-		// TODO: für sqlite3.Error vereinheitlichen!
-		// Ich möchte einen Mechanismus, sodass ich mit wenig Boilerplate und mental-overhead
-		// (automatisch) für den Typ sqlite3.Error einen Dialog im Fronted rendere.
-		// Dialog mit einer entsprechend generischen Fehlermeldung.
 		DbError(c, err, "ParticipantsNew")
 
 		return
@@ -83,33 +86,21 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	for i, courseID := range req.PrioritizedCourseIDs {
-		prio := model.Priority{CourseID: courseID, Level: model.PriorityLevel(i + 1)}
-		participant.Priorities = append(participant.Priorities, prio)
-	}
 
+	var priorities []model.Course
 	err = db.Transaction(func(tx *gorm.DB) error {
-		result := tx.Create(&participant)
-
-		if result.Error != nil {
-			if errors.Is(result.Error, gorm.ErrCheckConstraintViolated) {
-				slog.Error("Constraint violated while creating particpiant",
-					"err", err,
-					"particpaints.ID", participant.ID,
-				)
-				c.AbortWithStatus(http.StatusConflict)
-
-				return result.Error
-			}
-
-			slog.Error("Unexpected error while creating participant", "err", result.Error)
-			c.AbortWithStatus(http.StatusInternalServerError)
-
-			return result.Error
+		if err := tx.Create(&participant).Error; err != nil {
+			return err
 		}
 
-		if err := store.PopulatePrioritizedCourseNames(tx, &participant); err != nil {
-			DbError(c, err, "ParticipantsCreate")
+
+		if err := store.SetPriorities(tx, participant.ID, req.PrioritizedCourseIDs); err != nil {
+			return err
+		}
+
+		priorities, err = store.GetPriorities(tx, participant.ID)
+
+		if err != nil {
 			return err
 		}
 
@@ -117,11 +108,14 @@ func ParticipantsCreate(c *gin.Context) {
 	})
 
 	if err != nil {
+		DbError(c, err, "ParticipantsCreate")
 		return
 	}
 
+
+
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant, make([]model.Course, 0)))
+		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant, priorities))
 	} else {
 		c.Redirect(http.StatusSeeOther, "/assignments")
 	}

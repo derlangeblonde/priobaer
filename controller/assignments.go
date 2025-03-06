@@ -64,9 +64,6 @@ func AssignmentsIndex(c *gin.Context) {
 		}
 	}
 
-	// TODO: this might be possible more effiently?
-	// like fetch all courses with particpants and populate priorities from there
-	// order by could also go into the populate function
 	var courses []model.Course
 	err = db.Preload("Participants").Find(&courses).Error
 
@@ -79,7 +76,8 @@ func AssignmentsIndex(c *gin.Context) {
 	err = db.Where("course_id is null").Find(&participants).Error
 	unassignedCount := len(participants)
 	participantsSet := false
-
+	// TODO: logic in this block and the block above might be overly complex
+	// Let's see if we find sth more simple.
 	if req.CourseIdSelected != nil {
 		for _, course := range courses {
 			if course.ID == *req.CourseIdSelected {
