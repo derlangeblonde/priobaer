@@ -29,6 +29,7 @@ func AssignmentsIndex(c *gin.Context) {
 		return
 	}
 
+	// REST in peace. This should not be in a GET handler
 	if req.Solve {
 		err := db.Transaction(
 			func(tx *gorm.DB) error {
