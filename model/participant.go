@@ -18,7 +18,6 @@ type Participant struct {
 	Surname  string
 	CourseID sql.NullInt64
 	Course   Course `gorm:"constraint:OnDelete:SET NULL;"`
-	Priorities []Priority
 }
 
 func (p Participant) RecordHeader() []string {
@@ -39,13 +38,6 @@ func (p *Participant) Valid() map[string]string {
 func (p *Participant) TrimFields() {
 	p.Prename = strings.TrimSpace(p.Prename)
 	p.Surname = strings.TrimSpace(p.Surname)
-}
-
-func (p *Participant) PrioritizedCourseIDs() (ids []int) {
-	for _, prio := range p.Priorities {
-		ids = append(ids, prio.CourseID)
-	}
-	return 
 }
 
 func (p *Participant) UnmarshalRecord(record []string) error {
@@ -90,6 +82,13 @@ func (p *Participant) MarshalRecord() []string {
 		p.Surname,
 		courseIdMarshalled,
 	}
+}
+
+func  ParticipantIds(ps []Participant) (result []int) {
+	for _, p := range ps {
+		result = append(result, p.ID)
+	}
+	return
 }
 
 

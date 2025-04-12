@@ -34,11 +34,12 @@ func main(){
 
 	isNoErr(db.CreateInBatches(&courses, 100).Error)
 
-	participant := model.Participant{Prename: "Prename", Surname: "Surname", Priorities: []model.Priority{{CourseID: courses[0].ID, Level: 1}, {CourseID: courses[2].ID, Level: 2}, {CourseID: courses[1].ID, Level: 3}}}
+	participant := model.Participant{Prename: "Prename", Surname: "Surname"}
 	isNoErr(db.Create(&participant).Error)
+	prios := []model.Priority{{ParticipantID: participant.ID, CourseID: courses[0].ID, Level: 1}, {ParticipantID: participant.ID, CourseID: courses[2].ID, Level: 2}, {ParticipantID: participant.ID, CourseID: courses[1].ID, Level: 3}}
+	isNoErr(db.Preload("Courses").CreateInBatches(prios, 100).Error)
 
-	fmt.Println(participant)
-	for _, prio := range participant.Priorities {
+	for _, prio := range prios {
 		fmt.Printf("P-ID:%d\nC-ID:%d\nL:%d\n'%s'\n", prio.ParticipantID, prio.CourseID, prio.Level, prio.Course.Name)
 	}
 }

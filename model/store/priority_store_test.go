@@ -36,10 +36,12 @@ func TestCanAddPriorityOfParticipantToCourse(t *testing.T) {
 	err := SetPriorities(db, participant.ID, []int{course.ID})
 	is.NoErr(err) // SetPriorities failed
 
-	db.Preload("Priorities").First(&participant)
+	prioritizedCourses, err := GetPriorities(db, participant.ID)
+	is.NoErr(err)
 
-	is.Equal(participant.Priorities[0].CourseID, course.ID) // want courseID of participants first priority to be the course for which we added the priority
-	is.Equal(participant.Priorities[0].Level , model.PriorityLevel(1)) // want priority level to be 1 
+	is.Equal(len(prioritizedCourses), 1)
+	is.Equal(prioritizedCourses[0].ID, course.ID)
+	is.Equal(prioritizedCourses[0].Name, course.Name)
 }
 
 func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
@@ -52,7 +54,7 @@ func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
 	courseIds := make([]int, model.MaxPriorityLevel + 1)
 
 	err := SetPriorities(db, participant.ID, courseIds)
-	is.True(err != nil) // SetPriorities did not fail
+	is.True(err != nil) // want SetPriorities to fail
 }
 
 func TestSetPrioritiesOverwritesExistingPriorities(t *testing.T) {
@@ -70,11 +72,13 @@ func TestSetPrioritiesOverwritesExistingPriorities(t *testing.T) {
 	SetPriorities(db, participant.ID, model.MapToCourseId(oldPrioritizedCourses))
 	SetPriorities(db, participant.ID, model.MapToCourseId(newPrioritizedCourses))
 
-	db.Preload("Priorities").First(&participant)
+	prioritizedCourses, err := GetPriorities(db, participant.ID)
+	is.NoErr(err)
 
-	is.Equal(len(participant.Priorities), 5) // want 5 priorities
-	for i, priority := range participant.Priorities {
-		is.Equal(priority.CourseID, newPrioritizedCourses[i].ID) // want the courseID of the priority to be the courseID of the new prioritized course
+	is.Equal(len(prioritizedCourses), 5) // want 5 priorities
+	for i, course := range prioritizedCourses {
+		is.Equal(course.ID, newPrioritizedCourses[i].ID) // want the courseID of the priority to be the courseID of the new prioritized course
+		is.Equal(course.Name, newPrioritizedCourses[i].Name) // want the courseName of the priority to be the courseName of the new prioritized course
 	}
 }
 
@@ -96,7 +100,43 @@ func TestSetPrioritiesToLengthZeroEffectivelyDeletesPriorities(t *testing.T) {
 	err := SetPriorities(db, participant.ID, []int{})
 	is.NoErr(err) // SetPriorities failed
 
-	db.Preload("Priorities").First(&participant)
+	prioritizedCourses, err := GetPriorities(db, participant.ID)
+	is.NoErr(err)
 
-	is.Equal(len(participant.Priorities), 0) // want no priorities
+	is.Equal(len(prioritizedCourses), 0) // want no priorities
+}
+
+func TestGetPrioritiesForMultipleReturnsPrioritiesInCorrectOrder(t *testing.T) {
+	is := is.New(t)
+	db := setupTestDb(t)
+
+	participants := model.RandomParticipants(3)
+	is.NoErr(db.Create(&participants).Error) // could not create a participant
+	courses := model.RandomCourses(3)
+	is.NoErr(db.Create(&courses).Error) // could not create a course
+
+	wantMap := make(map[int][]model.Course)
+	wantMap[participants[0].ID] = []model.Course{courses[0], courses[1], courses[2]}
+	wantMap[participants[1].ID] = []model.Course{courses[1], courses[2], courses[0]}
+	wantMap[participants[2].ID] = []model.Course{courses[2], courses[0], courses[1]}
+
+	var participantIDs []int
+	for participantID, wantCourses := range wantMap {
+		SetPriorities(db, participantID, model.MapToCourseId(wantCourses))
+		participantIDs = append(participantIDs, participantID)
+	}
+
+	gotMap, err := GetPrioritiesForMultiple(db, participantIDs)
+	is.NoErr(err)
+
+	is.Equal(len(gotMap), 3) // want 3 entries 
+
+	for participantID, gotPrioritizedCourses := range gotMap {
+		is.Equal(len(gotPrioritizedCourses), 3) // want 3 priorities per participant
+		wantCourses := wantMap[participantID]
+		for i, gotCourse := range gotPrioritizedCourses {
+			is.Equal(gotCourse.ID, wantCourses[i].ID) // prioritized courses in wrong order
+			is.Equal(gotCourse.Name, wantCourses[i].Name) // prioritized courses in wrong order
+		}
+	}
 }

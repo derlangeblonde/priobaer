@@ -30,20 +30,37 @@ func SetPriorities(tx *gorm.DB, participantID int, courseIDs []int) error {
 	return nil
 }
 
-func PopulatePrioritizedCourseNames(tx *gorm.DB, participant *model.Participant) error {
-	var courses []model.Course
-	if err := tx.Select("id", "name").Where("id IN ?", participant.PrioritizedCourseIDs()).Find(&courses).Error; err != nil {
-		return err
+func GetPriorities(tx *gorm.DB, participantID int) (courses []model.Course, err error) {
+	var priorities model.Priorities
+	err = tx.Select("course_id").Where("participant_id = ?", participantID).Order("level ASC").Find(&priorities).Error
+	if err != nil {
+		return 
 	}
 
-	for i := range participant.Priorities {
-		for _, course := range courses {
-			if course.ID == participant.Priorities[i].CourseID {
-				participant.Priorities[i].Course.Name = course.Name
-				break
-			}
-		}
+	if err = tx.Select("id, name").Where("id IN ?", priorities.CourseIDs()).Find(&courses).Error; err != nil {
+		return 
 	}
 
-	return nil
+	return courses, nil
+}
+
+func GetPrioritiesForMultiple(tx *gorm.DB, participantIDs []int) (map[int][]model.Course, error) {
+	result := make(map[int][]model.Course)
+	var priorities model.Priorities
+	err := tx.
+		Preload("Course").
+		Select("course_id, participant_id, level").
+		Where("participant_id in ?", participantIDs).
+		Order("level ASC").
+		Find(&priorities).Error
+
+	if err != nil {
+		return result, err
+	}
+
+	for _, priority := range priorities {
+		result[priority.ParticipantID] = append(result[priority.ParticipantID], priority.Course)
+	}
+
+	return result, nil
 }

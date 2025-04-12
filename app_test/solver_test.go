@@ -28,7 +28,7 @@ func TestSolveAssignment(t *testing.T) {
 
 	participantCount := 5
 	for i := 0; i < participantCount; i++ {
-		testClient.ParticipantsCreateAction(model.RandomParticipant(), nil)
+		testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 	}
 
 	expectedAllocations := []int{1, 2, 2}

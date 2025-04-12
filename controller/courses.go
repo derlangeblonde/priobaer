@@ -11,28 +11,6 @@ import (
 	"softbaer.dev/ass/model"
 )
 
-func CoursesIndex() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		db := GetDB(c)
-
-		courses := make([]model.Course, 0)
-		result := db.Find(&courses)
-
-		if result.Error != nil {
-			slog.Error("Unexpected error while showing course index", "err", result.Error)
-			c.AbortWithStatus(http.StatusInternalServerError)
-
-			return
-		}
-
-		if c.GetHeader("HX-Request") == "true" {
-			c.HTML(http.StatusOK, "courses/index", gin.H{"fullPage": false, "courses": courses})
-		} else {
-			c.HTML(http.StatusOK, "courses/index", gin.H{"fullPage": true, "courses": courses})
-		}
-	}
-}
-
 func CoursesNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "courses/new", gin.H{"Errors": make(map[string]string, 0)})

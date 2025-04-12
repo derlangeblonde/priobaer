@@ -17,40 +17,6 @@ const nParticipants int = 10000
 const nPriosPerParticipant = 4
 const nAssignedParticipants = 9000
 
-func BenchmarkGetAllAssByCourses(b *testing.B) {
-	is := is.New(b)
-
-	testDir := b.TempDir()
-	db := populateDB(testDir, b)
-	defer func() {
-		conn, _ := db.DB()
-		conn.Close()
-	}()
-
-	b.ResetTimer()
-
-	var courses []model.Course
-	result := db.Preload("Participants.Priorities.Course").Find(&courses)
-	is.NoErr(result.Error)
-
-	var unassignedParticipants []model.Participant
-	result = db.Where("course_id is null").Find(&unassignedParticipants)
-	is.NoErr(result.Error)
-
-	b.StopTimer()
-
-	count := 0
-	for _, course := range courses {
-		for _, participant := range course.Participants {
-			is.Equal(len(participant.Priorities), nPriosPerParticipant)
-
-			count += 1
-		}
-	}
-
-	is.True(count == nAssignedParticipants)
-}
-
 // func BenchmarkGetAllAssByCoursesVariant2(b *testing.B) {
 // 	is := is.New(b)
 //

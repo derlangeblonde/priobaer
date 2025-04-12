@@ -167,20 +167,21 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 			wantParticipant := model.RandomParticipant()
 
 			var wantCourses []view.Course
+			var wantPrioritizedCourseIds []int
 			for i := 0; i < tc.nPrioritizedCourses; i++ {
 				wantCourses = append(wantCourses, ctx.CoursesCreateAction(model.RandomCourse(
 					model.WithCourseName(strconv.Itoa(i + 1)),
 				), nil))
-				wantParticipant.Priorities = append(wantParticipant.Priorities, model.Priority{CourseID: wantCourses[i].ID, Course: model.Course{Name: wantCourses[i].Name}, Level: model.PriorityLevel(i + 1)})
+				wantPrioritizedCourseIds = append(wantPrioritizedCourseIds, wantCourses[i].ID)
 			}
 			for i := 0; i < tc.nOtherCourses; i++ {
 				ctx.CoursesCreateAction(model.RandomCourse(), nil)
 			}
 
-			ctx.ParticipantsCreateAction(wantParticipant, nil)
+			ctx.ParticipantsCreateAction(wantParticipant, wantPrioritizedCourseIds, nil)
 
 			for i := 0; i < tc.nBackgroundCharacters; i++ {
-				ctx.ParticipantsCreateAction(model.RandomParticipant(), nil)
+				ctx.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 			}
 
 			_, renderedParticipants := ctx.AssignmentsIndexAction()

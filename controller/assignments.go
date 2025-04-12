@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/model/store"
 	"softbaer.dev/ass/view"
 )
 
@@ -16,6 +17,7 @@ func AssignmentsIndex(c *gin.Context) {
 		CourseIdSelected *int `form:"selected-course"`
 		Solve            bool `form:"solve"`
 	}
+	fnName := "AssignmentsIndex"
 
 	db := GetDB(c)
 
@@ -62,62 +64,50 @@ func AssignmentsIndex(c *gin.Context) {
 		}
 	}
 
-	var participants []model.Participant
-	var result *gorm.DB
-
-	if req.CourseIdSelected == nil {
-		result = db.Preload("Priorities", func(db *gorm.DB) *gorm.DB {
-			return db.Order("level ASC")
-		}).Preload("Priorities.Course").Where("course_id is null").Find(&participants)
-	} else {
-		courseID := *req.CourseIdSelected
-		result = db.Preload("Priorities", func(db *gorm.DB) *gorm.DB {
-			return db.Order("level ASC")
-		}).Preload("Priorities.Course").Where("course_id = ?", courseID).Find(&participants)
-	}
-
-	if result.Error != nil {
-		slog.Error("Unexpected error while gettting assigned particpants from db", "err", result.Error)
-		c.AbortWithStatus(http.StatusInternalServerError)
-
-		return
-	}
-
-	// TODO: this might be possible more effiently?
-	// like fetch all courses with particpants and populate priorities from there
-	// order by could also go into the populate function
 	var courses []model.Course
-	result = db.Preload("Participants").Find(&courses)
+	err = db.Preload("Participants").Find(&courses).Error
 
-	if result.Error != nil {
-		slog.Error("Unexpected error while getting all courses from db", "err", result.Error)
-		c.AbortWithStatus(http.StatusInternalServerError)
-
+	if err != nil {
+		DbError(c, err, fnName)
 		return
 	}
 
-	var unassignedParticipantsCount int64
-	result = db.Model(model.Participant{}).Where("course_id is null").Count(&unassignedParticipantsCount)
-
-	if result.Error != nil {
-		slog.Error("Error while fetching unassigned participants count from db", "err", err)
-		c.AbortWithStatus(500)
-
-		return
+	var participants []model.Participant
+	err = db.Where("course_id is null").Find(&participants).Error
+	unassignedCount := len(participants)
+	participantsSet := false
+	// TODO: logic in this block and the block above might be overly complex
+	// Let's see if we find sth more simple.
+	if req.CourseIdSelected != nil {
+		for _, course := range courses {
+			if course.ID == *req.CourseIdSelected {
+				participants = course.Participants
+				participantsSet = true
+				break
+			}
+		}
 	}
+
+	if !participantsSet && req.CourseIdSelected != nil {
+		slog.Error("Could not find course with id. Defaulting to unassigned", "course_id", req.CourseIdSelected)
+		req.CourseIdSelected = nil
+	}
+
 
 	viewCourses := toViewCourses(courses, pointerToNullable(req.CourseIdSelected), false)
 	viewCourses.UnassignedEntry.Selected = req.CourseIdSelected == nil
-	viewCourses.UnassignedEntry.ParticipantsCount = int(unassignedParticipantsCount)
+	viewCourses.UnassignedEntry.ParticipantsCount = unassignedCount
 	viewCourses.UnassignedEntry.ShouldRender = true
 
+	prioritiesByParticipantIds, err := store.GetPrioritiesForMultiple(db, model.ParticipantIds(participants))
+
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants), "courseList": viewCourses})
+		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants), "courseList": viewCourses})
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
 }
 
 type assignmentUpdateRequest struct {
