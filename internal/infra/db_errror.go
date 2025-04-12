@@ -1,4 +1,4 @@
-package model
+package infra
 
 type DbError struct {
 	MsgForUser   string

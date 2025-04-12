@@ -7,14 +7,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/store"
+	"softbaer.dev/ass/internal/infra"
+	"softbaer.dev/ass/internal/infra/store"
 	"softbaer.dev/ass/internal/ui"
 )
 
 func ParticipantsNew(c *gin.Context) {
 	db := GetDB(c)
-	var courses model.Courses
+	var courses infra.Courses
 	if err := db.Select("id", "name").Find(&courses).Error; err != nil {
 		DbError(c, err, "ParticipantsNew")
 
@@ -40,7 +40,7 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	if len(req.PrioritizedCourseIDs) > model.MaxPriorityLevel {
+	if len(req.PrioritizedCourseIDs) > infra.MaxPriorityLevel {
 		c.HTML(422,
 			"participants/_new",
 			gin.H{"Errors": map[string]string{"priorities": fmt.Sprintf("Maximale Anzahl an Prioritäten (%d) überschritten", len(req.PrioritizedCourseIDs))}},
@@ -48,16 +48,16 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
+	participant := infra.Participant{Prename: req.Prename, Surname: req.Surname}
 	validationErrors := participant.Valid()
 
 	if len(validationErrors) > 0 {
-		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": toViewParticipant(participant, make([]model.Course, 0))})
+		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": toViewParticipant(participant, make([]infra.Course, 0))})
 
 		return
 	}
 
-	var priorities []model.Course
+	var priorities []infra.Course
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&participant).Error; err != nil {
 			return err
@@ -105,7 +105,7 @@ func ParticipantsDelete(c *gin.Context) {
 		return
 	}
 
-	participant := model.Participant{ID: int(req.ID)}
+	participant := infra.Participant{ID: int(req.ID)}
 	result := db.Unscoped().Delete(&participant)
 	// TODO:
 	// 2025/02/28 00:04:31 /home/joni/dev/ass/controller/participants.go:147 FOREIGN KEY constraint failed
@@ -127,7 +127,7 @@ func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
 }
 
-func toViewParticipant(model model.Participant, priorities []model.Course) ui.Participant{
+func toViewParticipant(model infra.Participant, priorities []infra.Course) ui.Participant{
 	result := ui.Participant{
 		ID:         model.ID,
 		Prename:    model.Prename,
@@ -142,7 +142,7 @@ func toViewParticipant(model model.Participant, priorities []model.Course) ui.Pa
 	return result
 }
 
-func toViewParticipants(models []model.Participant, prioritiesById map[int][]model.Course) (results []ui.Participant) {
+func toViewParticipants(models []infra.Participant, prioritiesById map[int][]infra.Course) (results []ui.Participant) {
 	for _, model := range models {
 		results = append(results, toViewParticipant(model, prioritiesById[model.ID]))
 	}

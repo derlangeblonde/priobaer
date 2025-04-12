@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 	"softbaer.dev/ass/internal/util"
 	"softbaer.dev/ass/internal/ui"
 )
@@ -68,7 +68,7 @@ func (c *TestClient) AcquireSessionCookie() {
 
 // TODO: I want to get rid of paricipant.Priority member and replace it with a map[int]int
 // Therefore I need to change this functions signature and its usages
-func (c *TestClient) ParticipantsCreateAction(participant model.Participant, prioritizedCourseIDs []int, finish *sync.WaitGroup) ui.Participant {
+func (c *TestClient) ParticipantsCreateAction(participant infra.Participant, prioritizedCourseIDs []int, finish *sync.WaitGroup) ui.Participant {
 	if finish != nil {
 		defer finish.Done()
 	}
@@ -115,7 +115,7 @@ func (c *TestClient) ParticipantsIndexAction() []ui.Participant {
 	return participants
 }
 
-func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) ui.Course {
+func (c *TestClient) CoursesCreateAction(course infra.Course, finish *sync.WaitGroup) ui.Course {
 	if finish != nil {
 		defer finish.Done()
 	}
@@ -247,11 +247,11 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 	courseIdToAssignedParticipantId := make(map[int][]int, 0)
 
 	for _, expectedAlloc := range expectedAllocations {
-		course := c.CoursesCreateAction(model.RandomCourse(), nil)
+		course := c.CoursesCreateAction(infra.RandomCourse(), nil)
 		courseIdToAssignedParticipantId[course.ID] = make([]int, 0)
 
 		for i := 0; i < expectedAlloc; i++ {
-			participant := c.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+			participant := c.ParticipantsCreateAction(infra.RandomParticipant(), make([]int, 0), nil)
 			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 
 			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)

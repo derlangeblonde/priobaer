@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/loadsave"
+	"softbaer.dev/ass/internal/infra"
+	"softbaer.dev/ass/internal/infra/loadsave"
 )
 
 func LoadDialog(c *gin.Context) {
@@ -76,8 +76,8 @@ func Load(c *gin.Context) {
 func Save(c *gin.Context) {
 	db := GetDB(c)
 
-	var participants []model.Participant
-	var courses []model.Course
+	var participants []infra.Participant
+	var courses []infra.Course
 
 	if err := db.Find(&participants).Error; err != nil {
 		slog.Error("Error while fetching participants from db", "err", err)

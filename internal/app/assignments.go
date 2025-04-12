@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/store"
+	"softbaer.dev/ass/internal/infra"
+	"softbaer.dev/ass/internal/infra/store"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -32,22 +32,22 @@ func AssignmentsIndex(c *gin.Context) {
 	if req.Solve {
 		err := db.Transaction(
 			func(tx *gorm.DB) error {
-				var availableCourses []model.Course
+				var availableCourses []infra.Course
 				if result := tx.Preload("Participants").Find(&availableCourses); result.Error != nil {
 					return result.Error
 				}
 
-				var unassignedParticipants []model.Participant
+				var unassignedParticipants []infra.Participant
 				if result := tx.Where("course_id is null").Find(&unassignedParticipants); result.Error != nil {
 					return result.Error
 				}
 
-				assignments, err := model.SolveAssignment(availableCourses, unassignedParticipants)
+				assignments, err := infra.SolveAssignment(availableCourses, unassignedParticipants)
 				if err != nil {
 					return err
 				}
 
-				err = model.ApplyAssignments(tx, assignments)
+				err = infra.ApplyAssignments(tx, assignments)
 				if err != nil {
 					return err
 				}
@@ -64,7 +64,7 @@ func AssignmentsIndex(c *gin.Context) {
 		}
 	}
 
-	var courses []model.Course
+	var courses []infra.Course
 	err = db.Preload("Participants").Find(&courses).Error
 
 	if err != nil {
@@ -72,7 +72,7 @@ func AssignmentsIndex(c *gin.Context) {
 		return
 	}
 
-	var participants []model.Participant
+	var participants []infra.Participant
 	err = db.Where("course_id is null").Find(&participants).Error
 	unassignedCount := len(participants)
 	participantsSet := false
@@ -99,7 +99,7 @@ func AssignmentsIndex(c *gin.Context) {
 	viewCourses.UnassignedEntry.ParticipantsCount = unassignedCount
 	viewCourses.UnassignedEntry.ShouldRender = true
 
-	prioritiesByParticipantIds, err := store.GetPrioritiesForMultiple(db, model.ParticipantIds(participants))
+	prioritiesByParticipantIds, err := store.GetPrioritiesForMultiple(db, infra.ParticipantIds(participants))
 
 	if c.GetHeader("HX-Request") == "true" {
 		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
@@ -130,9 +130,9 @@ func AssignmentsUpdate(c *gin.Context) {
 		return
 	}
 
-	var participant model.Participant
-	var courseUnassigned, courseAssigned model.Course
-	var coursesToUpdate []model.Course
+	var participant infra.Participant
+	var courseUnassigned, courseAssigned infra.Course
+	var coursesToUpdate []infra.Course
 	var updateUnassignedEntry bool
 
 	result := db.First(&participant, req.ParticipantId)
@@ -147,10 +147,10 @@ func AssignmentsUpdate(c *gin.Context) {
 	}
 
 	if req.IsUnassign() {
-		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", nil)
+		result = db.Model(infra.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", nil)
 		updateUnassignedEntry = true
 	} else {
-		result = db.Model(model.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CourseId)
+		result = db.Model(infra.Participant{}).Where("ID = ?", req.ParticipantId).Update("course_id", req.CourseId)
 
 		if result.Error == nil {
 			result = db.Preload("Participants").First(&courseAssigned, req.CourseId)
@@ -187,7 +187,7 @@ func AssignmentsUpdate(c *gin.Context) {
 
 	if updateUnassignedEntry {
 		var unassignedParticipantsCount int64
-		result = db.Model(model.Participant{}).Where("course_id is null").Count(&unassignedParticipantsCount)
+		result = db.Model(infra.Participant{}).Where("course_id is null").Count(&unassignedParticipantsCount)
 
 		if result.Error != nil {
 			slog.Error("Error while fetching unassigned participants count from db", "err", err)
@@ -201,7 +201,7 @@ func AssignmentsUpdate(c *gin.Context) {
 	c.HTML(http.StatusOK, "assignments/course-list", viewUpdates)
 }
 
-func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) ui.CourseList {
+func toViewCourses(models []infra.Course, selectedId sql.NullInt64, allAsOobSwap bool) ui.CourseList {
 	var courseViews []ui.Course
 
 	for _, model := range models {
@@ -212,7 +212,7 @@ func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap
 	return ui.CourseList{CourseEntries: courseViews}
 }
 
-func toViewCourse(model model.Course, selectedId sql.NullInt64, asOobSwap bool) ui.Course {
+func toViewCourse(model infra.Course, selectedId sql.NullInt64, asOobSwap bool) ui.Course {
 	return ui.Course{
 		ID:          model.ID,
 		Name:        model.Name,

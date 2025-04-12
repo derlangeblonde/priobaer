@@ -7,7 +7,7 @@ import (
 	"github.com/matryer/is"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 )
 
 func setupTestDb(t *testing.T) *gorm.DB {
@@ -17,7 +17,7 @@ func setupTestDb(t *testing.T) *gorm.DB {
 	db.Exec("PRAGMA foreign_keys = ON;")
 	is.NoErr(err)
 
-	db.AutoMigrate(&model.Participant{}, &model.Course{}, &model.Priority{})
+	db.AutoMigrate(&infra.Participant{}, &infra.Course{}, &infra.Priority{})
 
 	return db
 }
@@ -27,10 +27,10 @@ func TestCanAddPriorityOfParticipantToCourse(t *testing.T) {
 	is := is.New(t)
 	db := setupTestDb(t)
 
-	participant := model.Participant{Prename: "hans", Surname: "klein"}
+	participant := infra.Participant{Prename: "hans", Surname: "klein"}
 	is.NoErr(db.Create(&participant).Error) // could not create a participant
 
-	course := model.Course{Name: "foo", MaxCapacity: 30, MinCapacity: 3}
+	course := infra.Course{Name: "foo", MaxCapacity: 30, MinCapacity: 3}
 	is.NoErr(db.Create(&course).Error) // could not create a course
 
 	err := SetPriorities(db, participant.ID, []int{course.ID})
@@ -48,10 +48,10 @@ func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
 	is := is.New(t)
 	db := setupTestDb(t)
 
-	participant := model.Participant{Prename: "hans", Surname: "klein"}
+	participant := infra.Participant{Prename: "hans", Surname: "klein"}
 	is.NoErr(db.Create(&participant).Error) // could not create a participant
 
-	courseIds := make([]int, model.MaxPriorityLevel + 1)
+	courseIds := make([]int, infra.MaxPriorityLevel + 1)
 
 	err := SetPriorities(db, participant.ID, courseIds)
 	is.True(err != nil) // want SetPriorities to fail
@@ -61,16 +61,16 @@ func TestSetPrioritiesOverwritesExistingPriorities(t *testing.T) {
 	is := is.New(t)
 	db := setupTestDb(t)
 
-	participant := model.RandomParticipant()
+	participant := infra.RandomParticipant()
 	is.NoErr(db.Create(&participant).Error) // could not create a participant
 
-	oldPrioritizedCourses := model.RandomCourses(5)
+	oldPrioritizedCourses := infra.RandomCourses(5)
 	is.NoErr(db.CreateInBatches(&oldPrioritizedCourses, len(oldPrioritizedCourses)).Error) // could not create courses
-	newPrioritizedCourses := model.RandomCourses(5)
+	newPrioritizedCourses := infra.RandomCourses(5)
 	is.NoErr(db.CreateInBatches(&newPrioritizedCourses, len(newPrioritizedCourses)).Error) // could not create courses
 
-	SetPriorities(db, participant.ID, model.MapToCourseId(oldPrioritizedCourses))
-	SetPriorities(db, participant.ID, model.MapToCourseId(newPrioritizedCourses))
+	SetPriorities(db, participant.ID, infra.MapToCourseId(oldPrioritizedCourses))
+	SetPriorities(db, participant.ID, infra.MapToCourseId(newPrioritizedCourses))
 
 	prioritizedCourses, err := GetPriorities(db, participant.ID)
 	is.NoErr(err)
@@ -94,7 +94,7 @@ func TestSetPrioritiesToLengthZeroEffectivelyDeletesPriorities(t *testing.T) {
 	is := is.New(t)
 	db := setupTestDb(t)
 
-	participant := model.RandomParticipant()
+	participant := infra.RandomParticipant()
 	is.NoErr(db.Create(&participant).Error) // could not create a participant
 
 	err := SetPriorities(db, participant.ID, []int{})
@@ -110,19 +110,19 @@ func TestGetPrioritiesForMultipleReturnsPrioritiesInCorrectOrder(t *testing.T) {
 	is := is.New(t)
 	db := setupTestDb(t)
 
-	participants := model.RandomParticipants(3)
+	participants := infra.RandomParticipants(3)
 	is.NoErr(db.Create(&participants).Error) // could not create a participant
-	courses := model.RandomCourses(3)
+	courses := infra.RandomCourses(3)
 	is.NoErr(db.Create(&courses).Error) // could not create a course
 
-	wantMap := make(map[int][]model.Course)
-	wantMap[participants[0].ID] = []model.Course{courses[0], courses[1], courses[2]}
-	wantMap[participants[1].ID] = []model.Course{courses[1], courses[2], courses[0]}
-	wantMap[participants[2].ID] = []model.Course{courses[2], courses[0], courses[1]}
+	wantMap := make(map[int][]infra.Course)
+	wantMap[participants[0].ID] = []infra.Course{courses[0], courses[1], courses[2]}
+	wantMap[participants[1].ID] = []infra.Course{courses[1], courses[2], courses[0]}
+	wantMap[participants[2].ID] = []infra.Course{courses[2], courses[0], courses[1]}
 
 	var participantIDs []int
 	for participantID, wantCourses := range wantMap {
-		SetPriorities(db, participantID, model.MapToCourseId(wantCourses))
+		SetPriorities(db, participantID, infra.MapToCourseId(wantCourses))
 		participantIDs = append(participantIDs, participantID)
 	}
 

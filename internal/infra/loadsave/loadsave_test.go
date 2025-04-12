@@ -9,45 +9,45 @@ import (
 
 	"github.com/matryer/is"
 	"github.com/xuri/excelize/v2"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 )
 
 func TestMarshalModelsIsRoundTripConsistent(t *testing.T) {
 	is := is.New(t)
 
 	testcases := []struct {
-		coursesInput      []model.Course
-		participantsInput []model.Participant
+		coursesInput      []infra.Course
+		participantsInput []infra.Participant
 	}{
 		{
-			[]model.Course{
+			[]infra.Course{
 				{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25},
 				{ID: 2, Name: "bar", MinCapacity: 0, MaxCapacity: 9000},
 			},
-			[]model.Participant{
+			[]infra.Participant{
 				{ID: 1, Prename: "mady", Surname: "morison"},
 				{ID: 2, Prename: "Breathe", Surname: "Flow"},
 			},
 		},
 		{
-			[]model.Course{},
-			[]model.Participant{{ID: 143920, Prename: "we have", Surname: "no courses"}},
+			[]infra.Course{},
+			[]infra.Participant{{ID: 143920, Prename: "we have", Surname: "no courses"}},
 		},
 		{
-			[]model.Course{{ID: 42904, Name: "I am", MinCapacity: 741, MaxCapacity: 4920}},
-			[]model.Participant{},
+			[]infra.Course{{ID: 42904, Name: "I am", MinCapacity: 741, MaxCapacity: 4920}},
+			[]infra.Participant{},
 		},
 		{
-			[]model.Course{},
-			[]model.Participant{},
+			[]infra.Course{},
+			[]infra.Participant{},
 		},
 		{
-			[]model.Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
-			[]model.Participant{{ID: 1, Prename: "\\ \"", Surname: "''"}},
+			[]infra.Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
+			[]infra.Participant{{ID: 1, Prename: "\\ \"", Surname: "''"}},
 		},
 		{
-			[]model.Course{{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25}},
-			[]model.Participant{{ID: 1, Prename: "nicht", Surname: "zugeteilt"}, {ID: 2, Prename: "der", Surname: "schon", CourseID: sql.NullInt64{Valid: true, Int64: 1}}},
+			[]infra.Course{{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25}},
+			[]infra.Participant{{ID: 1, Prename: "nicht", Surname: "zugeteilt"}, {ID: 2, Prename: "der", Surname: "schon", CourseID: sql.NullInt64{Valid: true, Int64: 1}}},
 		},
 	}
 
@@ -170,7 +170,7 @@ func buildParticipantSheet(t *testing.T, excelFile *excelize.File, participants 
 	is.NoErr(err)
 
 	if writeHeader {
-		is.NoErr(sheetWriter.write(model.Participant{}.RecordHeader()))
+		is.NoErr(sheetWriter.write(infra.Participant{}.RecordHeader()))
 	}
 
 	for _, participant := range participants {
@@ -185,7 +185,7 @@ func buildCourseSheet(t *testing.T, excelFile *excelize.File, courses [][]string
 	is.NoErr(err)
 
 	if writeHeader {
-		is.NoErr(sheetWriter.write(model.Course{}.RecordHeader()))
+		is.NoErr(sheetWriter.write(infra.Course{}.RecordHeader()))
 	}
 
 	for _, course := range courses {

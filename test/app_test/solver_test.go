@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 )
 
 func TestSolveAssignment(t *testing.T) {
@@ -16,10 +16,10 @@ func TestSolveAssignment(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	courses := []model.Course{
-		model.RandomCourse(model.WithCapacity(0, 2)),
-		model.RandomCourse(model.WithCapacity(0, 2)),
-		model.RandomCourse(model.WithCapacity(0, 2)),
+	courses := []infra.Course{
+		infra.RandomCourse(infra.WithCapacity(0, 2)),
+		infra.RandomCourse(infra.WithCapacity(0, 2)),
+		infra.RandomCourse(infra.WithCapacity(0, 2)),
 	}
 
 	for _, course := range courses {
@@ -28,7 +28,7 @@ func TestSolveAssignment(t *testing.T) {
 
 	participantCount := 5
 	for i := 0; i < participantCount; i++ {
-		testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+		testClient.ParticipantsCreateAction(infra.RandomParticipant(), make([]int, 0), nil)
 	}
 
 	expectedAllocations := []int{1, 2, 2}

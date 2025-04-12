@@ -8,8 +8,8 @@ import (
 	"github.com/matryer/is"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/store"
+	"softbaer.dev/ass/internal/infra"
+	"softbaer.dev/ass/internal/infra/store"
 )
 
 const nCourses int = 500
@@ -58,10 +58,10 @@ func populateDB(testDir string, t *testing.B) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	is.NoErr(err)
 
-	db.AutoMigrate(&model.Course{}, &model.Participant{}, &model.Priority{})
+	db.AutoMigrate(&infra.Course{}, &infra.Participant{}, &infra.Priority{})
 
-	courses := model.RandomCourses(nCourses)
-	participants := model.RandomParticipants(nParticipants)
+	courses := infra.RandomCourses(nCourses)
+	participants := infra.RandomParticipants(nParticipants)
 
 	db.CreateInBatches(&courses, 100)
 	db.CreateInBatches(&participants, 100)
@@ -103,7 +103,7 @@ func populateDB(testDir string, t *testing.B) *gorm.DB {
 }
 
 
-func selectRandomCourseId(courses []model.Course) int {
-	selectedCourseIndex := model.SeededRand.Intn(nCourses)
+func selectRandomCourseId(courses []infra.Course) int {
+	selectedCourseIndex := infra.SeededRand.Intn(nCourses)
 	return courses[selectedCourseIndex].ID
 }

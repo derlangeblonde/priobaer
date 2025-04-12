@@ -1,4 +1,4 @@
-package model
+package infra
 
 func validateNonEmpty(field, mapFieldName, errorMessage string, errorMap map[string]string) {
 	if len(field) == 0 {

@@ -4,34 +4,34 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 )
 
 func SetPriorities(tx *gorm.DB, participantID int, courseIDs []int) error {
-	if len(courseIDs) > model.MaxPriorityLevel {
-		return fmt.Errorf("Die Priorität in Höhe von %d übersteigt das Maximum von %d", len(courseIDs), model.MaxPriorityLevel)
+	if len(courseIDs) > infra.MaxPriorityLevel {
+		return fmt.Errorf("Die Priorität in Höhe von %d übersteigt das Maximum von %d", len(courseIDs), infra.MaxPriorityLevel)
 	}
 
-	var priorities []model.Priority
+	var priorities []infra.Priority
 
 	for i, courseID := range courseIDs {
-		priority := model.Priority{Level: model.PriorityLevel(i + 1), ParticipantID: participantID, CourseID: courseID}
+		priority := infra.Priority{Level: infra.PriorityLevel(i + 1), ParticipantID: participantID, CourseID: courseID}
 		priorities = append(priorities, priority)
 	}
 
-	if err := tx.Where("participant_id = ?", participantID).Delete(&model.Priority{}).Error; err != nil {
-		return model.DefaultDbError(err)
+	if err := tx.Where("participant_id = ?", participantID).Delete(&infra.Priority{}).Error; err != nil {
+		return infra.DefaultDbError(err)
 	}
 
-	if err := tx.CreateInBatches(&priorities, model.MaxPriorityLevel).Error; err != nil {
-		return model.DefaultDbError(err)
+	if err := tx.CreateInBatches(&priorities, infra.MaxPriorityLevel).Error; err != nil {
+		return infra.DefaultDbError(err)
 	}
 
 	return nil
 }
 
-func GetPriorities(tx *gorm.DB, participantID int) (courses []model.Course, err error) {
-	var priorities model.Priorities
+func GetPriorities(tx *gorm.DB, participantID int) (courses []infra.Course, err error) {
+	var priorities infra.Priorities
 	err = tx.Select("course_id").Where("participant_id = ?", participantID).Order("level ASC").Find(&priorities).Error
 	if err != nil {
 		return 
@@ -44,9 +44,9 @@ func GetPriorities(tx *gorm.DB, participantID int) (courses []model.Course, err 
 	return courses, nil
 }
 
-func GetPrioritiesForMultiple(tx *gorm.DB, participantIDs []int) (map[int][]model.Course, error) {
-	result := make(map[int][]model.Course)
-	var priorities model.Priorities
+func GetPrioritiesForMultiple(tx *gorm.DB, participantIDs []int) (map[int][]infra.Course, error) {
+	result := make(map[int][]infra.Course)
+	var priorities infra.Priorities
 	err := tx.
 		Preload("Course").
 		Select("course_id, participant_id, level").

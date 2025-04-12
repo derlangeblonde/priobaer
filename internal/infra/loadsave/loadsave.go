@@ -9,21 +9,21 @@ import (
 	"slices"
 
 	"github.com/xuri/excelize/v2"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 )
 
 const participantsSheetName = "Teilnehmer"
 const courseSheetName = "Kurse"
 const versionSheetName = "Version"
 
-func ToExcelBytes(courses []model.Course, participants []model.Participant) ([]byte, error) {
+func ToExcelBytes(courses []infra.Course, participants []infra.Participant) ([]byte, error) {
 	file := excelize.NewFile()
 	writer, err := newSheetWriter(file, courseSheetName)
 	if err != nil {
 		return make([]byte, 0), err
 	}
 
-	writer.write(model.Course{}.RecordHeader())
+	writer.write(infra.Course{}.RecordHeader())
 	for _, course := range courses {
 		writer.write(course.MarshalRecord())
 	}
@@ -33,7 +33,7 @@ func ToExcelBytes(courses []model.Course, participants []model.Participant) ([]b
 		return make([]byte, 0), err
 	}
 
-	writer.write(model.Participant{}.RecordHeader())
+	writer.write(infra.Participant{}.RecordHeader())
 	for _, participant := range participants {
 		writer.write(participant.MarshalRecord())
 	}
@@ -54,7 +54,7 @@ func ToExcelBytes(courses []model.Course, participants []model.Participant) ([]b
 	return buf.Bytes(), nil
 }
 
-func FromExcelBytes(fileReader io.Reader) (courses []model.Course, participants []model.Participant, err error) {
+func FromExcelBytes(fileReader io.Reader) (courses []infra.Course, participants []infra.Participant, err error) {
 	exisingCourseIds := make(map[int]bool)
 
 	file, err := excelize.OpenReader(fileReader)
@@ -70,15 +70,15 @@ func FromExcelBytes(fileReader io.Reader) (courses []model.Course, participants 
 	if err != nil && err != io.EOF {
 		return courses, participants, err
 	}
-	if !slices.Equal(courseHeader, model.Course{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError(courseSheetName, courseHeader, model.Course{}.RecordHeader())
+	if !slices.Equal(courseHeader, infra.Course{}.RecordHeader()) {
+		return courses, participants, invalidHeaderError(courseSheetName, courseHeader, infra.Course{}.RecordHeader())
 	}
 	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
 		if err != nil {
 			return courses, participants, err
 		}
 
-		course := model.Course{}
+		course := infra.Course{}
 		err := course.UnmarshalRecord(record)
 		if err != nil {
 			return courses, participants, fmt.Errorf("Tabellenblatt: Kurse\n%w", err)
@@ -95,15 +95,15 @@ func FromExcelBytes(fileReader io.Reader) (courses []model.Course, participants 
 	if err != nil && err != io.EOF {
 		return courses, participants, err
 	}
-	if !slices.Equal(participantHeader, model.Participant{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError(participantsSheetName, participantHeader, model.Participant{}.RecordHeader()) 
+	if !slices.Equal(participantHeader, infra.Participant{}.RecordHeader()) {
+		return courses, participants, invalidHeaderError(participantsSheetName, participantHeader, infra.Participant{}.RecordHeader()) 
 	}
 	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
 		if err != nil {
 			return courses, participants, err
 		}
 
-		participant := model.Participant{}
+		participant := infra.Participant{}
 		if err = participant.UnmarshalRecord(record); err != nil {
 			return courses, participants, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
 		}

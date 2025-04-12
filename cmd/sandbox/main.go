@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 )
 
 func isNoErr(err error) {
@@ -28,15 +28,15 @@ func main(){
 		isNoErr(os.Remove(dbPath))
 	}()
 
-	db.AutoMigrate(&model.Course{}, &model.Participant{}, &model.Priority{})
+	db.AutoMigrate(&infra.Course{}, &infra.Participant{}, &infra.Priority{})
 
-	courses := model.RandomCourses(nCourses)
+	courses := infra.RandomCourses(nCourses)
 
 	isNoErr(db.CreateInBatches(&courses, 100).Error)
 
-	participant := model.Participant{Prename: "Prename", Surname: "Surname"}
+	participant := infra.Participant{Prename: "Prename", Surname: "Surname"}
 	isNoErr(db.Create(&participant).Error)
-	prios := []model.Priority{{ParticipantID: participant.ID, CourseID: courses[0].ID, Level: 1}, {ParticipantID: participant.ID, CourseID: courses[2].ID, Level: 2}, {ParticipantID: participant.ID, CourseID: courses[1].ID, Level: 3}}
+	prios := []infra.Priority{{ParticipantID: participant.ID, CourseID: courses[0].ID, Level: 1}, {ParticipantID: participant.ID, CourseID: courses[2].ID, Level: 2}, {ParticipantID: participant.ID, CourseID: courses[1].ID, Level: 3}}
 	isNoErr(db.Preload("Courses").CreateInBatches(prios, 100).Error)
 
 	for _, prio := range prios {

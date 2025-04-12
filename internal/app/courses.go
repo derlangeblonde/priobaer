@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 )
 
 func CoursesNew() gin.HandlerFunc {
@@ -35,7 +35,7 @@ func CoursesCreate() gin.HandlerFunc {
 			return
 		}
 
-		course := model.Course{Name: req.Name, MaxCapacity: *req.MaxCapacity, MinCapacity: *req.MinCapacity}
+		course := infra.Course{Name: req.Name, MaxCapacity: *req.MaxCapacity, MinCapacity: *req.MinCapacity}
 		validationErrors := course.Valid()
 
 		if len(validationErrors) > 0 {
@@ -88,9 +88,9 @@ func CoursesDelete() gin.HandlerFunc {
 			return
 		}
 
-		course := model.Course{ID: req.ID}
+		course := infra.Course{ID: req.ID}
 		err = db.Transaction(func(tx *gorm.DB) error {
-			err := db.Model(model.Participant{}).Where("course_id = ?", req.ID).Update("course_id", nil).Error
+			err := db.Model(infra.Participant{}).Where("course_id = ?", req.ID).Update("course_id", nil).Error
 
 			if err != nil {
 				return err

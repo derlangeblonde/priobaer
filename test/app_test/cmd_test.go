@@ -13,7 +13,7 @@ import (
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/app/server"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -42,10 +42,10 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 
 	testClient := NewTestClient(t, localhost)
 
-	var expectedCourses []model.Course
+	var expectedCourses []infra.Course
 
 	for i := 0; i < requestCount; i++ {
-		expectedCourses = append(expectedCourses, model.RandomCourse())
+		expectedCourses = append(expectedCourses, infra.RandomCourse())
 	}
 
 	for _, course := range expectedCourses {
@@ -109,7 +109,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedCourse := model.RandomCourse()
+	expectedCourse := infra.RandomCourse()
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
 	waitForTerminationDefault(cancel)
@@ -137,7 +137,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 
 	ctx := NewTestClient(t, localhost)
 
-	expectedCourse := model.RandomCourse()
+	expectedCourse := infra.RandomCourse()
 	ctx.CoursesCreateAction(expectedCourse, nil)
 	courses := ctx.CoursesIndexAction()
 
@@ -164,24 +164,24 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 
 			ctx := NewTestClient(t, localhost)
 
-			wantParticipant := model.RandomParticipant()
+			wantParticipant := infra.RandomParticipant()
 
 			var wantCourses []ui.Course
 			var wantPrioritizedCourseIds []int
 			for i := 0; i < tc.nPrioritizedCourses; i++ {
-				wantCourses = append(wantCourses, ctx.CoursesCreateAction(model.RandomCourse(
-					model.WithCourseName(strconv.Itoa(i + 1)),
+				wantCourses = append(wantCourses, ctx.CoursesCreateAction(infra.RandomCourse(
+					infra.WithCourseName(strconv.Itoa(i + 1)),
 				), nil))
 				wantPrioritizedCourseIds = append(wantPrioritizedCourseIds, wantCourses[i].ID)
 			}
 			for i := 0; i < tc.nOtherCourses; i++ {
-				ctx.CoursesCreateAction(model.RandomCourse(), nil)
+				ctx.CoursesCreateAction(infra.RandomCourse(), nil)
 			}
 
 			ctx.ParticipantsCreateAction(wantParticipant, wantPrioritizedCourseIds, nil)
 
 			for i := 0; i < tc.nBackgroundCharacters; i++ {
-				ctx.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+				ctx.ParticipantsCreateAction(infra.RandomParticipant(), make([]int, 0), nil)
 			}
 
 			_, renderedParticipants := ctx.AssignmentsIndexAction()

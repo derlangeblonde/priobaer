@@ -12,7 +12,7 @@ import (
 	"github.com/jonboulle/clockwork"
 	"softbaer.dev/ass/internal/app"
 	"softbaer.dev/ass/internal/dbdir"
-	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/infra"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -47,7 +47,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		},
 	)
 
-	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&model.Course{}, &model.Participant{}, &model.Priority{}})
+	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&infra.Course{}, &infra.Participant{}, &infra.Priority{}})
 
 	if err != nil {
 		panic(err)

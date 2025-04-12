@@ -1,4 +1,4 @@
-package model
+package infra
 
 type Assignment struct {
 	Participant Participant
