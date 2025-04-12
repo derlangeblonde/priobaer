@@ -1,0 +1,232 @@
+package apptest
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"reflect"
+	"slices"
+	"strconv"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/matryer/is"
+	"softbaer.dev/ass/internal/app/server"
+	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/ui"
+)
+
+func TestConcurrentRequestsDontCorruptData(t *testing.T) {
+	clientCount := 10
+	requestCount := 5
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer waitForTerminationDefault(sut.cancel)
+
+	wg := sync.WaitGroup{}
+	wg.Add(clientCount)
+
+	for i := 0; i < clientCount; i++ {
+		go CoursesCreateActionConcurrent(requestCount, &wg, t)
+	}
+
+	wg.Wait()
+}
+
+func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t *testing.T) {
+	is := is.New(t)
+
+	wg := sync.WaitGroup{}
+	wg.Add(requestCount)
+
+	testClient := NewTestClient(t, localhost)
+
+	var expectedCourses []model.Course
+
+	for i := 0; i < requestCount; i++ {
+		expectedCourses = append(expectedCourses, model.RandomCourse())
+	}
+
+	for _, course := range expectedCourses {
+		go testClient.CoursesCreateAction(course, &wg)
+	}
+
+	wg.Wait()
+
+	actualCourses := testClient.CoursesIndexAction()
+
+	is.Equal(len(actualCourses), len(expectedCourses)) // all courses were created
+
+	var expectedNames []string
+
+	for _, expected := range expectedCourses {
+		expectedNames = append(expectedNames, expected.Name)
+	}
+
+	for _, actualCourse := range actualCourses {
+		actualCourse.ID = 0
+		is.True(slices.Contains(expectedNames, actualCourse.Name)) // actualCourse not in expectedCourses
+	}
+
+	outerWg.Done()
+}
+
+func TestDbsAreDeletedAfterSessionExpired(t *testing.T) {
+	is := is.New(t)
+	fakeClock := defaultFakeClock()
+
+	sut := StartupSystemUnderTestWithFakeClock(t, nil, fakeClock)
+	defer waitForTerminationDefault(sut.cancel)
+
+	NewTestClient(t, localhost)
+
+	dbFilesCount, err := countSQLiteFiles(sut.dbDir)
+	is.NoErr(err)             // failure while counting sqlite files
+	is.Equal(dbFilesCount, 1) // there should be exactly *one* db-file after first user request
+
+	fakeClock.Advance(maxAgeDefault * time.Second)
+	time.Sleep(100 * time.Microsecond)
+
+	dbFilesCount, err = countSQLiteFiles(sut.dbDir)
+	is.NoErr(err)             // failure while counting sqlite files
+	is.Equal(dbFilesCount, 0) // there should be *no* db-file after expiration period
+}
+
+func TestDataIsPersistedBetweenDeployments(t *testing.T) {
+	is := is.New(t)
+
+	dbDir := MakeTestingDbDir(t)
+
+	mockEnv := setupMockEnv("PRIOBAER_DB_ROOT_DIR", dbDir, "PRIOBAER_SESSION_MAX_AGE", strconv.Itoa(maxAgeDefault), "PRIOBAER_PORT", strconv.Itoa(port), "PRIOBAER_SECRET", "secret")
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go server.Run(ctx, mockEnv, defaultFakeClock())
+
+	err := defaultWaitForReady()
+	is.NoErr(err) // Service was not ready
+
+	testClient := NewTestClient(t, localhost)
+
+	expectedCourse := model.RandomCourse()
+	testClient.CoursesCreateAction(expectedCourse, nil)
+
+	waitForTerminationDefault(cancel)
+
+	ctx, cancel = context.WithCancel(context.Background())
+	defer waitForTerminationDefault(cancel)
+
+	go server.Run(ctx, mockEnv, defaultFakeClock())
+	err = defaultWaitForReady()
+	is.NoErr(err) // Service was not ready
+
+	courses := testClient.CoursesIndexAction()
+
+	is.Equal(len(courses), 1)
+	is.Equal(courses[0].Name, expectedCourse.Name)
+	is.Equal(courses[0].MinCapacity, expectedCourse.MinCapacity)
+	is.Equal(courses[0].MaxCapacity, expectedCourse.MaxCapacity)
+}
+
+func TestCreateAndReadCourse(t *testing.T) {
+	is := is.New(t)
+
+	sut := StartupSystemUnderTest(t, nil)
+	defer waitForTerminationDefault(sut.cancel)
+
+	ctx := NewTestClient(t, localhost)
+
+	expectedCourse := model.RandomCourse()
+	ctx.CoursesCreateAction(expectedCourse, nil)
+	courses := ctx.CoursesIndexAction()
+
+	is.Equal(len(courses), 1)
+
+	is.True(reflect.DeepEqual(courses[0].Name, expectedCourse.Name)) // created and retrieved course should be the same
+}
+
+func TestCreateAndReadParticpantWithPrios(t *testing.T) {
+	is := is.New(t)
+	tcs := []struct {
+		nPrioritizedCourses   int
+		nOtherCourses         int
+		nBackgroundCharacters int
+	}{
+		{1, 1, 4},
+		{3, 4, 6},
+	}
+
+	for _, tc := range tcs {
+		func() {
+			sut := StartupSystemUnderTest(t, nil)
+			defer waitForTerminationDefault(sut.cancel)
+
+			ctx := NewTestClient(t, localhost)
+
+			wantParticipant := model.RandomParticipant()
+
+			var wantCourses []ui.Course
+			var wantPrioritizedCourseIds []int
+			for i := 0; i < tc.nPrioritizedCourses; i++ {
+				wantCourses = append(wantCourses, ctx.CoursesCreateAction(model.RandomCourse(
+					model.WithCourseName(strconv.Itoa(i + 1)),
+				), nil))
+				wantPrioritizedCourseIds = append(wantPrioritizedCourseIds, wantCourses[i].ID)
+			}
+			for i := 0; i < tc.nOtherCourses; i++ {
+				ctx.CoursesCreateAction(model.RandomCourse(), nil)
+			}
+
+			ctx.ParticipantsCreateAction(wantParticipant, wantPrioritizedCourseIds, nil)
+
+			for i := 0; i < tc.nBackgroundCharacters; i++ {
+				ctx.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+			}
+
+			_, renderedParticipants := ctx.AssignmentsIndexAction()
+
+			is.Equal(len(renderedParticipants), tc.nBackgroundCharacters+1)
+
+			var gotParticipant ui.Participant
+			for _, renderedParticipant := range renderedParticipants {
+				if renderedParticipant.Surname == wantParticipant.Surname {
+					gotParticipant = renderedParticipant
+					break
+				}
+			}
+
+			is.Equal(gotParticipant.Prename, wantParticipant.Prename) // created and retrieved participant should be the same.
+			is.Equal(gotParticipant.Surname, wantParticipant.Surname) // created and retrieved participant should be the same.
+			is.Equal(len(gotParticipant.Priorities), tc.nPrioritizedCourses) // want as many priorities as were created
+
+			for i := 0; i < tc.nPrioritizedCourses; i++ {
+				is.Equal(gotParticipant.Priorities[i].CourseName, wantCourses[i].Name)
+			}
+
+		}()
+	}
+
+}
+
+func countSQLiteFiles(dir string) (int, error) {
+	count := 0
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && filepath.Ext(info.Name()) == ".sqlite" {
+			count++
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}

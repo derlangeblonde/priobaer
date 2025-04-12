@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/model"
+	"softbaer.dev/ass/internal/model"
 )
 
 func isNoErr(err error) {

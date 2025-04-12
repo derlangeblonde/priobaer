@@ -8,8 +8,8 @@ import (
 	"github.com/matryer/is"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/model"
-	"softbaer.dev/ass/model/store"
+	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/model/store"
 )
 
 const nCourses int = 500

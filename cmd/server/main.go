@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/jonboulle/clockwork"
-	"softbaer.dev/ass/internal/server"
+	"softbaer.dev/ass/internal/app/server"
 )
 
 func main() {
