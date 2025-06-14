@@ -10,3 +10,5 @@ After that you can define the required environment variables (for example via `s
 go run ./cmd/server
 ```
 
+*Hint: the `.dev-linux.env` defines a directory for sqlite db-files ad `./db`. Make sure that directory exists if you use the `.env` file*
+
