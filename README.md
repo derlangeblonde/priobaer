@@ -48,6 +48,7 @@ A user visiting the webpage is assigned as session token (if they do not have on
 - Priorities are not yet respected in the solving algorithm.
 - Web component for editing priorities is a rough proof-of-concept and hard to use.
 - Some tests related to DB expiration are brittle. I believe due to an inappriopriate time-mocking approach.
+- The application/controller package/layer is too thick. Domain logic should be factored into the model package.
 
 ### Planned Improvements
 - Introduce a session keep-alive mechanism for long-term use.
