@@ -15,6 +15,10 @@ type Priority struct {
 	Participant Participant
 }
 
+func (p Priority) AssignmentID() AssignmentID {
+	return AssignmentID{CourseId: p.CourseID, ParticipantId: p.ParticipantID} 
+}
+
 type Priorities []Priority
 
 func (ps Priorities) CourseIDs() []int {

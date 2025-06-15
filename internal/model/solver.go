@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,9 +10,10 @@ import (
 )
 
 const separator = "[in]"
+var notSolvable = errors.New("Problem instance is not solvable")
 
 
-func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant) (assignments []Assignment, err error) {
+func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant, priorities []Priority) (assignments []Assignment, err error) {
 	ctx, o := NewZ3Optimizer()
 	defer ctx.Close()
 	defer o.Close()
@@ -49,13 +51,23 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	}
 
 	// optimize for most participants assigned
-	o.Maximize(zero.Add(allVariables...))
+	objective := ctx.Int(0, ctx.IntSort())
+	for _, prio := range priorities {
+		variable, ok := variablesByAssignmentId[prio.AssignmentID()]		
+
+		if !ok {
+			continue
+		}
+
+		objective = objective.Add(priorityLevelToZ3Const(ctx, prio.Level).Mul(variable))
+	}
+	o.Maximize(objective)
 
 	// Exactly one particpant in one course
-	for _, variableForOneParticipant := range variablesByParticipantId {
-		o.Assert(zero.Add(variableForOneParticipant...).Le(one))
+	for _, variablesForOneParticipant := range variablesByParticipantId {
+		o.Assert(zero.Add(variablesForOneParticipant...).Le(one))
 
-		for _, variable := range variableForOneParticipant {
+		for _, variable := range variablesForOneParticipant {
 			o.Assert(variable.Ge(zero))
 			o.Assert(variable.Le(one))
 		}
@@ -73,7 +85,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 	}
 
 	if v := o.Check(); v != z3.True {
-		return assignments, err
+		return assignments, notSolvable 
 	}
 
 	m := o.Model()
@@ -89,6 +101,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 		if solution != 1 {
 			continue
 		}
+
 
 		assignmentId, err := ParseAssignmentId(varName)
 
@@ -112,7 +125,7 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 		assignments = append(assignments, assignment)
 	}
 
-	return assignments, err
+	return assignments, nil 
 }
 
 func NewZ3Optimizer() (*z3.Context, *z3.Optimize) {
@@ -145,3 +158,10 @@ func ParseAssignmentId(varName string) (assignmentId AssignmentID, err error) {
 
 	return AssignmentID{ParticipantId: participantId, CourseId: courseId}, err
 }
+
+func priorityLevelToZ3Const(ctx *z3.Context, prioLevel PriorityLevel) *z3.AST {
+	// TODO: 4 - x is a hack
+	return ctx.Int(4 - int(prioLevel), ctx.IntSort()) 
+}
+
+
