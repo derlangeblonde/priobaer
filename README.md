@@ -20,3 +20,14 @@ go run ./cmd/server
 
 *Hint: the `.dev-linux.env` defines a directory for sqlite db-files ad `./db`. Make sure that directory exists if you use the `.env` file*
 
+# Current State of the Project
+
+Users can already:
+- create, view, and delete participants, courses as well as their priorities.
+- assign participants to courses via drag & drop.
+- users can let the server solve for assignments of particpants to courses (currently respects course capacities, but not participants priorities).
+- data can be imported & exported to & from excel files.
+
+Important TODOs
+- respect priorities in the solving algorithm.
+- improve ui/ux for web-component that let's a user managa priorities - it currently is in a barely usable proof-of-concept state.
