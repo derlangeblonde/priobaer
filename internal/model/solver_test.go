@@ -16,20 +16,25 @@ func TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 		RandomCourse(WithCourseId(3), WithCapacity(0, 2)),
 	}
 
-	var particpants []Participant
-	var priorities []Priority
+	participants := make([]Participant, 0, 5)
+	priorities   := make([]Priority,     0, 5*len(courses))
 
-	for i := range 5 {
-		particpants = append(particpants, RandomParticipant(WithParticipantId(i+1)))
-		priorities = append(priorities, Priority{Level: 1, CourseID: 1, ParticipantID: i+1})
-		priorities = append(priorities, Priority{Level: 2, CourseID: 2, ParticipantID: i+1})
-		priorities = append(priorities, Priority{Level: 3, CourseID: 3, ParticipantID: i+1})
+	for i := 1; i <= 5; i++ {
+		p := RandomParticipant(WithParticipantId(i))
+		participants = append(participants, p)
+
+		for level, c := range courses {
+			priorities = append(
+				priorities,
+				NewPriority(PriorityLevel(level+1), c, p),
+			)
+		}
 	}
 
-	assignments, err := SolveAssignment(courses, particpants, priorities)
+	assignments, err := SolveAssignment(priorities)
 	is.NoErr(err)
 
-	is.Equal(countUniqueAssignments(assignments), len(particpants))
+	is.Equal(countUniqueAssignments(assignments), len(participants))
 }
 
 func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
@@ -47,17 +52,22 @@ func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 		capacityTotal += c.MaxCapacity
 	}
 
-	var particpants []Participant
-	var priorities []Priority
+	participants := make([]Participant, 0, 5)
+	priorities   := make([]Priority,     0, 10*len(courses))
 
-	for i := 0; i < 10; i++ {
-		particpants = append(particpants, RandomParticipant(WithParticipantId(i+1)))
-		priorities = append(priorities, Priority{Level: 1, CourseID: 1, ParticipantID: i+1})
-		priorities = append(priorities, Priority{Level: 2, CourseID: 2, ParticipantID: i+1})
-		priorities = append(priorities, Priority{Level: 3, CourseID: 3, ParticipantID: i+1})
+	for i := 1; i <= 10; i++ {
+		p := RandomParticipant(WithParticipantId(i))
+		participants = append(participants, p)
+
+		for level, c := range courses {
+			priorities = append(
+				priorities,
+				NewPriority(PriorityLevel(level+1), c, p),
+			)
+		}
 	}
 
-	assignments, err := SolveAssignment(courses, particpants, priorities)
+	assignments, err := SolveAssignment(priorities) 
 	is.NoErr(err)
 
 	is.Equal(countUniqueAssignments(assignments), capacityTotal)
@@ -66,45 +76,44 @@ func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 func TestSolveAssignmentWithRespectToPriorities(t *testing.T) {
 	is := is.New(t)
 
-	courses := []Course{
-		RandomCourse(WithCourseId(1), WithCapacity(0, 2)),
-		RandomCourse(WithCourseId(2), WithCapacity(0, 2)),
-		RandomCourse(WithCourseId(3), WithCapacity(0, 2)),
-	}
+courses := []Course{
+	RandomCourse(WithCourseId(1), WithCapacity(0, 2)),
+	RandomCourse(WithCourseId(2), WithCapacity(0, 2)),
+	RandomCourse(WithCourseId(3), WithCapacity(0, 2)),
+}
 
-	var particpants []Participant
-
-	for i := range 6 {
-		particpants = append(particpants, RandomParticipant(WithParticipantId(i+1)))
-	}
+participants := make([]Participant, 0, 6)
+for i := 1; i <= 6; i++ {
+	participants = append(participants, RandomParticipant(WithParticipantId(i)))
+}
 
 	priorities := []Priority{
-		{Level: 1, CourseID: 1, ParticipantID: 1},
-		{Level: 2, CourseID: 2, ParticipantID: 1},
-		{Level: 3, CourseID: 3, ParticipantID: 1},
+		NewPriority(1, courses[0], participants[0]),
+		NewPriority(2, courses[1], participants[0]),
+		NewPriority(3, courses[2], participants[0]),
 
-		{Level: 1, CourseID: 1, ParticipantID: 2},
-		{Level: 2, CourseID: 2, ParticipantID: 2},
-		{Level: 3, CourseID: 3, ParticipantID: 2},
+		NewPriority(1, courses[0], participants[1]),
+		NewPriority(2, courses[1], participants[1]),
+		NewPriority(3, courses[2], participants[1]),
 
-		{Level: 1, CourseID: 2, ParticipantID: 3},
-		{Level: 2, CourseID: 3, ParticipantID: 3},
-		{Level: 3, CourseID: 1, ParticipantID: 3},
-		 
-		{Level: 1, CourseID: 2, ParticipantID: 4},
-		{Level: 2, CourseID: 3, ParticipantID: 4},
-		{Level: 3, CourseID: 1, ParticipantID: 4},
+		NewPriority(1, courses[1], participants[2]),
+		NewPriority(2, courses[2], participants[2]),
+		NewPriority(3, courses[0], participants[2]),
 
-		{Level: 1, CourseID: 3, ParticipantID: 5},
-		{Level: 2, CourseID: 1, ParticipantID: 5},
-		{Level: 3, CourseID: 2, ParticipantID: 5},
+		NewPriority(1, courses[1], participants[3]),
+		NewPriority(2, courses[2], participants[3]),
+		NewPriority(3, courses[0], participants[3]),
 
-		{Level: 1, CourseID: 3, ParticipantID: 6},
-		{Level: 2, CourseID: 1, ParticipantID: 6},
-		{Level: 3, CourseID: 2, ParticipantID: 6},
+		NewPriority(1, courses[2], participants[4]),
+		NewPriority(2, courses[0], participants[4]),
+		NewPriority(3, courses[1], participants[4]),
+
+		NewPriority(1, courses[2], participants[5]),
+		NewPriority(2, courses[0], participants[5]),
+		NewPriority(3, courses[1], participants[5]),
 	}
 
-	assignments, err := SolveAssignment(courses, particpants, priorities)
+	assignments, err := SolveAssignment(priorities)
 	is.NoErr(err)
 
 	// ParticipantIds to CourseIds

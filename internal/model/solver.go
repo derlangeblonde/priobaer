@@ -12,64 +12,72 @@ import (
 const separator = "[in]"
 var notSolvable = errors.New("Problem instance is not solvable")
 
+func SolveAssignment(priorities []Priority) (assignments []Assignment, err error) {
+	problem := NewProblem(priorities)
+	// TODO: verify that might not be necessary and also causes a double free
+	// defer problem.Close()
 
-func SolveAssignment(availableCourses []Course, unassignedParticipants []Participant, priorities []Priority) (assignments []Assignment, err error) {
+	return problem.Solve()
+}
+
+type Problem struct {
+	ctx *z3.Context	
+	optimize *z3.Optimize
+	priorities []Priority
+}
+
+func NewProblem(priorities []Priority) *Problem {
 	ctx, o := NewZ3Optimizer()
-	defer ctx.Close()
-	defer o.Close()
+	
+	return &Problem{ctx: ctx, optimize: o, priorities: priorities}
+}
 
+func (p *Problem) Close() {
+	p.ctx.Close()
+	p.optimize.Close()
+}
+
+func (p *Problem) Solve() (assignments []Assignment, err error) {
 	coursesById := make(map[int]Course, 0)
 	participantsById := make(map[int]Participant, 0)
 
-	zero := ctx.Int(0, ctx.IntSort())
-	one := ctx.Int(1, ctx.IntSort())
+	zero := p.ctx.Int(0, p.ctx.IntSort())
+	one := p.ctx.Int(1, p.ctx.IntSort())
 
 	variablesByAssignmentId := make(map[AssignmentID]*z3.AST, 0)
 	variablesByParticipantId := make(map[int][]*z3.AST, 0)
 	variablesByCourseId := make(map[int][]*z3.AST, 0)
 	var allVariables []*z3.AST
+	objective := p.ctx.Int(0, p.ctx.IntSort())
 
-	for _, course := range availableCourses {
-		if course.RemainingCapacity() <= 0 {
+	for _, prio := range p.priorities {
+		if prio.Course.RemainingCapacity() <= 0 {
 			continue
 		}
 
-		coursesById[course.ID] = course
+		coursesById[prio.CourseID] = prio.Course 
+		participantsById[prio.ParticipantID] = prio.Participant
+		assignmentId := AssignmentID{ParticipantId: prio.ParticipantID, CourseId: prio.CourseID}
+		varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseID)
+		variable := p.ctx.Const(p.ctx.Symbol(varName), p.ctx.IntSort())
 
-		for _, participant := range unassignedParticipants {
-			participantsById[participant.ID] = participant
+		allVariables = append(allVariables, variable)
+		variablesByAssignmentId[assignmentId] = variable
+		variablesByParticipantId[prio.ParticipantID] = append(variablesByParticipantId[prio.ParticipantID], variable)
+		variablesByCourseId[prio.CourseID] = append(variablesByCourseId[prio.CourseID], variable)
 
-			assignmentId := AssignmentID{ParticipantId: participant.ID, CourseId: course.ID}
-			varName := fmt.Sprintf("%d%s%d", participant.ID, separator, course.ID)
-			variable := ctx.Const(ctx.Symbol(varName), ctx.IntSort())
-
-			allVariables = append(allVariables, variable)
-			variablesByAssignmentId[assignmentId] = variable
-			variablesByParticipantId[participant.ID] = append(variablesByParticipantId[participant.ID], variable)
-			variablesByCourseId[course.ID] = append(variablesByCourseId[course.ID], variable)
-		}
+		objective = objective.Add(priorityLevelToZ3Const(p.ctx, prio.Level).Mul(variable))
 	}
 
-	// optimize for most participants assigned
-	objective := ctx.Int(0, ctx.IntSort())
-	for _, prio := range priorities {
-		variable, ok := variablesByAssignmentId[prio.AssignmentID()]		
-
-		if !ok {
-			continue
-		}
-
-		objective = objective.Add(priorityLevelToZ3Const(ctx, prio.Level).Mul(variable))
-	}
-	o.Maximize(objective)
+	p.optimize.Maximize(objective)
 
 	// Exactly one particpant in one course
 	for _, variablesForOneParticipant := range variablesByParticipantId {
-		o.Assert(zero.Add(variablesForOneParticipant...).Le(one))
+		p.optimize.Assert(zero.Add(variablesForOneParticipant...).Le(one))
 
 		for _, variable := range variablesForOneParticipant {
-			o.Assert(variable.Ge(zero))
-			o.Assert(variable.Le(one))
+			p.optimize.Assert(variable.Ge(zero))
+			p.optimize.Assert(variable.Le(one))
 		}
 	}
 
@@ -81,14 +89,14 @@ func SolveAssignment(availableCourses []Course, unassignedParticipants []Partici
 			return assignments, fmt.Errorf("Did not find course with id: %d", courseId)
 		}
 
-		o.Assert(zero.Add(variableForOneCourse...).Le(ctx.Int(course.RemainingCapacity(), ctx.IntSort())))
+		p.optimize.Assert(zero.Add(variableForOneCourse...).Le(p.ctx.Int(course.RemainingCapacity(), p.ctx.IntSort())))
 	}
 
-	if v := o.Check(); v != z3.True {
+	if v := p.optimize.Check(); v != z3.True {
 		return assignments, notSolvable 
 	}
 
-	m := o.Model()
+	m := p.optimize.Model()
 	varsSolved := m.Assignments()
 
 	for varName, solutionStr := range varsSolved {

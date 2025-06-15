@@ -43,12 +43,12 @@ func AssignmentsIndex(c *gin.Context) {
 				}
 
 				var relevantPriorities []model.Priority
-				if result := tx.Where("participant_id in ?", model.ParticipantIds(unassignedParticipants)).Find(&relevantPriorities); result.Error != nil {
+				// TODO: optimize querying
+				if result := tx.Preload("Participant").Preload("Course").Where("participant_id in ?", model.ParticipantIds(unassignedParticipants)).Find(&relevantPriorities); result.Error != nil {
 					return result.Error
 				}
-				slog.Warn("debug", "relevantP", relevantPriorities)
 
-				assignments, err := model.SolveAssignment(availableCourses, unassignedParticipants, relevantPriorities)
+				assignments, err := model.SolveAssignment(relevantPriorities) 
 				if err != nil {
 					return err
 				}
