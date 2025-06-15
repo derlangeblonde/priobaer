@@ -20,6 +20,23 @@ go run ./cmd/server
 
 *Hint: the `.dev-linux.env` defines a directory for sqlite db-files ad `./db`. Make sure that directory exists if you use the `.env` file*
 
+# Design & Concepts
+This section documents some of the projets key concepts.
+
+## Solving Algorithm
+For finding an "optimal" assignments we employ the SMT-Solver Z3.
+
+We can define the requirements for assignments as artithmetic or boolean constraints (e.g. a participant should be in exactly one course, courses should respect their minimum & maximium capacity). We can also define an objective functoin that should be maximized. For example we could score each created assignment based on the respective priority and then formulate a function that sums all scores obtained by created assignments. Z3 can find a solution for our problem instance so that all constraints are met and the objective function has the maximum possible result.
+
+In theory this problem in NP-hard, but in practice Z3 will be able to calculate solutions for medium sized instances (N ~= 1000) in acceptable time.
+
+## Per session database
+This project was designed for the possibility of me actually operating this application. This means that it has to be GDPR-compliant. Also, since this is a side-project and not my day job, i wanted to keep maintenance effort and responsiblity for customer data to a minimum.
+Therefore I came up with the following concept:
+
+A user visiting the webpage is assigned as sesssion token (if they do not have one alre 
+
+
 # Current State of the Project
 
 Users can already:
