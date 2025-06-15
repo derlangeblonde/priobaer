@@ -32,10 +32,9 @@ In theory this problem in NP-hard, but in practice Z3 will be able to calculate 
 
 ## Per session database
 This project was designed for the possibility of me actually operating this application. This means that it has to be GDPR-compliant. Also, since this is a side-project and not my day job, i wanted to keep maintenance effort and responsiblity for customer data to a minimum.
-Therefore I came up with the following concept:
+Therefore the application handles data persistence in the following way:
 
-A user visiting the webpage is assigned as sesssion token (if they do not have one alre 
-
+A user visiting the webpage is assigned as sesssion token (if they do not have one already). The session is associated with exaclty one sqlite-database, which persist all data of this session. The database will be removed, at the same time as the session expires. Users are responsible for persisting their data between session. They can do that by loading/saving their data from/into excel-files. User data will not be permanently stored on the server. Also no account or dedicated login is necessary.
 
 # Current State of the Project
 
@@ -48,3 +47,7 @@ Users can already:
 Important TODOs
 - respect priorities in the solving algorithm.
 - improve ui/ux for web-component that let's a user managa priorities - it currently is in a barely usable proof-of-concept state.
+- tests regarding db-removal are a bit brittle. I think that is because of an inapropriate mechanism to mock time. Anyhow, it should be fixed.
+
+Long-Term TODOs
+- implement a keep-alive mechanism for sessions/dbs, so that they could be used for an aribitrary time span.
