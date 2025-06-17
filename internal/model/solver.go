@@ -145,19 +145,15 @@ func (o *optimizationProblem) Solve() (assignments []Assignment, err error) {
 		newMaximumCapacityConstraint(o),
 		newPreferHighPrioritiesObjective(o),
 	}
-
-	coursesById := make(map[int]Course, 0)
-	participantsById := make(map[int]Participant, 0)
+	solutionParser := newSolutionParser()
 
 	for _, prio := range o.priorities {
 		if prio.Course.RemainingCapacity() <= 0 {
 			continue
 		}
-		varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseID)
-		variable := o.ctx.Const(o.ctx.Symbol(varName), o.ctx.IntSort())
 
-		coursesById[prio.CourseID] = prio.Course
-		participantsById[prio.ParticipantID] = prio.Participant
+		variable := o.priorityVariable(prio)
+		solutionParser.registerLookups(prio.Participant, prio.Course)
 
 		for _, constraint := range constrainBuilders {
 			constraint.add(prio, variable)
@@ -173,42 +169,16 @@ func (o *optimizationProblem) Solve() (assignments []Assignment, err error) {
 	}
 
 	m := o.optimize.Model()
-	varsSolved := m.Assignments()
+	solution := m.Assignments()
 
-	for varName, solutionStr := range varsSolved {
-		solution, err := strconv.Atoi(solutionStr.String())
+	return solutionParser.parse(solution)
+}
 
-		if err != nil {
-			return assignments, fmt.Errorf("Could not parse assigned solution. varName: %s, solution: %s", varName, solutionStr)
-		}
+func (o *optimizationProblem) priorityVariable(prio Priority) *z3.AST {
+	varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseID)
+	variable := o.ctx.Const(o.ctx.Symbol(varName), o.ctx.IntSort())
 
-		if solution != 1 {
-			continue
-		}
-
-		assignmentId, err := parseAssignmentId(varName)
-
-		if err != nil {
-			return assignments, err
-		}
-
-		course, ok := coursesById[assignmentId.CourseId]
-
-		if !ok {
-			return assignments, fmt.Errorf("Did not find course with id: %d", assignmentId.CourseId)
-		}
-
-		participant, ok := participantsById[assignmentId.ParticipantId]
-
-		if !ok {
-			return assignments, fmt.Errorf("Did not find participant with id: %d", assignmentId.ParticipantId)
-		}
-
-		assignment := Assignment{Course: course, Participant: participant}
-		assignments = append(assignments, assignment)
-	}
-
-	return assignments, nil
+	return variable
 }
 
 func newZ3Optimizer() (*z3.Context, *z3.Optimize) {
