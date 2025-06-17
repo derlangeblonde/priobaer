@@ -93,17 +93,47 @@ func (c *courseCannotBeOverbookedConstraint) finalize() {
 	}
 }
 
+type thing struct{
+	variable *z3.AST
+	prioLevel PriorityLevel
+}
+
+type maximizeHighPrioritiesObjective struct {
+	ctx *z3.Context
+	optimize *z3.Optimize
+	variablesWithPriorityLevels []thing
+	maximumPrioLevel PriorityLevel
+} 
+
+func newMaximizeHighPrioritiesObjective(s *systemOfEquations) *maximizeHighPrioritiesObjective {
+	return &maximizeHighPrioritiesObjective{ctx: s.ctx, optimize: s.optimize}
+}
+
+func (c *maximizeHighPrioritiesObjective) respect(prio Priority, variable *z3.AST) {
+	c.variablesWithPriorityLevels = append(c.variablesWithPriorityLevels, thing{variable, prio.Level})
+
+	if prio.Level > c.maximumPrioLevel {
+		c.maximumPrioLevel = prio.Level
+	}
+}
+
+func (c *maximizeHighPrioritiesObjective) finalize() {
+	objective := c.ctx.Int(0, c.ctx.IntSort())
+
+	for _, thingy := range c.variablesWithPriorityLevels {
+		objective = objective.Add(c.invert(thingy.prioLevel).Mul(thingy.variable))
+	}
+
+	c.optimize.Maximize(objective)
+}
+
 func (s *systemOfEquations) Solve() (assignments []Assignment, err error) {
-	// zero := s.ctx.Int(0, s.ctx.IntSort())
 	constraint := newParticipantCanBeOnlyInOneCourseConstraint(s)
 	constraint2 := newCourseCannotBeOverbookedConstraint(s)
+	objective := newMaximizeHighPrioritiesObjective(s)
 
 	coursesById := make(map[int]Course, 0)
 	participantsById := make(map[int]Participant, 0)
-	variablesByAssignmentId := make(map[AssignmentID]*z3.AST, 0)
-	variablesByCourseId := make(map[int][]*z3.AST, 0)
-	var allVariables []*z3.AST
-	objective := s.ctx.Int(0, s.ctx.IntSort())
 
 	for _, prio := range s.priorities {
 		if prio.Course.RemainingCapacity() <= 0 {
@@ -112,36 +142,18 @@ func (s *systemOfEquations) Solve() (assignments []Assignment, err error) {
 		varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseID)
 		variable := s.ctx.Const(s.ctx.Symbol(varName), s.ctx.IntSort())
 
-		allVariables = append(allVariables, variable)
-
 		constraint.respect(prio, variable)
 		constraint2.respect(prio, variable)
+		objective.respect(prio, variable)
 
 		coursesById[prio.CourseID] = prio.Course 
 		participantsById[prio.ParticipantID] = prio.Participant
-		variablesByCourseId[prio.CourseID] = append(variablesByCourseId[prio.CourseID], variable)
 
-		assignmentId := AssignmentID{ParticipantId: prio.ParticipantID, CourseId: prio.CourseID}
-		variablesByAssignmentId[assignmentId] = variable
-
-		objective = objective.Add(priorityLevelToZ3Const(s.ctx, prio.Level).Mul(variable))
 	}
 
 	constraint.finalize()
 	constraint2.finalize()
-
-	s.optimize.Maximize(objective)
-
-	// // respect maxCap for Course
-	// for courseId, variableForOneCourse := range variablesByCourseId {
-	// 	course, ok := coursesById[courseId]
-	//
-	// 	if !ok {
-	// 		return assignments, fmt.Errorf("Did not find course with id: %d", courseId)
-	// 	}
-	//
-	// 	s.optimize.Assert(zero.Add(variableForOneCourse...).Le(s.ctx.Int(course.RemainingCapacity(), s.ctx.IntSort())))
-	// }
+	objective.finalize()
 
 	if v := s.optimize.Check(); v != z3.True {
 		return assignments, notSolvable 
@@ -218,9 +230,8 @@ func parseAssignmentId(varName string) (assignmentId AssignmentID, err error) {
 	return AssignmentID{ParticipantId: participantId, CourseId: courseId}, err
 }
 
-func priorityLevelToZ3Const(ctx *z3.Context, prioLevel PriorityLevel) *z3.AST {
-	// TODO: 4 - x is a hack
-	return ctx.Int(4 - int(prioLevel), ctx.IntSort()) 
+func (o *maximizeHighPrioritiesObjective) invert(prioLevel PriorityLevel) *z3.AST {
+	return o.ctx.Int((int(o.maximumPrioLevel) + 1) - int(prioLevel), o.ctx.IntSort()) 
 }
 
 
