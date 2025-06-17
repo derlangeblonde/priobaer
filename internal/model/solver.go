@@ -93,7 +93,7 @@ func (c *courseCannotBeOverbookedConstraint) finalize() {
 	}
 }
 
-type thing struct{
+type varWithPriorityLevel struct{
 	variable *z3.AST
 	prioLevel PriorityLevel
 }
@@ -101,7 +101,7 @@ type thing struct{
 type maximizeHighPrioritiesObjective struct {
 	ctx *z3.Context
 	optimize *z3.Optimize
-	variablesWithPriorityLevels []thing
+	variablesWithPriorityLevels []varWithPriorityLevel
 	maximumPrioLevel PriorityLevel
 } 
 
@@ -110,7 +110,7 @@ func newMaximizeHighPrioritiesObjective(s *systemOfEquations) *maximizeHighPrior
 }
 
 func (c *maximizeHighPrioritiesObjective) respect(prio Priority, variable *z3.AST) {
-	c.variablesWithPriorityLevels = append(c.variablesWithPriorityLevels, thing{variable, prio.Level})
+	c.variablesWithPriorityLevels = append(c.variablesWithPriorityLevels, varWithPriorityLevel{variable, prio.Level})
 
 	if prio.Level > c.maximumPrioLevel {
 		c.maximumPrioLevel = prio.Level
@@ -120,8 +120,8 @@ func (c *maximizeHighPrioritiesObjective) respect(prio Priority, variable *z3.AS
 func (c *maximizeHighPrioritiesObjective) finalize() {
 	objective := c.ctx.Int(0, c.ctx.IntSort())
 
-	for _, thingy := range c.variablesWithPriorityLevels {
-		objective = objective.Add(c.invert(thingy.prioLevel).Mul(thingy.variable))
+	for _, varWithPriorityLevel := range c.variablesWithPriorityLevels {
+		objective = objective.Add(c.weightedTerm(varWithPriorityLevel))
 	}
 
 	c.optimize.Maximize(objective)
@@ -233,5 +233,17 @@ func parseAssignmentId(varName string) (assignmentId AssignmentID, err error) {
 func (o *maximizeHighPrioritiesObjective) invert(prioLevel PriorityLevel) *z3.AST {
 	return o.ctx.Int((int(o.maximumPrioLevel) + 1) - int(prioLevel), o.ctx.IntSort()) 
 }
+
+// invertPriorityLevel turns a raw PriorityLevel into a Z3 coefficient,
+// so that numerically low levels map to high coefficients.
+func (o *maximizeHighPrioritiesObjective) invertPriorityLevel(level PriorityLevel) *z3.AST {
+    coeff := (int(o.maximumPrioLevel) + 1) - int(level)
+    return o.ctx.Int(coeff, o.ctx.IntSort())
+}
+
+func (o *maximizeHighPrioritiesObjective) weightedTerm(varWithPriorityLevel varWithPriorityLevel) *z3.AST {
+    return o.invertPriorityLevel(varWithPriorityLevel.prioLevel).Mul(varWithPriorityLevel.variable)
+}
+
 
 
