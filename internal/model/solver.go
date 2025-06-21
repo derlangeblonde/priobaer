@@ -88,9 +88,35 @@ func (c *maximumCapacityConstraint) build() {
 	zero := c.ctx.Int(0, c.ctx.IntSort())
 
 	for courseId, variablesForCourse := range c.variablesByCourseId {
-		// Both maps share the same keys. Therefore, this value always exists.
+		// JS 21.06.2025 - Both maps share the same keys. Therefore, this value always exists.
 		remainingCapacity, _ := c.remainingCapacityByCourseId[courseId]
 		c.optimize.Assert(zero.Add(variablesForCourse...).Le(c.ctx.Int(remainingCapacity, c.ctx.IntSort())))
+	}
+}
+
+type minimumCapacityConstraint struct {
+	ctx                         *z3.Context
+	optimize                    *z3.Optimize
+	variablesByCourseId         map[int][]*z3.AST
+	gapToMinCapacityByCourseId map[int]int
+}
+
+func newMinimumCapacityConstraint(s *optimizationProblem) *minimumCapacityConstraint {
+	return &minimumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[int][]*z3.AST), gapToMinCapacityByCourseId: make(map[int]int, 0)}
+}
+
+func (c *minimumCapacityConstraint) add(prio Priority, variable *z3.AST) {
+	c.variablesByCourseId[prio.CourseID] = append(c.variablesByCourseId[prio.CourseID], variable)
+	c.gapToMinCapacityByCourseId[prio.CourseID] = prio.Course.GapToMinCapacity()
+}
+
+func (c *minimumCapacityConstraint) build() {
+	zero := c.ctx.Int(0, c.ctx.IntSort())
+
+	for courseId, variablesForCourse := range c.variablesByCourseId {
+		// JS 21.06.2025 - Both maps share the same keys. Therefore, this value always exists.
+		gapToMinCapacity, _ := c.gapToMinCapacityByCourseId[courseId]
+		c.optimize.Assert(zero.Add(variablesForCourse...).Ge(c.ctx.Int(gapToMinCapacity, c.ctx.IntSort())).Or(zero.Add(variablesForCourse...).Eq(zero)))
 	}
 }
 
@@ -110,22 +136,22 @@ func newPreferHighPrioritiesObjective(s *optimizationProblem) *maximizeHighPrior
 	return &maximizeHighPrioritiesObjective{ctx: s.ctx, optimize: s.optimize}
 }
 
-func (c *maximizeHighPrioritiesObjective) add(prio Priority, variable *z3.AST) {
-	c.variablesWithPriorityLevels = append(c.variablesWithPriorityLevels, varWithPriorityLevel{variable, prio.Level})
+func (o *maximizeHighPrioritiesObjective) add(prio Priority, variable *z3.AST) {
+	o.variablesWithPriorityLevels = append(o.variablesWithPriorityLevels, varWithPriorityLevel{variable, prio.Level})
 
-	if prio.Level > c.maximumPrioLevel {
-		c.maximumPrioLevel = prio.Level
+	if prio.Level > o.maximumPrioLevel {
+		o.maximumPrioLevel = prio.Level
 	}
 }
 
-func (c *maximizeHighPrioritiesObjective) build() {
-	objective := c.ctx.Int(0, c.ctx.IntSort())
+func (o *maximizeHighPrioritiesObjective) build() {
+	objective := o.ctx.Int(0, o.ctx.IntSort())
 
-	for _, varWithPriorityLevel := range c.variablesWithPriorityLevels {
-		objective = objective.Add(c.weightedTerm(varWithPriorityLevel))
+	for _, varWithPriorityLevel := range o.variablesWithPriorityLevels {
+		objective = objective.Add(o.weightedTerm(varWithPriorityLevel))
 	}
 
-	c.optimize.Maximize(objective)
+	o.optimize.Maximize(objective)
 }
 
 // invertPriorityLevel turns a raw PriorityLevel into a Z3 coefficient,
@@ -143,6 +169,7 @@ func (o *optimizationProblem) Solve() (assignments []Assignment, err error) {
 	constrainBuilders := []constraintBuilder{
 		newExactlyOneCoursePerParticipantConstraint(o),
 		newMaximumCapacityConstraint(o),
+		newMinimumCapacityConstraint(o),
 		newPreferHighPrioritiesObjective(o),
 	}
 	solutionParser := newSolutionParser()
