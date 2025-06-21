@@ -14,11 +14,10 @@ const separator = "[in]"
 var notSolvable = errors.New("Problem instance is not solvable")
 
 func SolveAssignment(priorities []Priority) (assignments []Assignment, err error) {
-	systemOfEquations := newOptimizationProblem(priorities)
-	// TODO: verify that might not be necessary and also causes a double free
-	// defer problem.Close()
+	optimizationProblem := newOptimizationProblem(priorities)
+	defer optimizationProblem.Close()
 
-	return systemOfEquations.Solve()
+	return optimizationProblem.Solve()
 }
 
 type optimizationProblem struct {
@@ -34,8 +33,8 @@ func newOptimizationProblem(priorities []Priority) *optimizationProblem {
 }
 
 func (p *optimizationProblem) Close() {
-	p.ctx.Close()
 	p.optimize.Close()
+	p.ctx.Close()
 }
 
 type constraintBuilder interface {
