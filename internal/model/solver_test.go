@@ -17,7 +17,7 @@ func TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 	}
 
 	participants := make([]Participant, 0, 5)
-	priorities   := make([]Priority,     0, 5*len(courses))
+	priorities := make([]Priority, 0, 5*len(courses))
 
 	for i := 1; i <= 5; i++ {
 		p := RandomParticipant(WithParticipantId(i))
@@ -53,7 +53,7 @@ func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 	}
 
 	participants := make([]Participant, 0, 5)
-	priorities   := make([]Priority,     0, 10*len(courses))
+	priorities := make([]Priority, 0, 10*len(courses))
 
 	for i := 1; i <= 10; i++ {
 		p := RandomParticipant(WithParticipantId(i))
@@ -67,72 +67,90 @@ func TestSolveAssignmentWithScarceCapacity(t *testing.T) {
 		}
 	}
 
-	assignments, err := SolveAssignment(priorities) 
+	assignments, err := SolveAssignment(priorities)
 	is.NoErr(err)
 
 	is.Equal(countUniqueAssignments(assignments), capacityTotal)
 }
 
+type participantPriosBuilder struct {
+	participantIndex          int
+	prioritizedCoursesIndices []int
+}
+
 func TestSolveAssignmentWithRespectToPriorities(t *testing.T) {
-	is := is.New(t)
-
-courses := []Course{
-	RandomCourse(WithCourseId(1), WithCapacity(0, 2)),
-	RandomCourse(WithCourseId(2), WithCapacity(0, 2)),
-	RandomCourse(WithCourseId(3), WithCapacity(0, 2)),
-}
-
-participants := make([]Participant, 0, 6)
-for i := 1; i <= 6; i++ {
-	participants = append(participants, RandomParticipant(WithParticipantId(i)))
-}
-
-	priorities := []Priority{
-		NewPriority(1, courses[0], participants[0]),
-		NewPriority(2, courses[1], participants[0]),
-		NewPriority(3, courses[2], participants[0]),
-
-		NewPriority(1, courses[0], participants[1]),
-		NewPriority(2, courses[1], participants[1]),
-		NewPriority(3, courses[2], participants[1]),
-
-		NewPriority(1, courses[1], participants[2]),
-		NewPriority(2, courses[2], participants[2]),
-		NewPriority(3, courses[0], participants[2]),
-
-		NewPriority(1, courses[1], participants[3]),
-		NewPriority(2, courses[2], participants[3]),
-		NewPriority(3, courses[0], participants[3]),
-
-		NewPriority(1, courses[2], participants[4]),
-		NewPriority(2, courses[0], participants[4]),
-		NewPriority(3, courses[1], participants[4]),
-
-		NewPriority(1, courses[2], participants[5]),
-		NewPriority(2, courses[0], participants[5]),
-		NewPriority(3, courses[1], participants[5]),
+	testcases := []struct {
+		name             string
+		courseCapacities []CourseOption
+		participantCount int
+		participantsPriosBuilders     []participantPriosBuilder
+		// ParticipantIds to CourseIds
+		expectedAssignments map[int]int
+	}{
+		{
+			"Equal capacity & harmonic priorities should give everyone their first prio",
+			[]CourseOption{WithCapacity(0, 2), WithCapacity(0, 2), WithCapacity(0, 2)},
+			6,
+			[]participantPriosBuilder{
+				{0, []int{0, 1, 2}},
+				{1, []int{0, 1, 2}},
+				{2, []int{1, 2, 0}},
+				{3, []int{1, 2, 0}},
+				{4, []int{2, 0, 1}},
+				{5, []int{2, 0, 1}},
+			},
+			map[int]int{
+				1: 1,
+				2: 1,
+				3: 2,
+				4: 2,
+				5: 3,
+				6: 3,
+			},
+		},
 	}
 
-	assignments, err := SolveAssignment(priorities)
-	is.NoErr(err)
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
 
-	// ParticipantIds to CourseIds
-	expectedAssignments := map[int]int{
-		1: 1,
-		2: 1,
-		3: 2,
-		4: 2,
-		5: 3,
-		6: 3,
-	}
+			var courses []Course
+			for i, capacityOption := range tc.courseCapacities {
+				courses = append(courses, RandomCourse(WithCourseId(i+1), capacityOption))
+			}
 
-	is.Equal(len(assignments), 6) // each participant has gotten assigned
+			var participants []Participant
+			for i := 1; i <= tc.participantCount; i++ {
+				participants = append(participants, RandomParticipant(WithParticipantId(i)))
+			}
 
-	for _, assignment := range assignments {
-		gotCourseId := assignment.Course.ID
-		wantCourseId, ok := expectedAssignments[assignment.Participant.ID]
-		is.True(ok) // there has to exist an assignment for each participant
-		is.Equal(gotCourseId, wantCourseId)
+			var priorities []Priority
+			for _, participantPrios := range tc.participantsPriosBuilders {
+				for i, prioritizedCourseIndex := range participantPrios.prioritizedCoursesIndices {
+					priorities = append(priorities, NewPriority(PriorityLevel(i+1), courses[prioritizedCourseIndex], participants[participantPrios.participantIndex]))
+				}
+			}
+
+			assignments, err := SolveAssignment(priorities)
+			
+			if len(tc.expectedAssignments) == 0 {
+				is.Equal(err, notSolvable)
+				is.Equal(len(assignments), 0)
+
+				return
+			}
+
+			is.NoErr(err)
+
+			is.Equal(len(assignments), len(tc.expectedAssignments)) // each participant has gotten assigned
+
+			for _, assignment := range assignments {
+				gotCourseId := assignment.Course.ID
+				wantCourseId, ok := tc.expectedAssignments[assignment.Participant.ID]
+				is.True(ok) // there has to exist an assignment for each participant
+				is.Equal(gotCourseId, wantCourseId)
+			}
+		})
 	}
 }
 
