@@ -7,7 +7,6 @@ import (
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/ui"
 	"softbaer.dev/ass/internal/util"
 )
 
@@ -47,7 +46,7 @@ func TestSolveAssignmentDonReassignParticipants(t *testing.T) {
 	is.Equal(len(unassigned), 0)
 
 	_, participantsAssignedToCourse := testClient.AssignmentsIndexAction("selected-course", strconv.Itoa(courseIds[alreadyAssignedCourseIndex]))
-	participantIDsAssignedToCourse := ui.IDs(participantsAssignedToCourse)
+	participantIDsAssignedToCourse := util.IDs(participantsAssignedToCourse)
 	
 	is.True(slices.Contains(participantIDsAssignedToCourse, participantIds[alreadyAssignedParticipantIndex]))
 }
