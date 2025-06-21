@@ -3,7 +3,6 @@ package loadsave
 import (
 	"bytes"
 	"database/sql"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 	"softbaer.dev/ass/internal/model"
 )
 
-func TestMarshalModelsIsRoundTripConsistent(t *testing.T) {
+func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 	is := is.New(t)
 
 	testcases := []struct {
@@ -47,38 +46,83 @@ func TestMarshalModelsIsRoundTripConsistent(t *testing.T) {
 		},
 		{
 			[]model.Course{{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25}},
-			[]model.Participant{{ID: 1, Prename: "nicht", Surname: "zugeteilt"}, {ID: 2, Prename: "der", Surname: "schon", CourseID: sql.NullInt64{Valid: true, Int64: 1}}},
+			[]model.Participant{
+				{ID: 1, Prename: "nicht", Surname: "zugeteilt"},
+				{ID: 2, Prename: "der", Surname: "schon", CourseID: sql.NullInt64{Valid: true, Int64: 1}},
+			},
 		},
 	}
 
 	for _, tc := range testcases {
-		excelBytes, err := ToExcelBytes(tc.coursesInput, tc.participantsInput)
-		is.NoErr(err) // err while marshall to excel
-
-		coursesOutput, participantsOutput, err := FromExcelBytes(bytes.NewReader(excelBytes))
-		is.NoErr(err) // err while unmarshalling from excel
-
-		is.Equal(len(tc.coursesInput), len(coursesOutput)) // count of courses same after marshal-roundtrip
-
-		for i := 0; i < len(tc.coursesInput); i++ {
-			is.True(reflect.DeepEqual(tc.coursesInput[i], coursesOutput[i]))
+		scenario := EmptyScenario()
+		for _, mc := range tc.coursesInput {
+			scenario.AddCourse(Course{
+				ID:          CourseID(mc.ID),
+				Name:        mc.Name,
+				MinCapacity: mc.MinCapacity,
+				MaxCapacity: mc.MaxCapacity,
+			})
+		}
+		for _, mp := range tc.participantsInput {
+			scenario.AddParticipant(Participant{
+				ID:      ParticipantID(mp.ID),
+				Prename: mp.Prename,
+				Surname: mp.Surname,
+			})
+			if mp.CourseID.Valid {
+				_ = scenario.Assign(ParticipantID(mp.ID), CourseID(mp.CourseID.Int64))
+			}
 		}
 
-		is.Equal(len(tc.participantsInput), len(participantsOutput)) // count of participants same after marshal-roundtrip
+		excelBytes, err := Export(scenario)
+		is.NoErr(err) // exporting should not error
+		is.True(len(excelBytes) > 0)
 
-		for i := 0; i < len(tc.participantsInput); i++ {
-			if !reflect.DeepEqual(tc.participantsInput[i], participantsOutput[i]) {
-				t.Fatalf("Participant not equal. Got=%v, Want=%v", participantsOutput[i], tc.participantsInput[i])
+		imported, err := Import(bytes.NewReader(excelBytes))
+		is.NoErr(err) // importing should not error
+
+		var gotCourses []Course
+		for c := range imported.AllCourses() {
+			gotCourses = append(gotCourses, c)
+		}
+		is.Equal(len(tc.coursesInput), len(gotCourses))
+		for i, want := range tc.coursesInput {
+			got := gotCourses[i]
+			is.Equal(CourseID(want.ID), got.ID)
+			is.Equal(want.Name, got.Name)
+			is.Equal(want.MinCapacity, got.MinCapacity)
+			is.Equal(want.MaxCapacity, got.MaxCapacity)
+		}
+
+		// Compare participants
+		var gotParts []Participant
+		for p := range imported.AllParticipants() {
+			gotParts = append(gotParts, p)
+		}
+		is.Equal(len(tc.participantsInput), len(gotParts))
+		for i, want := range tc.participantsInput {
+			got := gotParts[i]
+			is.Equal(ParticipantID(want.ID), got.ID)
+			is.Equal(want.Prename, got.Prename)
+			is.Equal(want.Surname, got.Surname)
+
+			if want.CourseID.Valid {
+				c, ok := imported.AssignedCourse(ParticipantID(want.ID))
+				is.True(ok)
+				is.Equal(CourseID(want.CourseID.Int64), c.ID)
+			} else {
+				_, ok := imported.AssignedCourse(ParticipantID(want.ID))
+				is.True(!ok)
 			}
 		}
 	}
 }
 
-func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
+func TestUnmarshalInvalidExcelFileReturnsSpecificError2(t *testing.T) {
 	testcases := []struct {
 		wantErrorMsgKeywords []string
 		excelBytes           []byte
-		name string
+		name                 string
 	}{
 		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet2(t), "OnlyStringValuesInParticipantsSheet"},
 		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet2(t), "InvalidHeaderParticipantsSheet"},
@@ -91,21 +135,19 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		_, _, err := FromExcelBytes(bytes.NewReader(tc.excelBytes))
+		_, err := Import(bytes.NewReader(tc.excelBytes))
 		if err == nil {
-			t.Fatal("Want err (because we tried to Unmarshal an invalid file), but got nil")
+			t.Fatal("Want err (because we tried to Import an invalid file), but got nil")
 		}
-
 		for _, wantKeyword := range tc.wantErrorMsgKeywords {
 			if !strings.Contains(err.Error(), wantKeyword) {
-				t.Fatalf("'%s':Want: '%s' (to be contained), Got: %s", tc.name, wantKeyword, err.Error())
+				t.Fatalf("'%s': Want keyword '%s' in error, Got: %s", tc.name, wantKeyword, err.Error())
 			}
 		}
 	}
-
 }
 
-func scenarioAssignmentToNonExistentCourse(t *testing.T) []byte {
+func scenarioAssignmentToNonExistentCourse2(t *testing.T) []byte {
 	return buildExcelFile2(
 		t,
 		[][]string{
@@ -121,52 +163,47 @@ func scenarioAssignmentToNonExistentCourse(t *testing.T) []byte {
 		},
 		true,
 		true,
-	)	
+	)
 }
 
-func scenarioSurnameEmpty(t *testing.T) []byte {
+func scenarioSurnameEmpty2(t *testing.T) []byte {
 	participantWithEmptySurname := []string{"1", "foo", "", "null"}
-
 	return buildExcelFile2(t, [][]string{{}}, [][]string{participantWithEmptySurname}, true, true)
 }
 
-func scenarioMaxCapacitySmallerThanMinCapacity(t *testing.T) []byte {
+func scenarioMaxCapacitySmallerThanMinCapacity2(t *testing.T) []byte {
 	courseWithInvalidCapacity := []string{"1", "foo", "25", "5"}
-
 	return buildExcelFile2(t, [][]string{courseWithInvalidCapacity}, [][]string{}, true, true)
 }
 
-func scenarioInvalidRowLengthInCoursesSheet(t *testing.T) []byte {
+func scenarioInvalidRowLengthInCoursesSheet2(t *testing.T) []byte {
 	return buildExcelFile2(t, [][]string{{"1", "foo", "bar", "baz", "qux", "more", "than", "expected", "values"}}, [][]string{}, true, true)
 }
 
-func scenarioInvalidRowLengthInParticipantsSheet(t *testing.T) []byte {
+func scenarioInvalidRowLengthInParticipantsSheet2(t *testing.T) []byte {
 	invalidRowLengthParticipant := []string{"1", "foo", "bar"}
 	return buildExcelFile2(t, [][]string{{}}, [][]string{invalidRowLengthParticipant}, true, true)
 }
 
-func scenarioInvalidHeaderParticipantsSheet(t *testing.T) []byte {
+func scenarioInvalidHeaderParticipantsSheet2(t *testing.T) []byte {
 	invalidHeaderParticipant := []string{"das", "ist", "kein", "header"}
-
 	return buildExcelFile2(t, [][]string{{}}, [][]string{invalidHeaderParticipant}, true, false)
 }
 
-func scenarioInvalidHeaderCourseSheet(t *testing.T) []byte {
+func scenarioInvalidHeaderCourseSheet2(t *testing.T) []byte {
 	invalidHeaderCourse := []string{"das", "ist", "kein", "header"}
-
 	return buildExcelFile2(t, [][]string{invalidHeaderCourse}, [][]string{}, false, true)
 }
 
-func scenarioOnlyStringValuesInParticipantsSheet(t *testing.T) []byte {
+func scenarioOnlyStringValuesInParticipantsSheet2(t *testing.T) []byte {
 	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
-
 	return buildExcelFile2(t, [][]string{{}}, [][]string{onlyStringParticipant}, true, true)
 }
 
-func buildParticipantSheet(t *testing.T, excelFile *excelize.File, participants [][]string, writeHeader bool) {
+func buildParticipantSheet2(t *testing.T, excelFile *excelize.File, participants [][]string, writeHeader bool) {
 	is := is.New(t)
 
-	sheetWriter, err := newSheetWriter(excelFile, "Teilnehmer")
+	sheetWriter, err := newSheetWriter(excelFile, participantsSheetName)
 	is.NoErr(err)
 
 	if writeHeader {
@@ -178,10 +215,10 @@ func buildParticipantSheet(t *testing.T, excelFile *excelize.File, participants 
 	}
 }
 
-func buildCourseSheet(t *testing.T, excelFile *excelize.File, courses [][]string, writeHeader bool) {
+func buildCourseSheet2(t *testing.T, excelFile *excelize.File, courses [][]string, writeHeader bool) {
 	is := is.New(t)
 
-	sheetWriter, err := newSheetWriter(excelFile, "Kurse")
+	sheetWriter, err := newSheetWriter(excelFile, courseSheetName)
 	is.NoErr(err)
 
 	if writeHeader {
@@ -193,7 +230,7 @@ func buildCourseSheet(t *testing.T, excelFile *excelize.File, courses [][]string
 	}
 }
 
-func buildExcelFile(t *testing.T, courses, participants [][]string, writeCourseHeader, writeParticipantHeader bool) []byte {
+func buildExcelFile2(t *testing.T, courses, participants [][]string, writeCourseHeader, writeParticipantHeader bool) []byte {
 	is := is.New(t)
 
 	excelFile := excelize.NewFile()
@@ -207,3 +244,4 @@ func buildExcelFile(t *testing.T, courses, participants [][]string, writeCourseH
 
 	return buf.Bytes()
 }
+
