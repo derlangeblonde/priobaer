@@ -52,6 +52,18 @@ func Load(c *gin.Context) {
 	}
 
 	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := db.Unscoped().Delete(&model.Course{}, "deleted_at is null").Error; err != nil {
+			return err
+		}
+
+		if err := db.Unscoped().Delete(&model.Participant{}, "deleted_at is null").Error; err != nil {
+			return err
+		}
+
+		if err := db.Unscoped().Delete(&model.Priority{}, "deleted_at is null").Error; err != nil {
+			return err
+		}
+
 		if err := db.CreateInBatches(&courses, batchSize).Error; err != nil {
 			return err
 		}

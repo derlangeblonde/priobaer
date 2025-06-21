@@ -1,5 +1,6 @@
 <dialog open>
 	<h1>Datei laden</h1>
+	<h3>Achtung! Durch das Laden überschreiben Sie ihren aktuellen Stand. Speichern Sie im Zweifel vorher noch einmal.</h3>
 	<form id='form' hx-encoding='multipart/form-data' hx-post='/load' hx-target="#assignments" hx-swap="outerHTML">		
 		<label for='file'>Datei auswählen</label>
 		<input id="file" type='file' name='file'>
