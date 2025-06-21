@@ -34,15 +34,15 @@ func buildScenario(
 }
 
 func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
-	is := is.New(t)
-
 	testcases := []struct {
+		name              string
 		coursesInput      []domain.Course
 		participantsInput []domain.Participant
 		assignments       map[domain.ParticipantID]domain.CourseID
 		priorities        map[domain.ParticipantID][]domain.CourseID
 	}{
 		{
+			name: "Two courses and two participants without assignments",
 			coursesInput: []domain.Course{
 				{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25},
 				{ID: 2, Name: "bar", MinCapacity: 0, MaxCapacity: 9000},
@@ -55,30 +55,35 @@ func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 			priorities:  map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
+			name:              "No courses but one participant",
 			coursesInput:      []domain.Course{},
 			participantsInput: []domain.Participant{{ID: 143920, Prename: "we have", Surname: "no courses"}},
 			assignments:       map[domain.ParticipantID]domain.CourseID{},
 			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
+			name:              "One course but no participants",
 			coursesInput:      []domain.Course{{ID: 42904, Name: "I am", MinCapacity: 741, MaxCapacity: 4920}},
 			participantsInput: []domain.Participant{},
 			assignments:       map[domain.ParticipantID]domain.CourseID{},
 			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
+			name:              "Empty scenario",
 			coursesInput:      []domain.Course{},
 			participantsInput: []domain.Participant{},
 			assignments:       map[domain.ParticipantID]domain.CourseID{},
 			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
+			name:              "Course and participant with special characters",
 			coursesInput:      []domain.Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
 			participantsInput: []domain.Participant{{ID: 1, Prename: "\\ \"", Surname: "''"}},
 			assignments:       map[domain.ParticipantID]domain.CourseID{},
 			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
+			name:         "One course with one assignment",
 			coursesInput: []domain.Course{{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25}},
 			participantsInput: []domain.Participant{
 				{ID: 1, Prename: "nicht", Surname: "zugeteilt"},
@@ -89,8 +94,8 @@ func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 			},
 			priorities: map[domain.ParticipantID][]domain.CourseID{},
 		},
-		// New test cases with priorities
 		{
+			name: "Single participant with ordered priorities",
 			coursesInput: []domain.Course{
 				{ID: 1, Name: "Math", MinCapacity: 5, MaxCapacity: 25},
 				{ID: 2, Name: "Physics", MinCapacity: 3, MaxCapacity: 20},
@@ -105,6 +110,7 @@ func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 			},
 		},
 		{
+			name: "Multiple participants with priorities and one assignment",
 			coursesInput: []domain.Course{
 				{ID: 1, Name: "English", MinCapacity: 5, MaxCapacity: 30},
 				{ID: 2, Name: "History", MinCapacity: 3, MaxCapacity: 25},
@@ -126,6 +132,7 @@ func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 			},
 		},
 		{
+			name: "Some participants with priorities and one assignment",
 			coursesInput: []domain.Course{
 				{ID: 1, Name: "Biology", MinCapacity: 5, MaxCapacity: 25},
 				{ID: 2, Name: "Geography", MinCapacity: 4, MaxCapacity: 20},
@@ -145,78 +152,81 @@ func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		scenario := buildScenario(tc.coursesInput, tc.participantsInput, tc.assignments, tc.priorities)
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			scenario := buildScenario(tc.coursesInput, tc.participantsInput, tc.assignments, tc.priorities)
 
-		excelBytes, err := Export(scenario)
-		is.NoErr(err) // exporting should not error
-		is.True(len(excelBytes) > 0)
+			excelBytes, err := Export(scenario)
+			is.NoErr(err) // exporting should not error
+			is.True(len(excelBytes) > 0)
 
-		imported, err := Import(bytes.NewReader(excelBytes))
-		is.NoErr(err) // importing should not error
+			imported, err := Import(bytes.NewReader(excelBytes))
+			is.NoErr(err) // importing should not error
 
-		var gotCourses []domain.Course
-		for c := range imported.AllCourses() {
-			gotCourses = append(gotCourses, c)
-		}
-		is.Equal(len(tc.coursesInput), len(gotCourses))
-		for i, want := range tc.coursesInput {
-			got := gotCourses[i]
-			is.Equal(want.ID, got.ID)
-			is.Equal(want.Name, got.Name)
-			is.Equal(want.MinCapacity, got.MinCapacity)
-			is.Equal(want.MaxCapacity, got.MaxCapacity)
-		}
-
-		var gotParts []domain.Participant
-		for p := range imported.AllParticipants() {
-			gotParts = append(gotParts, p)
-		}
-
-		is.Equal(len(tc.participantsInput), len(gotParts))
-		for i, want := range tc.participantsInput {
-			got := gotParts[i]
-			is.Equal(want.ID, got.ID)
-			is.Equal(want.Prename, got.Prename)
-			is.Equal(want.Surname, got.Surname)
-		}
-
-		for pid, wantCID := range tc.assignments {
-			c, ok := imported.AssignedCourse(pid)
-			is.True(ok)
-			is.Equal(wantCID, c.ID)
-		}
-
-		for _, p := range tc.participantsInput {
-			if _, exists := tc.assignments[p.ID]; !exists {
-				_, ok := imported.AssignedCourse(p.ID)
-				is.True(!ok)
+			var gotCourses []domain.Course
+			for c := range imported.AllCourses() {
+				gotCourses = append(gotCourses, c)
 			}
-		}
-
-		for pid, wantPrios := range tc.priorities {
-			var gotPrios []domain.CourseID
-			for c := range imported.PrioritizedCoursesOrdered(pid) {
-				gotPrios = append(gotPrios, c.ID)
+			is.Equal(len(tc.coursesInput), len(gotCourses))
+			for i, want := range tc.coursesInput {
+				got := gotCourses[i]
+				is.Equal(want.ID, got.ID)
+				is.Equal(want.Name, got.Name)
+				is.Equal(want.MinCapacity, got.MinCapacity)
+				is.Equal(want.MaxCapacity, got.MaxCapacity)
 			}
 
-			is.Equal(len(wantPrios), len(gotPrios)) // Same number of priorities
+			var gotParts []domain.Participant
+			for p := range imported.AllParticipants() {
+				gotParts = append(gotParts, p)
+			}
 
-			for i, wantCID := range wantPrios {
-				if i < len(gotPrios) {
-					is.Equal(wantCID, gotPrios[i])
+			is.Equal(len(tc.participantsInput), len(gotParts))
+			for i, want := range tc.participantsInput {
+				got := gotParts[i]
+				is.Equal(want.ID, got.ID)
+				is.Equal(want.Prename, got.Prename)
+				is.Equal(want.Surname, got.Surname)
+			}
+
+			for pid, wantCID := range tc.assignments {
+				c, ok := imported.AssignedCourse(pid)
+				is.True(ok)
+				is.Equal(wantCID, c.ID)
+			}
+
+			for _, p := range tc.participantsInput {
+				if _, exists := tc.assignments[p.ID]; !exists {
+					_, ok := imported.AssignedCourse(p.ID)
+					is.True(!ok)
 				}
 			}
-		}
 
-		for _, p := range tc.participantsInput {
-			if _, hasPrios := tc.priorities[p.ID]; !hasPrios {
+			for pid, wantPrios := range tc.priorities {
 				var gotPrios []domain.CourseID
-				for c := range imported.PrioritizedCoursesOrdered(p.ID) {
+				for c := range imported.PrioritizedCoursesOrdered(pid) {
 					gotPrios = append(gotPrios, c.ID)
 				}
-				is.Equal(0, len(gotPrios)) // Should have no priorities
+
+				is.Equal(len(wantPrios), len(gotPrios)) // Same number of priorities
+
+				for i, wantCID := range wantPrios {
+					if i < len(gotPrios) {
+						is.Equal(wantCID, gotPrios[i])
+					}
+				}
 			}
-		}
+
+			for _, p := range tc.participantsInput {
+				if _, hasPrios := tc.priorities[p.ID]; !hasPrios {
+					var gotPrios []domain.CourseID
+					for c := range imported.PrioritizedCoursesOrdered(p.ID) {
+						gotPrios = append(gotPrios, c.ID)
+					}
+					is.Equal(0, len(gotPrios)) // Should have no priorities
+				}
+			}
+		})
 	}
 }
 
