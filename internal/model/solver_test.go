@@ -74,15 +74,13 @@ func TestSolveAssignmentWithRespectToPriorities(t *testing.T) {
 		},
 		{
 			"Not enough capacity should trigger not solvable error",
-			[]CourseOption{WithCapacity(0, 2), WithCapacity(0, 1), WithCapacity(0, 2)},
-			6,
+			[]CourseOption{WithCapacity(0, 1), WithCapacity(0, 1), WithCapacity(0, 1)},
+			4,
 			[]participantPriosBuilder{
 				{0, []int{0, 1, 2}},
 				{1, []int{0, 1, 2}},
 				{2, []int{1, 2, 0}},
-				{3, []int{1, 2, 0}},
-				{4, []int{2, 0, 1}},
-				{5, []int{2, 0, 1}},
+				{3, []int{2, 0, 1}},
 			},
 			map[int]int{},
 		},
