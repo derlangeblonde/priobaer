@@ -30,6 +30,10 @@ func (c *Course) RemainingCapacity() int {
 	return c.MaxCapacity - c.Allocation() 
 }
 
+func (c *Course) GapToMinCapacity() int {
+	return c.MinCapacity - c.Allocation()
+}
+
 func (c *Course) Valid() map[string]string {
 	errors := make(map[string]string, 0)
 
