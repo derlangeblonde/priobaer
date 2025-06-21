@@ -2,75 +2,231 @@ package loadsave
 
 import (
 	"bytes"
-	"database/sql"
-	"reflect"
+	"softbaer.dev/ass/internal/domain"
+	"softbaer.dev/ass/internal/model"
 	"strings"
 	"testing"
 
 	"github.com/matryer/is"
 	"github.com/xuri/excelize/v2"
-	"softbaer.dev/ass/internal/model"
 )
 
-func TestMarshalModelsIsRoundTripConsistent(t *testing.T) {
-	is := is.New(t)
+func buildScenario(
+	courses []domain.Course,
+	participants []domain.Participant,
+	assignments map[domain.ParticipantID]domain.CourseID,
+	priorities map[domain.ParticipantID][]domain.CourseID,
+) *domain.Scenario {
+	scenario := domain.EmptyScenario()
+	for _, course := range courses {
+		scenario.AddCourse(course)
+	}
+	for _, participant := range participants {
+		scenario.AddParticipant(participant)
+	}
+	for pid, cid := range assignments {
+		_ = scenario.Assign(pid, cid)
+	}
+	for pid, cids := range priorities {
+		_ = scenario.Prioritize(pid, cids)
+	}
+	return scenario
+}
 
+func TestMarshalModelsIsRoundTripConsistent(t *testing.T) {
 	testcases := []struct {
-		coursesInput      []model.Course
-		participantsInput []model.Participant
+		name              string
+		coursesInput      []domain.Course
+		participantsInput []domain.Participant
+		assignments       map[domain.ParticipantID]domain.CourseID
+		priorities        map[domain.ParticipantID][]domain.CourseID
 	}{
 		{
-			[]model.Course{
+			name: "Two courses and two participants without assignments",
+			coursesInput: []domain.Course{
 				{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25},
 				{ID: 2, Name: "bar", MinCapacity: 0, MaxCapacity: 9000},
 			},
-			[]model.Participant{
+			participantsInput: []domain.Participant{
 				{ID: 1, Prename: "mady", Surname: "morison"},
 				{ID: 2, Prename: "Breathe", Surname: "Flow"},
 			},
+			assignments: map[domain.ParticipantID]domain.CourseID{},
+			priorities:  map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
-			[]model.Course{},
-			[]model.Participant{{ID: 143920, Prename: "we have", Surname: "no courses"}},
+			name:              "No courses but one participant",
+			coursesInput:      []domain.Course{},
+			participantsInput: []domain.Participant{{ID: 143920, Prename: "we have", Surname: "no courses"}},
+			assignments:       map[domain.ParticipantID]domain.CourseID{},
+			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
-			[]model.Course{{ID: 42904, Name: "I am", MinCapacity: 741, MaxCapacity: 4920}},
-			[]model.Participant{},
+			name:              "One course but no participants",
+			coursesInput:      []domain.Course{{ID: 42904, Name: "I am", MinCapacity: 741, MaxCapacity: 4920}},
+			participantsInput: []domain.Participant{},
+			assignments:       map[domain.ParticipantID]domain.CourseID{},
+			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
-			[]model.Course{},
-			[]model.Participant{},
+			name:              "Empty scenario",
+			coursesInput:      []domain.Course{},
+			participantsInput: []domain.Participant{},
+			assignments:       map[domain.ParticipantID]domain.CourseID{},
+			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
-			[]model.Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
-			[]model.Participant{{ID: 1, Prename: "\\ \"", Surname: "''"}},
+			name:              "Course and participant with special characters",
+			coursesInput:      []domain.Course{{ID: 23, Name: "\"", MinCapacity: 482, MaxCapacity: 34213}},
+			participantsInput: []domain.Participant{{ID: 1, Prename: "\\ \"", Surname: "''"}},
+			assignments:       map[domain.ParticipantID]domain.CourseID{},
+			priorities:        map[domain.ParticipantID][]domain.CourseID{},
 		},
 		{
-			[]model.Course{{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25}},
-			[]model.Participant{{ID: 1, Prename: "nicht", Surname: "zugeteilt"}, {ID: 2, Prename: "der", Surname: "schon", CourseID: sql.NullInt64{Valid: true, Int64: 1}}},
+			name:         "One course with one assignment",
+			coursesInput: []domain.Course{{ID: 1, Name: "foo", MinCapacity: 5, MaxCapacity: 25}},
+			participantsInput: []domain.Participant{
+				{ID: 1, Prename: "nicht", Surname: "zugeteilt"},
+				{ID: 2, Prename: "der", Surname: "schon"},
+			},
+			assignments: map[domain.ParticipantID]domain.CourseID{
+				2: 1,
+			},
+			priorities: map[domain.ParticipantID][]domain.CourseID{},
+		},
+		{
+			name: "Single participant with ordered priorities",
+			coursesInput: []domain.Course{
+				{ID: 1, Name: "Math", MinCapacity: 5, MaxCapacity: 25},
+				{ID: 2, Name: "Physics", MinCapacity: 3, MaxCapacity: 20},
+				{ID: 3, Name: "Chemistry", MinCapacity: 4, MaxCapacity: 15},
+			},
+			participantsInput: []domain.Participant{
+				{ID: 1, Prename: "John", Surname: "Doe"},
+			},
+			assignments: map[domain.ParticipantID]domain.CourseID{},
+			priorities: map[domain.ParticipantID][]domain.CourseID{
+				1: {2, 3, 1},
+			},
+		},
+		{
+			name: "Multiple participants with priorities and one assignment",
+			coursesInput: []domain.Course{
+				{ID: 1, Name: "English", MinCapacity: 5, MaxCapacity: 30},
+				{ID: 2, Name: "History", MinCapacity: 3, MaxCapacity: 25},
+				{ID: 3, Name: "Art", MinCapacity: 4, MaxCapacity: 20},
+				{ID: 4, Name: "Music", MinCapacity: 2, MaxCapacity: 15},
+			},
+			participantsInput: []domain.Participant{
+				{ID: 1, Prename: "Alice", Surname: "Smith"},
+				{ID: 2, Prename: "Bob", Surname: "Jones"},
+				{ID: 3, Prename: "Carol", Surname: "Wilson"},
+			},
+			assignments: map[domain.ParticipantID]domain.CourseID{
+				1: 3,
+			},
+			priorities: map[domain.ParticipantID][]domain.CourseID{
+				1: {3, 4, 1, 2},
+				2: {2, 1, 4, 3},
+				3: {4, 3, 2, 1},
+			},
+		},
+		{
+			name: "Some participants with priorities and one assignment",
+			coursesInput: []domain.Course{
+				{ID: 1, Name: "Biology", MinCapacity: 5, MaxCapacity: 25},
+				{ID: 2, Name: "Geography", MinCapacity: 4, MaxCapacity: 20},
+			},
+			participantsInput: []domain.Participant{
+				{ID: 1, Prename: "David", Surname: "Brown"},
+				{ID: 2, Prename: "Eva", Surname: "Green"},
+				{ID: 3, Prename: "Frank", Surname: "White"},
+			},
+			assignments: map[domain.ParticipantID]domain.CourseID{
+				2: 1,
+			},
+			priorities: map[domain.ParticipantID][]domain.CourseID{
+				1: {2, 1},
+			},
 		},
 	}
 
 	for _, tc := range testcases {
-		excelBytes, err := ToExcelBytes(tc.coursesInput, tc.participantsInput)
-		is.NoErr(err) // err while marshall to excel
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			scenario := buildScenario(tc.coursesInput, tc.participantsInput, tc.assignments, tc.priorities)
 
-		coursesOutput, participantsOutput, err := FromExcelBytes(bytes.NewReader(excelBytes))
-		is.NoErr(err) // err while unmarshalling from excel
+			excelBytes, err := WriteScenarioDataToExcel(scenario)
+			is.NoErr(err) // exporting should not error
+			is.True(len(excelBytes) > 0)
 
-		is.Equal(len(tc.coursesInput), len(coursesOutput)) // count of courses same after marshal-roundtrip
+			imported, err := ParseExcelFile(bytes.NewReader(excelBytes))
+			is.NoErr(err) // importing should not error
 
-		for i := 0; i < len(tc.coursesInput); i++ {
-			is.True(reflect.DeepEqual(tc.coursesInput[i], coursesOutput[i]))
-		}
-
-		is.Equal(len(tc.participantsInput), len(participantsOutput)) // count of participants same after marshal-roundtrip
-
-		for i := 0; i < len(tc.participantsInput); i++ {
-			if !reflect.DeepEqual(tc.participantsInput[i], participantsOutput[i]) {
-				t.Fatalf("Participant not equal. Got=%v, Want=%v", participantsOutput[i], tc.participantsInput[i])
+			var gotCourses []domain.Course
+			for c := range imported.AllCourses() {
+				gotCourses = append(gotCourses, c)
 			}
-		}
+			is.Equal(len(tc.coursesInput), len(gotCourses))
+			for i, want := range tc.coursesInput {
+				got := gotCourses[i]
+				is.Equal(want.ID, got.ID)
+				is.Equal(want.Name, got.Name)
+				is.Equal(want.MinCapacity, got.MinCapacity)
+				is.Equal(want.MaxCapacity, got.MaxCapacity)
+			}
+
+			var gotParts []domain.Participant
+			for p := range imported.AllParticipants() {
+				gotParts = append(gotParts, p)
+			}
+
+			is.Equal(len(tc.participantsInput), len(gotParts))
+			for i, want := range tc.participantsInput {
+				got := gotParts[i]
+				is.Equal(want.ID, got.ID)
+				is.Equal(want.Prename, got.Prename)
+				is.Equal(want.Surname, got.Surname)
+			}
+
+			for pid, wantCID := range tc.assignments {
+				c, ok := imported.AssignedCourse(pid)
+				is.True(ok)
+				is.Equal(wantCID, c.ID)
+			}
+
+			for _, p := range tc.participantsInput {
+				if _, exists := tc.assignments[p.ID]; !exists {
+					_, ok := imported.AssignedCourse(p.ID)
+					is.True(!ok)
+				}
+			}
+
+			for pid, wantPrios := range tc.priorities {
+				var gotPrios []domain.CourseID
+				for c := range imported.PrioritizedCoursesOrdered(pid) {
+					gotPrios = append(gotPrios, c.ID)
+				}
+
+				is.Equal(len(wantPrios), len(gotPrios)) // Same number of priorities
+
+				for i, wantCID := range wantPrios {
+					if i < len(gotPrios) {
+						is.Equal(wantCID, gotPrios[i])
+					}
+				}
+			}
+
+			for _, p := range tc.participantsInput {
+				if _, hasPrios := tc.priorities[p.ID]; !hasPrios {
+					var gotPrios []domain.CourseID
+					for c := range imported.PrioritizedCoursesOrdered(p.ID) {
+						gotPrios = append(gotPrios, c.ID)
+					}
+					is.Equal(0, len(gotPrios)) // Should have no priorities
+				}
+			}
+		})
 	}
 }
 
@@ -78,31 +234,29 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 	testcases := []struct {
 		wantErrorMsgKeywords []string
 		excelBytes           []byte
-		name string
+		name                 string
 	}{
-		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet2(t), "OnlyStringValuesInParticipantsSheet"},
-		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet2(t), "InvalidHeaderParticipantsSheet"},
-		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet2(t), "InvalidHeaderCourseSheet"},
-		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet2(t), "InvalidRowLengthInParticipantsSheet"},
-		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet2(t), "InvalidRowLengthInCoursesSheet"},
-		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity2(t), "MaxCapacitySmallerThanMinCapacity"},
-		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty2(t), "SurnameEmpty"},
-		{[]string{"Kurs", "existiert", "nicht"}, scenarioAssignmentToNonExistentCourse2(t), "AssignmentToNonExistentCourse"},
+		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t), "OnlyStringValuesInParticipantsSheet"},
+		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t), "InvalidHeaderParticipantsSheet"},
+		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t), "InvalidHeaderCourseSheet"},
+		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t), "InvalidRowLengthInParticipantsSheet"},
+		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t), "InvalidRowLengthInCoursesSheet"},
+		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t), "MaxCapacitySmallerThanMinCapacity"},
+		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t), "SurnameEmpty"},
+		{[]string{"Kurs", "existiert", "nicht"}, scenarioAssignmentToNonExistentCourse(t), "AssignmentToNonExistentCourse"},
 	}
 
 	for _, tc := range testcases {
-		_, _, err := FromExcelBytes(bytes.NewReader(tc.excelBytes))
+		_, err := ParseExcelFile(bytes.NewReader(tc.excelBytes))
 		if err == nil {
-			t.Fatal("Want err (because we tried to Unmarshal an invalid file), but got nil")
+			t.Fatal("Want err (because we tried to ParseExcelFile an invalid file), but got nil")
 		}
-
 		for _, wantKeyword := range tc.wantErrorMsgKeywords {
 			if !strings.Contains(err.Error(), wantKeyword) {
-				t.Fatalf("'%s':Want: '%s' (to be contained), Got: %s", tc.name, wantKeyword, err.Error())
+				t.Fatalf("'%s': Want keyword '%s' in error, Got: %s", tc.name, wantKeyword, err.Error())
 			}
 		}
 	}
-
 }
 
 func scenarioAssignmentToNonExistentCourse(t *testing.T) []byte {
@@ -121,18 +275,16 @@ func scenarioAssignmentToNonExistentCourse(t *testing.T) []byte {
 		},
 		true,
 		true,
-	)	
+	)
 }
 
 func scenarioSurnameEmpty(t *testing.T) []byte {
 	participantWithEmptySurname := []string{"1", "foo", "", "null"}
-
 	return buildExcelFile2(t, [][]string{{}}, [][]string{participantWithEmptySurname}, true, true)
 }
 
 func scenarioMaxCapacitySmallerThanMinCapacity(t *testing.T) []byte {
 	courseWithInvalidCapacity := []string{"1", "foo", "25", "5"}
-
 	return buildExcelFile2(t, [][]string{courseWithInvalidCapacity}, [][]string{}, true, true)
 }
 
@@ -147,26 +299,23 @@ func scenarioInvalidRowLengthInParticipantsSheet(t *testing.T) []byte {
 
 func scenarioInvalidHeaderParticipantsSheet(t *testing.T) []byte {
 	invalidHeaderParticipant := []string{"das", "ist", "kein", "header"}
-
 	return buildExcelFile2(t, [][]string{{}}, [][]string{invalidHeaderParticipant}, true, false)
 }
 
 func scenarioInvalidHeaderCourseSheet(t *testing.T) []byte {
 	invalidHeaderCourse := []string{"das", "ist", "kein", "header"}
-
 	return buildExcelFile2(t, [][]string{invalidHeaderCourse}, [][]string{}, false, true)
 }
 
 func scenarioOnlyStringValuesInParticipantsSheet(t *testing.T) []byte {
 	onlyStringParticipant := []string{"id", "foo", "bar", "baz"}
-
 	return buildExcelFile2(t, [][]string{{}}, [][]string{onlyStringParticipant}, true, true)
 }
 
-func buildParticipantSheet(t *testing.T, excelFile *excelize.File, participants [][]string, writeHeader bool) {
+func buildParticipantSheet2(t *testing.T, excelFile *excelize.File, participants [][]string, writeHeader bool) {
 	is := is.New(t)
 
-	sheetWriter, err := newSheetWriter(excelFile, "Teilnehmer")
+	sheetWriter, err := newSheetWriter(excelFile, participantsSheetName)
 	is.NoErr(err)
 
 	if writeHeader {
@@ -178,14 +327,14 @@ func buildParticipantSheet(t *testing.T, excelFile *excelize.File, participants 
 	}
 }
 
-func buildCourseSheet(t *testing.T, excelFile *excelize.File, courses [][]string, writeHeader bool) {
+func buildCourseSheet2(t *testing.T, excelFile *excelize.File, courses [][]string, writeHeader bool) {
 	is := is.New(t)
 
-	sheetWriter, err := newSheetWriter(excelFile, "Kurse")
+	sheetWriter, err := newSheetWriter(excelFile, courseSheetName)
 	is.NoErr(err)
 
 	if writeHeader {
-		is.NoErr(sheetWriter.write(model.Course{}.RecordHeader()))
+		is.NoErr(sheetWriter.write(domain.Course{}.RecordHeader()))
 	}
 
 	for _, course := range courses {
@@ -193,7 +342,7 @@ func buildCourseSheet(t *testing.T, excelFile *excelize.File, courses [][]string
 	}
 }
 
-func buildExcelFile(t *testing.T, courses, participants [][]string, writeCourseHeader, writeParticipantHeader bool) []byte {
+func buildExcelFile2(t *testing.T, courses, participants [][]string, writeCourseHeader, writeParticipantHeader bool) []byte {
 	is := is.New(t)
 
 	excelFile := excelize.NewFile()
