@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -15,8 +16,8 @@ import (
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/util"
 	"softbaer.dev/ass/internal/ui"
+	"softbaer.dev/ass/internal/util"
 )
 
 type TestClient struct {
@@ -76,7 +77,7 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, pri
 	is := is.New(c.T)
 
 	var requestParameters []string = []string{"prename", participant.Prename, "surname", participant.Surname}
-	for _, courseID := range prioritizedCourseIDs{
+	for _, courseID := range prioritizedCourseIDs {
 		requestParameters = append(requestParameters, "prio[]")
 		requestParameters = append(requestParameters, strconv.Itoa(courseID))
 	}
@@ -259,6 +260,37 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 	}
 
 	return courseIdToAssignedParticipantId
+}
+
+func (c *TestClient) DataSaveAction() []byte {
+	is := is.New(c.T)
+	resp, err := c.client.Get(c.Endpoint("save"))
+	is.NoErr(err) // get request failed
+	is.Equal(resp.StatusCode, 200)
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	is.NoErr(err)
+
+	return data
+}
+
+func (c *TestClient) DataLoadAction(data []byte) {
+	is := is.New(c.T)
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "data.blob")
+	is.NoErr(err)
+	_, err = io.Copy(part, bytes.NewReader(data))
+	is.NoErr(err)
+	err = writer.Close()
+	is.NoErr(err)
+	req, err := http.NewRequest("POST", c.Endpoint("load"), body)
+	is.NoErr(err)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	resp, err := c.client.Do(req)
+	is.NoErr(err) // post request failed
+	defer resp.Body.Close()
+	is.Equal(resp.StatusCode, 303)
 }
 
 func (c *TestClient) Endpoint(path string) string {
