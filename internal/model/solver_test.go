@@ -37,7 +37,7 @@ func TestSolveAssignmentWithExcessCapacity(t *testing.T) {
 	is.Equal(countUniqueAssignments(assignments), len(participants))
 }
 
-func TestSolveAssignmentAssertAssignmentsPerCourse(t *testing.T) {
+func TestSolveAssignmentAssertAssignmentCounts(t *testing.T) {
 	testcases := []struct {
 		name                      string
 		courseCapacities          []CourseOption
@@ -98,7 +98,7 @@ func TestSolveAssignmentAssertAssignmentsPerCourse(t *testing.T) {
 	}
 }
 
-func TestSolveAssignmentWithRespectToPriorities(t *testing.T) {
+func TestSolveAssignmentAssertExactAssignments(t *testing.T) {
 	testcases := []struct {
 		name                      string
 		courseCapacities          []CourseOption
@@ -143,32 +143,6 @@ func TestSolveAssignmentWithRespectToPriorities(t *testing.T) {
 			map[int]int{},
 			false,
 		},
-		// {
-		// 	"Min capacity respected",
-		// 	[]CourseOption{
-		// 		WithCapacity(2, 6),
-		// 		WithCapacity(2, 6),
-		// 		WithCapacity(2, 6),
-		// 	},
-		// 	6,
-		// 	[]participantPriosBuilder{
-		// 		{0, []int{0, 1, 2}},
-		// 		{1, []int{0, 1, 2}},
-		// 		{2, []int{0, 1, 2}},
-		// 		{3, []int{0, 1, 2}},
-		// 		{4, []int{0, 1, 2}},
-		// 		{5, []int{1, 2, 0}},
-		// 	},
-		// 	map[int]int{
-		// 		1: 1,
-		// 		2: 1,
-		// 		3: 1,
-		// 		4: 1,
-		// 		5: 2,
-		// 		6: 2,
-		// 	},
-		// 	false,
-		// },
 	}
 
 	for _, tc := range testcases {
