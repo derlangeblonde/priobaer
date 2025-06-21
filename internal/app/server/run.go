@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -65,8 +66,8 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		Handler: router.Handler(),
 	}
 	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("ListenAndServe returned an errore", "err", err)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("ListenAndServe returned an error", "err", err)
 		}
 	}()
 

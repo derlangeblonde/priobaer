@@ -46,7 +46,7 @@ func (p *Participant) TrimFields() {
 func (p *Participant) UnmarshalRecord(record []string) error {
 	const requiredValueCount int = 3
 	if len(record) < requiredValueCount {
-		return fmt.Errorf("Die Zeile hat %d Werte bzw. Spalten. Mindestens %d sind erwartet.", len(record), requiredValueCount)
+		return fmt.Errorf("die Zeile hat %d Werte bzw. Spalten. Mindestens %d sind erwartet", len(record), requiredValueCount)
 	}
 
 	if id, err := strconv.Atoi(record[0]); err == nil {

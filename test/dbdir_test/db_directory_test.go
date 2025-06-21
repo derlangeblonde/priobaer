@@ -1,4 +1,4 @@
-package dbdir_test
+package dbdirtest
 
 import (
 	"errors"

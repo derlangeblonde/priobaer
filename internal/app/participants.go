@@ -63,7 +63,6 @@ func ParticipantsCreate(c *gin.Context) {
 			return err
 		}
 
-
 		if err := store.SetPriorities(tx, participant.ID, req.PrioritizedCourseIDs); err != nil {
 			return err
 		}
@@ -113,7 +112,6 @@ func ParticipantsDelete(c *gin.Context) {
 	// 2025/02/28 00:04:31 ERROR Delete of participants failed on db level err="FOREIGN KEY constraint failed"
 	// [GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 200
 
-
 	if result.Error != nil {
 		slog.Error("Delete of participants failed on db level", "err", result.Error)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -127,7 +125,7 @@ func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
 }
 
-func toViewParticipant(model model.Participant, priorities []model.Course) ui.Participant{
+func toViewParticipant(model model.Participant, priorities []model.Course) ui.Participant {
 	result := ui.Participant{
 		ID:         model.ID,
 		Prename:    model.Prename,
@@ -135,7 +133,7 @@ func toViewParticipant(model model.Participant, priorities []model.Course) ui.Pa
 		Priorities: []ui.Priority{},
 	}
 
-	for i, prio := range priorities{
+	for i, prio := range priorities {
 		result.Priorities = append(result.Priorities, ui.Priority{CourseName: prio.Name, Level: uint8(i + 1)})
 	}
 
@@ -143,8 +141,8 @@ func toViewParticipant(model model.Participant, priorities []model.Course) ui.Pa
 }
 
 func toViewParticipants(models []model.Participant, prioritiesById map[int][]model.Course) (results []ui.Participant) {
-	for _, model := range models {
-		results = append(results, toViewParticipant(model, prioritiesById[model.ID]))
+	for _, m := range models {
+		results = append(results, toViewParticipant(m, prioritiesById[m.ID]))
 	}
 	return
 }

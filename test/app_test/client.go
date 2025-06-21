@@ -76,7 +76,7 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, pri
 
 	is := is.New(c.T)
 
-	var requestParameters []string = []string{"prename", participant.Prename, "surname", participant.Surname}
+	var requestParameters = []string{"prename", participant.Prename, "surname", participant.Surname}
 	for _, courseID := range prioritizedCourseIDs {
 		requestParameters = append(requestParameters, "prio[]")
 		requestParameters = append(requestParameters, strconv.Itoa(courseID))

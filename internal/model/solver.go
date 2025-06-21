@@ -11,7 +11,7 @@ import (
 
 const separator = "[in]"
 
-var notSolvable = errors.New("Problem instance is not solvable")
+var notSolvable = errors.New("problem instance is not solvable")
 
 func SolveAssignment(priorities []Priority) (assignments []Assignment, err error) {
 	optimizationProblem := newOptimizationProblem(priorities)
@@ -95,9 +95,9 @@ func (c *maximumCapacityConstraint) build() {
 }
 
 type minimumCapacityConstraint struct {
-	ctx                         *z3.Context
-	optimize                    *z3.Optimize
-	variablesByCourseId         map[int][]*z3.AST
+	ctx                        *z3.Context
+	optimize                   *z3.Optimize
+	variablesByCourseId        map[int][]*z3.AST
 	gapToMinCapacityByCourseId map[int]int
 }
 
@@ -165,21 +165,21 @@ func (o *maximizeHighPrioritiesObjective) weightedTerm(varWithPriorityLevel varW
 	return o.invertPriorityLevel(varWithPriorityLevel.prioLevel).Mul(varWithPriorityLevel.variable)
 }
 
-func (o *optimizationProblem) Solve() (assignments []Assignment, err error) {
+func (p *optimizationProblem) Solve() (assignments []Assignment, err error) {
 	constrainBuilders := []constraintBuilder{
-		newExactlyOneCoursePerParticipantConstraint(o),
-		newMaximumCapacityConstraint(o),
-		newMinimumCapacityConstraint(o),
-		newPreferHighPrioritiesObjective(o),
+		newExactlyOneCoursePerParticipantConstraint(p),
+		newMaximumCapacityConstraint(p),
+		newMinimumCapacityConstraint(p),
+		newPreferHighPrioritiesObjective(p),
 	}
 	solutionParser := newSolutionParser()
 
-	for _, prio := range o.priorities {
+	for _, prio := range p.priorities {
 		if prio.Course.RemainingCapacity() <= 0 {
 			continue
 		}
 
-		variable := o.priorityVariable(prio)
+		variable := p.priorityVariable(prio)
 		solutionParser.registerLookups(prio.Participant, prio.Course)
 
 		for _, constraint := range constrainBuilders {
@@ -191,19 +191,19 @@ func (o *optimizationProblem) Solve() (assignments []Assignment, err error) {
 		constraint.build()
 	}
 
-	if v := o.optimize.Check(); v != z3.True {
+	if v := p.optimize.Check(); v != z3.True {
 		return assignments, notSolvable
 	}
 
-	m := o.optimize.Model()
+	m := p.optimize.Model()
 	solution := m.Assignments()
 
 	return solutionParser.parse(solution)
 }
 
-func (o *optimizationProblem) priorityVariable(prio Priority) *z3.AST {
+func (p *optimizationProblem) priorityVariable(prio Priority) *z3.AST {
 	varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseID)
-	variable := o.ctx.Const(o.ctx.Symbol(varName), o.ctx.IntSort())
+	variable := p.ctx.Const(p.ctx.Symbol(varName), p.ctx.IntSort())
 
 	return variable
 }
@@ -221,19 +221,19 @@ func parseAssignmentId(varName string) (assignmentId AssignmentID, err error) {
 	idsAsStr := strings.Split(varName, separator)
 
 	if len(idsAsStr) != 2 {
-		return assignmentId, fmt.Errorf("Splitting of varName did not give exactly two ids. VarName: %s", varName)
+		return assignmentId, fmt.Errorf("splitting of varName did not give exactly two ids. VarName: %s", varName)
 	}
 
 	participantId, err := strconv.Atoi(idsAsStr[0])
 
 	if err != nil {
-		return assignmentId, fmt.Errorf("Could not parse participantId: %d, err: %s", participantId, err)
+		return assignmentId, fmt.Errorf("could not parse participantId: %d, err: %s", participantId, err)
 	}
 
 	courseId, err := strconv.Atoi(idsAsStr[1])
 
 	if err != nil {
-		return assignmentId, fmt.Errorf("Could not parse courseId: %d, err: %s", courseId, err)
+		return assignmentId, fmt.Errorf("could not parse courseId: %d, err: %s", courseId, err)
 	}
 
 	return AssignmentID{ParticipantId: participantId, CourseId: courseId}, err

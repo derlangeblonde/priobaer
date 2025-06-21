@@ -6,15 +6,15 @@ import "unsafe"
 
 type Optimize struct {
 	rawOptimize C.Z3_optimize
-	rawCtx  C.Z3_context
+	rawCtx      C.Z3_context
 }
 
-func (ctx *Context) NewOptimizer() *Optimize {
-	rawSolver := C.Z3_mk_optimize(ctx.Z3Value())
-	C.Z3_optimize_inc_ref(ctx.raw, rawSolver)
+func (c *Context) NewOptimizer() *Optimize {
+	rawSolver := C.Z3_mk_optimize(c.Z3Value())
+	C.Z3_optimize_inc_ref(c.raw, rawSolver)
 	return &Optimize{
 		rawOptimize: rawSolver,
-		rawCtx: ctx.Z3Value(),
+		rawCtx:      c.Z3Value(),
 	}
 }
 
@@ -33,7 +33,8 @@ func (o *Optimize) Close() error {
 func (o *Optimize) Assert(a *AST) {
 	C.Z3_optimize_assert(o.rawCtx, o.rawOptimize, a.rawAST)
 }
-    // Z3_lbool Z3_API Z3_optimize_check(Z3_context c, Z3_optimize o, unsigned num_assumptions, Z3_ast const assumptions[]);
+
+// Z3_lbool Z3_API Z3_optimize_check(Z3_context c, Z3_optimize o, unsigned num_assumptions, Z3_ast const assumptions[]);
 // Check checks if the currently set formula is consistent.
 //
 // Maps to: Z3_optimize_check

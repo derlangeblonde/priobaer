@@ -12,16 +12,15 @@ import (
 
 func setupTestDb(t *testing.T) *gorm.DB {
 	is := is.New(t)
-	dbPath := fmt.Sprintf("%s/%s" ,t.TempDir(), "test.db")
+	dbPath := fmt.Sprintf("%s/%s", t.TempDir(), "test.db")
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
-	db.Exec("PRAGMA foreign_keys = ON;")
 	is.NoErr(err)
+	db.Exec("PRAGMA foreign_keys = ON;")
 
 	db.AutoMigrate(&model.Participant{}, &model.Course{}, &model.Priority{})
 
 	return db
 }
-
 
 func TestCanAddPriorityOfParticipantToCourse(t *testing.T) {
 	is := is.New(t)
@@ -51,7 +50,7 @@ func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
 	participant := model.Participant{Prename: "hans", Surname: "klein"}
 	is.NoErr(db.Create(&participant).Error) // could not create a participant
 
-	courseIds := make([]int, model.MaxPriorityLevel + 1)
+	courseIds := make([]int, model.MaxPriorityLevel+1)
 
 	err := SetPriorities(db, participant.ID, courseIds)
 	is.True(err != nil) // want SetPriorities to fail
@@ -77,7 +76,7 @@ func TestSetPrioritiesOverwritesExistingPriorities(t *testing.T) {
 
 	is.Equal(len(prioritizedCourses), 5) // want 5 priorities
 	for i, course := range prioritizedCourses {
-		is.Equal(course.ID, newPrioritizedCourses[i].ID) // want the courseID of the priority to be the courseID of the new prioritized course
+		is.Equal(course.ID, newPrioritizedCourses[i].ID)     // want the courseID of the priority to be the courseID of the new prioritized course
 		is.Equal(course.Name, newPrioritizedCourses[i].Name) // want the courseName of the priority to be the courseName of the new prioritized course
 	}
 }
@@ -129,13 +128,13 @@ func TestGetPrioritiesForMultipleReturnsPrioritiesInCorrectOrder(t *testing.T) {
 	gotMap, err := GetPrioritiesForMultiple(db, participantIDs)
 	is.NoErr(err)
 
-	is.Equal(len(gotMap), 3) // want 3 entries 
+	is.Equal(len(gotMap), 3) // want 3 entries
 
 	for participantID, gotPrioritizedCourses := range gotMap {
 		is.Equal(len(gotPrioritizedCourses), 3) // want 3 priorities per participant
 		wantCourses := wantMap[participantID]
 		for i, gotCourse := range gotPrioritizedCourses {
-			is.Equal(gotCourse.ID, wantCourses[i].ID) // prioritized courses in wrong order
+			is.Equal(gotCourse.ID, wantCourses[i].ID)     // prioritized courses in wrong order
 			is.Equal(gotCourse.Name, wantCourses[i].Name) // prioritized courses in wrong order
 		}
 	}

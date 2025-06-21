@@ -18,7 +18,6 @@ func LoadDialog(c *gin.Context) {
 }
 
 func Load(c *gin.Context) {
-	const batchSize = 10
 	db := GetDB(c)
 
 	formFile, err := c.FormFile("file")

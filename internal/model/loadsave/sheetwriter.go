@@ -18,7 +18,9 @@ func newSheetWriter(file *excelize.File, sheetName string) (*sheetWriter, error)
 		return nil, err
 	}
 	if index == -1 {
-		file.NewSheet(sheetName)
+		if _, err = file.NewSheet(sheetName); err != nil {
+			return nil, err
+		}
 	}
 
 	return &sheetWriter{
@@ -41,4 +43,3 @@ func (sw *sheetWriter) write(row []string) error {
 	sw.currentRow++
 	return nil
 }
-

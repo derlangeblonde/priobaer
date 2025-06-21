@@ -53,7 +53,7 @@ func (c *Course) TrimFields() {
 func (c *Course) UnmarshalRecord(record []string) error {
 	const recordLen int = 4
 	if len(record) != recordLen {
-		return fmt.Errorf("Die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet.", len(record), recordLen)
+		return fmt.Errorf("die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet", len(record), recordLen)
 	}
 
 	if id, err := strconv.Atoi(record[0]); err == nil {

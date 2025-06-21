@@ -7,8 +7,8 @@ import (
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/util"
 	"softbaer.dev/ass/internal/ui"
+	"softbaer.dev/ass/internal/util"
 )
 
 func TestParticipantsAreUnassignedIntially(t *testing.T) {
@@ -126,7 +126,7 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 
 	courseOldPresent, courseNewPresent := false, false
 
-	for _, courseUpdated := range viewUpdate.courses{
+	for _, courseUpdated := range viewUpdate.courses {
 		if courseUpdated.ID == courseOld.ID {
 			courseOldPresent = true
 			is.Equal(courseUpdated.Allocation, 0) // expect old course to have no one assignment after update
@@ -185,7 +185,7 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 	testClient := NewTestClient(t, localhost)
 
 	var participant ui.Participant
-	for i := 0; i < 3; i ++ {
+	for i := 0; i < 3; i++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 	}
 
@@ -210,7 +210,7 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 
 	var participant ui.Participant
-	for i := 0; i < 3; i ++ {
+	for i := 0; i < 3; i++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 	}
@@ -234,7 +234,7 @@ func TestParticipantsGetUnassignedWhenTheirAssignedCourseIsDeleted(t *testing.T)
 	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 
 	var participant ui.Participant
-	for i := 0; i < 3; i ++ {
+	for i := 0; i < 3; i++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
 	}

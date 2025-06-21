@@ -7,9 +7,9 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-var namespace uuid.UUID = uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
+var namespace = uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
 var intSeed uint64 = 69420
-var SeededRand *rand.Rand = rand.New(rand.NewSource(intSeed))
+var SeededRand = rand.New(rand.NewSource(intSeed))
 
 func SeededUUID() uuid.UUID {
 	oneTimeSeedStr := strconv.Itoa(SeededRand.Int())
@@ -42,7 +42,7 @@ func WithCourseId(id int) CourseOption {
 
 func WithCourseName(name string) CourseOption {
 	return func(c *Course) {
-		c.Name = name 
+		c.Name = name
 	}
 }
 

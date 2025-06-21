@@ -239,7 +239,7 @@ func TestUnmarshalInvalidExcelFileReturnsSpecificError(t *testing.T) {
 		{[]string{"Spalte", "ID", "valide"}, scenarioOnlyStringValuesInParticipantsSheet(t), "OnlyStringValuesInParticipantsSheet"},
 		{[]string{"Teilnehmer", "Kopfzeile", "Vorname"}, scenarioInvalidHeaderParticipantsSheet(t), "InvalidHeaderParticipantsSheet"},
 		{[]string{"Kurse", "Kopfzeile", "Name"}, scenarioInvalidHeaderCourseSheet(t), "InvalidHeaderCourseSheet"},
-		{[]string{"Teilnehmer", "Zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t), "InvalidRowLengthInParticipantsSheet"},
+		{[]string{"Teilnehmer", "zeile", "Werte"}, scenarioInvalidRowLengthInParticipantsSheet(t), "InvalidRowLengthInParticipantsSheet"},
 		{[]string{"Kurse", "Zeile", "Werte"}, scenarioInvalidRowLengthInCoursesSheet(t), "InvalidRowLengthInCoursesSheet"},
 		{[]string{"Kurse", "maximal", "minimale", "Kapazität", "größer"}, scenarioMaxCapacitySmallerThanMinCapacity(t), "MaxCapacitySmallerThanMinCapacity"},
 		{[]string{"Nachname", "nicht", "leer"}, scenarioSurnameEmpty(t), "SurnameEmpty"},

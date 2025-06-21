@@ -114,7 +114,7 @@ func ParseExcelFile(fileReader io.Reader) (*domain.Scenario, error) {
 		minimumRecordLen := len(domain.Participant{}.RecordHeader()) + 1
 
 		if len(record) < minimumRecordLen {
-			return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, fmt.Errorf("Zeile hat %d Werte. Es müssen mind. %d sein", len(record), minimumRecordLen))
+			return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, fmt.Errorf("zeile hat %d Werte. Es müssen mind. %d sein", len(record), minimumRecordLen))
 		}
 
 		assignedCourseIdStr := record[minimumRecordLen-1]
@@ -170,9 +170,14 @@ func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
 		return buf.Bytes(), err
 	}
 
-	writer.write(domain.Course{}.RecordHeader())
+	err = writer.write(domain.Course{}.RecordHeader())
+	if err != nil {
+		return nil, err
+	}
 	for course := range scenario.AllCourses() {
-		writer.write(course.MarshalRecord())
+		if err = writer.write(course.MarshalRecord()); err != nil {
+			return nil, err
+		}
 	}
 
 	if writer, err = newSheetWriter(file, participantsSheetName); err != nil {
@@ -184,7 +189,9 @@ func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
 		participantsSheetHeader = append(participantsSheetHeader, nthPriorityColumnHeader(i+1))
 	}
 
-	writer.write(participantsSheetHeader)
+	if err := writer.write(participantsSheetHeader); err != nil {
+		return nil, err
+	}
 	for participant := range scenario.AllParticipants() {
 		assignedCourse, ok := scenario.AssignedCourse(participant.ID)
 		courseIdMarshalled := "null"
@@ -199,14 +206,18 @@ func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
 			row = append(row, strconv.Itoa(int(course.ID)))
 		}
 
-		writer.write(row)
+		if err := writer.write(row); err != nil {
+			return nil, err
+		}
 	}
 
 	if writer, err = newSheetWriter(file, participantsSheetName); err != nil {
 		return buf.Bytes(), err
 	}
 
-	writer.write(append(domain.Participant{}.RecordHeader(), assignmentColumnHeader))
+	if err = writer.write(append(domain.Participant{}.RecordHeader(), assignmentColumnHeader)); err != nil {
+		return nil, err
+	}
 	for participant := range scenario.AllParticipants() {
 		assignedCourse, ok := scenario.AssignedCourse(participant.ID)
 		courseIdMarshalled := "null"
@@ -215,14 +226,18 @@ func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
 			courseIdMarshalled = strconv.Itoa(int(assignedCourse.ID))
 		}
 
-		writer.write(append(participant.MarshalRecord(), courseIdMarshalled))
+		if err = writer.write(append(participant.MarshalRecord(), courseIdMarshalled)); err != nil {
+			return nil, err
+		}
 	}
 
 	if writer, err = newSheetWriter(file, versionSheetName); err != nil {
 		return buf.Bytes(), err
 	}
 
-	writer.write([]string{"1.0"})
+	if err = writer.write([]string{"1.0"}); err != nil {
+		return nil, err
+	}
 
 	if err := file.Write(&buf); err != nil {
 		fmt.Printf("Error writing Excel file to buffer: %v\n", err)
