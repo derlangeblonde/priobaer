@@ -64,6 +64,7 @@ func (c *exactlyOneCoursePerParticipantConstraint) build() {
 	one := c.ctx.Int(1, c.ctx.IntSort())
 	for _, allVariablesForOneParticipant := range c.variablesByParticipantId {
 		c.optimize.Assert(zero.Add(allVariablesForOneParticipant...).Le(one))
+		c.optimize.Assert(zero.Add(allVariablesForOneParticipant...).Gt(zero))
 	}
 }
 
