@@ -34,3 +34,19 @@ type Participant struct {
 	Surname    string
 	Priorities []Priority
 }
+
+func (p Participant) Id() int { 
+    return p.ID 
+}
+
+type IDer interface {
+	Id() int
+}
+
+func IDs[T IDer](items []T) []int {
+    out := make([]int, len(items))
+    for i, v := range items {
+        out[i] = v.Id()
+    }
+    return out
+}

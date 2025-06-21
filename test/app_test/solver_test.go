@@ -2,11 +2,55 @@ package apptest
 
 import (
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/ui"
+	"softbaer.dev/ass/internal/util"
 )
+
+func TestSolveAssignmentDonReassignParticipants(t *testing.T) {
+	is := is.New(t)
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+
+	coursesCount := 3
+	var courseIds []int
+	for range coursesCount {
+		course := testClient.CoursesCreateAction(model.RandomCourse(model.WithCapacity(0, 2)), nil)
+		courseIds = append(courseIds, course.ID)
+	}
+
+	prioLists := [][]int{
+		{courseIds[0], courseIds[1], courseIds[2]},
+		{courseIds[0], courseIds[1], courseIds[2]},
+		{courseIds[0], courseIds[1], courseIds[2]},
+		{courseIds[1], courseIds[2], courseIds[0]},
+		{courseIds[2], courseIds[0], courseIds[1]},
+		{courseIds[1], courseIds[0], courseIds[2]},
+	}
+	var participantIds []int
+	for _, prios := range prioLists {
+		participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), prios, nil)
+		participantIds = append(participantIds, participant.ID)
+	}
+
+	alreadyAssignedParticipantIndex := 0
+	alreadyAssignedCourseIndex := 2
+	testClient.AssignmentsUpdateAction(participantIds[alreadyAssignedParticipantIndex], util.JustInt(courseIds[alreadyAssignedCourseIndex]))
+
+	_, unassigned := testClient.AssignmentsIndexAction("solve", "true")
+	is.Equal(len(unassigned), 0)
+
+	_, participantsAssignedToCourse := testClient.AssignmentsIndexAction("selected-course", strconv.Itoa(courseIds[alreadyAssignedCourseIndex]))
+	participantIDsAssignedToCourse := ui.IDs(participantsAssignedToCourse)
+	
+	is.True(slices.Contains(participantIDsAssignedToCourse, participantIds[alreadyAssignedParticipantIndex]))
+}
 
 func TestSolveAssignment(t *testing.T) {
 	is := is.New(t)
