@@ -1,9 +1,11 @@
 package domain
 
 import (
+	"database/sql"
 	"errors"
 	"iter"
 	"slices"
+	"softbaer.dev/ass/internal/model"
 )
 
 type Scenario struct {
@@ -128,4 +130,20 @@ func (s *Scenario) MaxAmountOfPriorities() (result int) {
 	}
 
 	return
+}
+
+func (s *Scenario) allParticipantsAsDbModels() []model.Participant {
+	result := make([]model.Participant, len(s.participants))
+	for i, p := range s.participants {
+		assignedCourse, ok := s.assignmentTable[p.ID]
+		var nullableAssignedId sql.NullInt64
+		if ok {
+			nullableAssignedId = sql.NullInt64{Valid: ok, Int64: int64(assignedCourse.ID)}
+		} else {
+			nullableAssignedId = sql.NullInt64{Valid: false}
+		}
+		result[i] = model.Participant{ID: int(p.ID), Prename: p.Prename, Surname: p.Surname, CourseID: nullableAssignedId}
+	}
+
+	return result
 }

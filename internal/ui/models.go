@@ -10,6 +10,10 @@ type Course struct {
 	AsOobSwap   bool
 }
 
+func (c Course) Id() int {
+	return c.ID
+}
+
 type UnassignedEntry struct {
 	ParticipantsCount int
 	ShouldRender      bool
@@ -35,7 +39,6 @@ type Participant struct {
 	Priorities []Priority
 }
 
-func (p Participant) Id() int { 
-    return p.ID 
+func (p Participant) Id() int {
+	return p.ID
 }
-
