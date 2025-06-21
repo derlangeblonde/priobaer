@@ -10,7 +10,7 @@ import (
 	"softbaer.dev/ass/internal/util"
 )
 
-func TestSolveAssignmentDonReassignParticipants(t *testing.T) {
+func TestSolveAssignmentDontReassignParticipants(t *testing.T) {
 	is := is.New(t)
 	sut := StartupSystemUnderTest(t, nil)
 	defer sut.cancel()
