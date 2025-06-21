@@ -3,6 +3,7 @@ package loadsave
 import (
 	"bytes"
 	"database/sql"
+	"softbaer.dev/ass/internal/domain"
 	"strings"
 	"testing"
 
@@ -54,23 +55,23 @@ func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		scenario := EmptyScenario()
+		scenario := domain.EmptyScenario()
 		for _, mc := range tc.coursesInput {
-			scenario.AddCourse(Course{
-				ID:          CourseID(mc.ID),
+			scenario.AddCourse(domain.Course{
+				ID:          domain.CourseID(mc.ID),
 				Name:        mc.Name,
 				MinCapacity: mc.MinCapacity,
 				MaxCapacity: mc.MaxCapacity,
 			})
 		}
 		for _, mp := range tc.participantsInput {
-			scenario.AddParticipant(Participant{
-				ID:      ParticipantID(mp.ID),
+			scenario.AddParticipant(domain.Participant{
+				ID:      domain.ParticipantID(mp.ID),
 				Prename: mp.Prename,
 				Surname: mp.Surname,
 			})
 			if mp.CourseID.Valid {
-				_ = scenario.Assign(ParticipantID(mp.ID), CourseID(mp.CourseID.Int64))
+				_ = scenario.Assign(domain.ParticipantID(mp.ID), domain.CourseID(mp.CourseID.Int64))
 			}
 		}
 
@@ -81,37 +82,37 @@ func TestMarshalModelsIsRoundTripConsistent2(t *testing.T) {
 		imported, err := Import(bytes.NewReader(excelBytes))
 		is.NoErr(err) // importing should not error
 
-		var gotCourses []Course
+		var gotCourses []domain.Course
 		for c := range imported.AllCourses() {
 			gotCourses = append(gotCourses, c)
 		}
 		is.Equal(len(tc.coursesInput), len(gotCourses))
 		for i, want := range tc.coursesInput {
 			got := gotCourses[i]
-			is.Equal(CourseID(want.ID), got.ID)
+			is.Equal(domain.CourseID(want.ID), got.ID)
 			is.Equal(want.Name, got.Name)
 			is.Equal(want.MinCapacity, got.MinCapacity)
 			is.Equal(want.MaxCapacity, got.MaxCapacity)
 		}
 
 		// Compare participants
-		var gotParts []Participant
+		var gotParts []domain.Participant
 		for p := range imported.AllParticipants() {
 			gotParts = append(gotParts, p)
 		}
 		is.Equal(len(tc.participantsInput), len(gotParts))
 		for i, want := range tc.participantsInput {
 			got := gotParts[i]
-			is.Equal(ParticipantID(want.ID), got.ID)
+			is.Equal(domain.ParticipantID(want.ID), got.ID)
 			is.Equal(want.Prename, got.Prename)
 			is.Equal(want.Surname, got.Surname)
 
 			if want.CourseID.Valid {
-				c, ok := imported.AssignedCourse(ParticipantID(want.ID))
+				c, ok := imported.AssignedCourse(domain.ParticipantID(want.ID))
 				is.True(ok)
-				is.Equal(CourseID(want.CourseID.Int64), c.ID)
+				is.Equal(domain.CourseID(want.CourseID.Int64), c.ID)
 			} else {
-				_, ok := imported.AssignedCourse(ParticipantID(want.ID))
+				_, ok := imported.AssignedCourse(domain.ParticipantID(want.ID))
 				is.True(!ok)
 			}
 		}
@@ -244,4 +245,3 @@ func buildExcelFile2(t *testing.T, courses, participants [][]string, writeCourse
 
 	return buf.Bytes()
 }
-
