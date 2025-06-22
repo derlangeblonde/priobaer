@@ -20,6 +20,19 @@
 
 {{ end }}
 	<div class="row" id="assignments">
+		{{ block "assignments/_participants-column" .participants }}
+
+		<div id="participants-column" class="margin-lr width-fifth">
+			<h2>Teilnehmer</h2>
+
+			{{ range . }}
+			{{ template "participants/_show" . }}
+			{{ end }}
+
+			{{ template "participants/_new-button" }}
+		</div>
+		{{ end }}
+
 		<div id="courses-column" class="margin-lr width-fifth">
 			<h2>Kurse</h2>
 			{{ block "assignments/course-list" .courseList}}
@@ -29,7 +42,7 @@
 							class="{{ if .Selected }}selected{{ end }} clickable"
 							{{ if .AsOobSwap }}hx-swap-oob="outerHTML:#not-assigned"{{ end }}
 							ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)">
-							Nicht zugeteilt <br>
+							<b> Nicht zugeteilt </b> <br>
 							{{ Field "ParticipantsCount" . }} Teilnehmer
 						</div>
 						<hr>
@@ -45,19 +58,6 @@
 			{{ end }}
 			{{ template "courses/_new-button" }}
 		</div>
-
-		{{ block "assignments/_participants-column" .participants }}
-
-			<div id="participants-column" class="margin-lr width-fifth">
-				<h2>Teilnehmer</h2>
-
-				{{ range . }}
-				{{ template "participants/_show" . }}
-				{{ end }}
-
-				{{ template "participants/_new-button" }}
-			</div>
-		{{ end }}
 
 	</div>
 {{ if .fullPage }}

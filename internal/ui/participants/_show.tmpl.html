@@ -1,5 +1,5 @@
 <div id="participant-{{ .ID }}" class="clickable" draggable="true" ondragstart="dragStart(event)">
-	{{ Field "Surname" . }}, {{ Field "Prename" . }} <br>
+	<b>{{ Field "Surname" . }}, {{ Field "Prename" . }} </b> <br>
 	<label> Prioritäten </label>
 	<ol class="row gap flex-wrap">
 		{{ range .Priorities }}
