@@ -99,6 +99,43 @@ func (s *Scenario) AllParticipants() iter.Seq[Participant] {
 	return slices.Values(s.participants)
 }
 
+func (s *Scenario) AllPrioLists() iter.Seq2[ParticipantID, []Course] {
+
+	return func (yield func(ParticipantID, []Course) bool)  {
+		for pid, coursePointers := range s.priorityTable{
+			var courses []Course
+			for _, coursePointer := range coursePointers {
+				courses = append(courses, *coursePointer)
+			}
+
+			if !yield(pid, courses) {
+				return
+			}
+		}
+	}
+}
+
+
+func (s *Scenario) AllPriorities() iter.Seq[Priority] {
+	return func (yield func(Priority) bool)  {
+		for pid, courses := range s.priorityTable{
+			participant, ok := s.participant(pid)
+
+			if !ok {
+				continue
+			}
+
+			for i, course := range courses {
+				current := Priority{Level: PriorityLevel(i+1), Participant: *participant,  Course: *course}
+				if !yield(current) {
+					return
+				}
+			}
+
+		}
+	}
+}
+
 func (s *Scenario) AssignedCourse(pid ParticipantID) (Course, bool) {
 	course, ok := s.assignmentTable[pid]
 

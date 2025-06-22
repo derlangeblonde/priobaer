@@ -45,7 +45,7 @@ func LoadScenario(db *gorm.DB) (scenario *Scenario, err error) {
 }
 
 func OverwriteScenario(db *gorm.DB, scenario *Scenario) error {
-	modelsToDelete := []interface{}{
+	modelsToDelete := []any{
 		&model.Priority{},
 		&model.Participant{},
 		&model.Course{},
@@ -57,11 +57,13 @@ func OverwriteScenario(db *gorm.DB, scenario *Scenario) error {
 
 	}
 
+	courseRecords := CoursesToDbModels(scenario.courses)
+	db.CreateInBatches(courseRecords, 100)
+
 	participantRecords := scenario.allParticipantsAsDbModels()
 	db.CreateInBatches(participantRecords, 100)
 
-	courseRecords := CoursesToDbModels(scenario.courses)
-	db.CreateInBatches(courseRecords, 100)
+	savePriorities(db, scenario.AllPriorities())
 
 	return nil
 }
