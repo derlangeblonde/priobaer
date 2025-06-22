@@ -11,7 +11,7 @@ import (
 
 const separator = "[in]"
 
-var notSolvable = errors.New("problem instance is not solvable")
+var NotSolvable = errors.New("problem instance is not solvable")
 
 func SolveAssignment(priorities []Priority) (assignments []Assignment, err error) {
 	optimizationProblem := newOptimizationProblem(priorities)
@@ -192,7 +192,7 @@ func (p *optimizationProblem) Solve() (assignments []Assignment, err error) {
 	}
 
 	if v := p.optimize.Check(); v != z3.True {
-		return assignments, notSolvable
+		return assignments, NotSolvable
 	}
 
 	m := p.optimize.Model()

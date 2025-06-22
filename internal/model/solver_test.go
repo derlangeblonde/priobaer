@@ -168,7 +168,7 @@ func TestSolveAssignmentAssertExactAssignments(t *testing.T) {
 			}
 
 			if len(tc.expectedAssignments) == 0 {
-				is.Equal(err, notSolvable)
+				is.Equal(err, NotSolvable)
 				is.Equal(len(assignments), 0)
 
 				return

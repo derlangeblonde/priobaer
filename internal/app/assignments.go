@@ -2,6 +2,7 @@ package app
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -61,6 +62,13 @@ func AssignmentsIndex(c *gin.Context) {
 				return nil
 			},
 		)
+
+		if errors.Is(err, model.NotSolvable) {
+			slog.Info("Could not solve assignment", "err", err)
+			c.HTML(http.StatusOK, "dialogs/not-solvable", gin.H{})
+
+			return
+		}
 
 		if err != nil {
 			slog.Error("Error while trying to solve assignment", "err", err)
