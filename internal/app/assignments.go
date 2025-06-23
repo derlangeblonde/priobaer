@@ -2,6 +2,7 @@ package app
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -48,7 +49,7 @@ func AssignmentsIndex(c *gin.Context) {
 					return result.Error
 				}
 
-				assignments, err := model.SolveAssignment(relevantPriorities) 
+				assignments, err := model.SolveAssignment(relevantPriorities)
 				if err != nil {
 					return err
 				}
@@ -61,6 +62,13 @@ func AssignmentsIndex(c *gin.Context) {
 				return nil
 			},
 		)
+
+		if errors.Is(err, model.NotSolvable) {
+			slog.Info("Could not solve assignment", "err", err)
+			c.HTML(http.StatusOK, "dialogs/not-solvable", gin.H{})
+
+			return
+		}
 
 		if err != nil {
 			slog.Error("Error while trying to solve assignment", "err", err)
@@ -98,7 +106,6 @@ func AssignmentsIndex(c *gin.Context) {
 		slog.Error("Could not find course with id. Defaulting to unassigned", "course_id", req.CourseIdSelected)
 		req.CourseIdSelected = nil
 	}
-
 
 	viewCourses := toViewCourses(courses, pointerToNullable(req.CourseIdSelected), false)
 	viewCourses.UnassignedEntry.Selected = req.CourseIdSelected == nil
@@ -210,8 +217,8 @@ func AssignmentsUpdate(c *gin.Context) {
 func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) ui.CourseList {
 	var courseViews []ui.Course
 
-	for _, model := range models {
-		view := toViewCourse(model, selectedId, allAsOobSwap)
+	for _, m := range models {
+		view := toViewCourse(m, selectedId, allAsOobSwap)
 		courseViews = append(courseViews, view)
 	}
 

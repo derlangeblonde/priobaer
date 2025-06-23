@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"softbaer.dev/ass/internal/util"
+	"sort"
 	"strconv"
 	"sync"
 	"testing"
@@ -170,7 +172,7 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 			var wantPrioritizedCourseIds []int
 			for i := 0; i < tc.nPrioritizedCourses; i++ {
 				wantCourses = append(wantCourses, ctx.CoursesCreateAction(model.RandomCourse(
-					model.WithCourseName(strconv.Itoa(i + 1)),
+					model.WithCourseName(strconv.Itoa(i+1)),
 				), nil))
 				wantPrioritizedCourseIds = append(wantPrioritizedCourseIds, wantCourses[i].ID)
 			}
@@ -196,8 +198,8 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 				}
 			}
 
-			is.Equal(gotParticipant.Prename, wantParticipant.Prename) // created and retrieved participant should be the same.
-			is.Equal(gotParticipant.Surname, wantParticipant.Surname) // created and retrieved participant should be the same.
+			is.Equal(gotParticipant.Prename, wantParticipant.Prename)        // created and retrieved participant should be the same.
+			is.Equal(gotParticipant.Surname, wantParticipant.Surname)        // created and retrieved participant should be the same.
 			is.Equal(len(gotParticipant.Priorities), tc.nPrioritizedCourses) // want as many priorities as were created
 
 			for i := 0; i < tc.nPrioritizedCourses; i++ {
@@ -207,6 +209,46 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 		}()
 	}
 
+}
+
+func TestRoundtripViaSaveLoad(t *testing.T) {
+	is := is.New(t)
+	sut := StartupSystemUnderTest(t, nil)
+	defer waitForTerminationDefault(sut.cancel)
+
+	client1 := NewTestClient(t, localhost)
+
+	var createdCourses []ui.Course
+	for range 3 {
+		createdCourses = append(createdCourses, client1.CoursesCreateAction(model.RandomCourse(), nil))
+	}
+	courseIDs := util.IDs(createdCourses)
+	wantParticipant := model.RandomParticipant()
+	client1.ParticipantsCreateAction(wantParticipant, courseIDs, nil)
+
+	savedData := client1.DataSaveAction()
+
+	client2 := NewTestClient(t, localhost)
+	is.Equal(len(client2.CoursesIndexAction()), 0) // new session should be empty
+	client2.DataLoadAction(savedData)
+
+	gotCourses, gotParticipants := client2.AssignmentsIndexAction()
+
+	is.Equal(len(gotCourses), len(createdCourses))
+	// Sort to compare
+	sort.Slice(createdCourses, func(i, j int) bool { return createdCourses[i].Name < createdCourses[j].Name })
+	sort.Slice(gotCourses, func(i, j int) bool { return gotCourses[i].Name < gotCourses[j].Name })
+	for i := range createdCourses {
+		is.Equal(gotCourses[i].Name, createdCourses[i].Name)
+		is.Equal(gotCourses[i].MinCapacity, createdCourses[i].MinCapacity)
+		is.Equal(gotCourses[i].MaxCapacity, createdCourses[i].MaxCapacity)
+	}
+	// Verify participant
+	is.Equal(len(gotParticipants), 1)
+	gotParticipant := gotParticipants[0]
+	is.Equal(gotParticipant.Prename, wantParticipant.Prename)
+	is.Equal(gotParticipant.Surname, wantParticipant.Surname)
+	// TODO: Verify priorities - to do that priorities would have to be parsed from the html response first
 }
 
 func countSQLiteFiles(dir string) (int, error) {

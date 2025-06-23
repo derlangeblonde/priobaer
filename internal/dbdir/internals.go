@@ -146,7 +146,7 @@ func (d *DbDirectory) getExpirationDate(dbId string) (time.Time, error) {
 	entry, ok := d.getEntry(dbId)
 
 	if !ok {
-		return time.Time{}, fmt.Errorf("Requested expiration date for db that is not known to dbDirectory. dbId=%s", dbId)
+		return time.Time{}, fmt.Errorf("requested expiration date for db that is not known to dbDirectory. dbId=%s", dbId)
 	}
 
 	var session Session

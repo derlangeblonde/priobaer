@@ -33,7 +33,7 @@ func Field(name string, entity any) (template.HTML, error) {
 	tmpl := getFieldTmpl()
 
 	if tmpl == nil {
-		return "", errors.New("Could not parse template")
+		return "", errors.New("could not parse template")
 	}
 
 	data := struct {

@@ -1,9 +1,9 @@
 package app
 
 import (
+	_ "embed"
 	"fmt"
 	"net/http"
-	_ "embed"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,7 +20,6 @@ func HealthHandler() gin.HandlerFunc {
 func FaviconHandler(c *gin.Context) {
 	c.Data(http.StatusOK, "image/x-icon", faviconBytes)
 }
-
 
 func LandingPage(c *gin.Context) {
 	fmt.Fprintf(c.Writer, "This is the landing page!")

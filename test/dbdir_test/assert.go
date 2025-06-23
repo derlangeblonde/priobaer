@@ -1,4 +1,4 @@
-package dbdir_test
+package dbdirtest
 
 import (
 	"github.com/matryer/is"

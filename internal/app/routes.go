@@ -1,9 +1,6 @@
 package app
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/gin-gonic/gin"
 	"softbaer.dev/ass/internal/dbdir"
 )
@@ -35,9 +32,4 @@ func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 
 	router.GET("/sessions/new", SessionNew)
 	router.POST("sessions", SessionCreate(dbDirectory))
-
-	router.POST("/prio", func (c *gin.Context){ 
-	body, _ := io.ReadAll(c.Request.Body)
-		fmt.Println(string(body))
-	})
 }

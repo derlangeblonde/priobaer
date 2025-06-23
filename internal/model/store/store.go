@@ -9,7 +9,7 @@ import (
 
 func SetPriorities(tx *gorm.DB, participantID int, courseIDs []int) error {
 	if len(courseIDs) > model.MaxPriorityLevel {
-		return fmt.Errorf("Die Priorität in Höhe von %d übersteigt das Maximum von %d", len(courseIDs), model.MaxPriorityLevel)
+		return fmt.Errorf("die Priorität in Höhe von %d übersteigt das Maximum von %d", len(courseIDs), model.MaxPriorityLevel)
 	}
 
 	var priorities []model.Priority
@@ -34,11 +34,11 @@ func GetPriorities(tx *gorm.DB, participantID int) (courses []model.Course, err 
 	var priorities model.Priorities
 	err = tx.Select("course_id").Where("participant_id = ?", participantID).Order("level ASC").Find(&priorities).Error
 	if err != nil {
-		return 
+		return
 	}
 
 	if err = tx.Select("id, name").Where("id IN ?", priorities.CourseIDs()).Find(&courses).Error; err != nil {
-		return 
+		return
 	}
 
 	return courses, nil

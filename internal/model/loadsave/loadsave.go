@@ -4,116 +4,247 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"slices"
+	"softbaer.dev/ass/internal/domain"
+	"strconv"
 	"strings"
 
-	"slices"
-
 	"github.com/xuri/excelize/v2"
-	"softbaer.dev/ass/internal/model"
 )
 
 const participantsSheetName = "Teilnehmer"
 const courseSheetName = "Kurse"
 const versionSheetName = "Version"
 
-func ToExcelBytes(courses []model.Course, participants []model.Participant) ([]byte, error) {
+const assignmentColumnHeader = "Zuteilung (Kurs ID)"
+
+type candidateAssignment struct {
+	pid domain.ParticipantID
+	cid domain.CourseID
+}
+
+type candidatePrioList struct {
+	pid        domain.ParticipantID
+	cidOrdered []domain.CourseID
+}
+
+func validateParticipantHeader(header []string) error {
+	expected := domain.Participant{}.RecordHeader()
+
+	if len(header) < len(expected)+1 {
+		return invalidHeaderError(participantsSheetName, header, expected)
+	}
+
+	for i, want := range expected {
+		if header[i] != want {
+			return invalidHeaderError(participantsSheetName, header, expected)
+		}
+	}
+
+	if header[len(expected)] != assignmentColumnHeader {
+		return invalidHeaderError(participantsSheetName, header, expected)
+	}
+
+	for i := len(expected) + 1; i < len(header); i++ {
+		if header[i] != nthPriorityColumnHeader(i-len(expected)) {
+			return invalidHeaderError(participantsSheetName, header, expected)
+		}
+	}
+
+	return nil
+}
+
+func ParseExcelFile(fileReader io.Reader) (*domain.Scenario, error) {
+	scenario := domain.EmptyScenario()
+	var candidateAssignments []candidateAssignment
+	var candidatePrioLists []candidatePrioList
+
+	file, err := excelize.OpenReader(fileReader)
+	if err != nil {
+		return scenario, fmt.Errorf("failed to create Excel file from bytes: %w", err)
+	}
+	reader, err := newSheetReader(file, courseSheetName)
+	if err != nil {
+		return scenario, fmt.Errorf("failed to create excel sheet reader: %w", err)
+	}
+
+	courseHeader, err := reader.read()
+	if err != nil && err != io.EOF {
+		return scenario, err
+	}
+	if !slices.Equal(courseHeader, domain.Course{}.RecordHeader()) {
+		return scenario, invalidHeaderError(courseSheetName, courseHeader, domain.Course{}.RecordHeader())
+	}
+	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
+		if err != nil {
+			return scenario, err
+		}
+
+		course := domain.Course{}
+		err := course.UnmarshalRecord(record)
+		if err != nil {
+			return scenario, fmt.Errorf("Tabellenblatt: Kurse\n%w", err)
+		}
+		scenario.AddCourse(course)
+	}
+
+	reader, err = newSheetReader(file, participantsSheetName)
+	if err != nil {
+		return scenario, fmt.Errorf("failed to create excel sheet reader: %w", err)
+	}
+	participantHeader, err := reader.read()
+	if err != nil && err != io.EOF {
+		return scenario, err
+	}
+	if err = validateParticipantHeader(participantHeader); err != nil {
+		return scenario, err
+	}
+	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
+		if err != nil {
+			return scenario, err
+		}
+
+		participant := domain.Participant{}
+		if err = participant.UnmarshalRecord(record); err != nil {
+			return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
+		}
+
+		scenario.AddParticipant(participant)
+
+		minimumRecordLen := len(domain.Participant{}.RecordHeader()) + 1
+
+		if len(record) < minimumRecordLen {
+			return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, fmt.Errorf("zeile hat %d Werte. Es müssen mind. %d sein", len(record), minimumRecordLen))
+		}
+
+		assignedCourseIdStr := record[minimumRecordLen-1]
+
+		if assignedCourseIdStr != "null" {
+
+			if assignedCourseId, err := strconv.Atoi(assignedCourseIdStr); err != nil {
+				return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
+			} else {
+				candidateAssignments = append(candidateAssignments, candidateAssignment{participant.ID, domain.CourseID(assignedCourseId)})
+			}
+		}
+
+		var prioList []domain.CourseID
+		for i := minimumRecordLen; i < len(record); i++ {
+			prioStr := record[i]
+
+			if prio, err := strconv.Atoi(prioStr); err != nil {
+				return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
+			} else {
+				prioList = append(prioList, domain.CourseID(prio))
+			}
+		}
+		candidatePrioLists = append(candidatePrioLists, candidatePrioList{participant.ID, prioList})
+	}
+
+	for _, a := range candidateAssignments {
+		if err = scenario.Assign(a.pid, a.cid); err != nil {
+			return scenario, fmt.Errorf("Tabellenblatt: %s\nTeilnehmer %d kann Kurs %d nicht zugeordnet werden. Dieser Kurs existiert nicht", participantsSheetName, a.pid, a.cid)
+		}
+	}
+
+	for _, p := range candidatePrioLists {
+		if err = scenario.Prioritize(p.pid, p.cidOrdered); err != nil {
+			return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
+		}
+	}
+
+	return scenario, err
+}
+
+func nthPriorityColumnHeader(n int) string {
+	return fmt.Sprintf("Priorität %d (Kurs ID)", n)
+}
+
+func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
+	var buf bytes.Buffer
+	var writer *sheetWriter
+
 	file := excelize.NewFile()
 	writer, err := newSheetWriter(file, courseSheetName)
 	if err != nil {
-		return make([]byte, 0), err
+		return buf.Bytes(), err
 	}
 
-	writer.write(model.Course{}.RecordHeader())
-	for _, course := range courses {
-		writer.write(course.MarshalRecord())
-	}
-
-	writer, err = newSheetWriter(file, participantsSheetName)
+	err = writer.write(domain.Course{}.RecordHeader())
 	if err != nil {
-		return make([]byte, 0), err
+		return nil, err
+	}
+	for course := range scenario.AllCourses() {
+		if err = writer.write(course.MarshalRecord()); err != nil {
+			return nil, err
+		}
 	}
 
-	writer.write(model.Participant{}.RecordHeader())
-	for _, participant := range participants {
-		writer.write(participant.MarshalRecord())
+	if writer, err = newSheetWriter(file, participantsSheetName); err != nil {
+		return buf.Bytes(), err
 	}
 
-	writer, err = newSheetWriter(file, versionSheetName)
-	if err != nil {
-		return make([]byte, 0), err
+	participantsSheetHeader := append(domain.Participant{}.RecordHeader(), assignmentColumnHeader)
+	for i := range scenario.MaxAmountOfPriorities() {
+		participantsSheetHeader = append(participantsSheetHeader, nthPriorityColumnHeader(i+1))
 	}
 
-	writer.write([]string{"1.0"})
+	if err := writer.write(participantsSheetHeader); err != nil {
+		return nil, err
+	}
+	for participant := range scenario.AllParticipants() {
+		assignedCourse, ok := scenario.AssignedCourse(participant.ID)
+		courseIdMarshalled := "null"
 
-	var buf bytes.Buffer
+		if ok {
+			courseIdMarshalled = strconv.Itoa(int(assignedCourse.ID))
+		}
+
+		row := append(participant.MarshalRecord(), courseIdMarshalled)
+
+		for course := range scenario.PrioritizedCoursesOrdered(participant.ID) {
+			row = append(row, strconv.Itoa(int(course.ID)))
+		}
+
+		if err := writer.write(row); err != nil {
+			return nil, err
+		}
+	}
+
+	if writer, err = newSheetWriter(file, participantsSheetName); err != nil {
+		return buf.Bytes(), err
+	}
+
+	if err = writer.write(append(domain.Participant{}.RecordHeader(), assignmentColumnHeader)); err != nil {
+		return nil, err
+	}
+	for participant := range scenario.AllParticipants() {
+		assignedCourse, ok := scenario.AssignedCourse(participant.ID)
+		courseIdMarshalled := "null"
+
+		if ok {
+			courseIdMarshalled = strconv.Itoa(int(assignedCourse.ID))
+		}
+
+		if err = writer.write(append(participant.MarshalRecord(), courseIdMarshalled)); err != nil {
+			return nil, err
+		}
+	}
+
+	if writer, err = newSheetWriter(file, versionSheetName); err != nil {
+		return buf.Bytes(), err
+	}
+
+	if err = writer.write([]string{"1.0"}); err != nil {
+		return nil, err
+	}
+
 	if err := file.Write(&buf); err != nil {
 		fmt.Printf("Error writing Excel file to buffer: %v\n", err)
 		return buf.Bytes(), err
 	}
 
 	return buf.Bytes(), nil
-}
-
-func FromExcelBytes(fileReader io.Reader) (courses []model.Course, participants []model.Participant, err error) {
-	exisingCourseIds := make(map[int]bool)
-
-	file, err := excelize.OpenReader(fileReader)
-	if err != nil {
-		return courses, participants, fmt.Errorf("failed to create Excel file from bytes: %w", err)
-	}
-	reader, err := newSheetReader(file, courseSheetName)
-	if err != nil {
-		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
-	}
-
-	courseHeader, err := reader.read()
-	if err != nil && err != io.EOF {
-		return courses, participants, err
-	}
-	if !slices.Equal(courseHeader, model.Course{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError(courseSheetName, courseHeader, model.Course{}.RecordHeader())
-	}
-	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
-		if err != nil {
-			return courses, participants, err
-		}
-
-		course := model.Course{}
-		err := course.UnmarshalRecord(record)
-		if err != nil {
-			return courses, participants, fmt.Errorf("Tabellenblatt: Kurse\n%w", err)
-		}
-		courses = append(courses, course)
-		exisingCourseIds[course.ID] = true
-	}
-
-	reader, err = newSheetReader(file, participantsSheetName)
-	if err != nil {
-		return courses, participants, fmt.Errorf("failed to create excel sheet reader: %w", err)
-	}
-	participantHeader, err := reader.read()
-	if err != nil && err != io.EOF {
-		return courses, participants, err
-	}
-	if !slices.Equal(participantHeader, model.Participant{}.RecordHeader()) {
-		return courses, participants, invalidHeaderError(participantsSheetName, participantHeader, model.Participant{}.RecordHeader()) 
-	}
-	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
-		if err != nil {
-			return courses, participants, err
-		}
-
-		participant := model.Participant{}
-		if err = participant.UnmarshalRecord(record); err != nil {
-			return courses, participants, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
-		}
-		if _, exists := exisingCourseIds[int(participant.CourseID.Int64)]; participant.CourseID.Valid && !exists {
-			return courses, participants, fmt.Errorf("Tabellenblatt: %s\nTeilnehmer %d kann Kurs %d nicht zugeordnet werden. Dieser Kurs existiert nicht", participantsSheetName, participant.ID, participant.CourseID.Int64)
-		}
-		participants = append(participants, participant)
-	}
-
-	return courses, participants, err
 }
 
 func invalidHeaderError(sheetName string, gotHeader, wantHeader []string) error {

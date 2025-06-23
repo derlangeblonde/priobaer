@@ -13,7 +13,7 @@ import (
 	"softbaer.dev/ass/internal/ui"
 )
 
-var idExtractionRegex *regexp.Regexp = regexp.MustCompile(`\w+-(\d+)`)
+var idExtractionRegex = regexp.MustCompile(`\w+-(\d+)`)
 
 func unmarshalAll[T any](body io.Reader, prefix string) (all []T, err error) {
 	b, err := io.ReadAll(body)
@@ -117,7 +117,7 @@ func unmarshalUnassignedCount(bodyBytes io.Reader) (result UnassignedCount, err 
 	unassignedDivs := findEntityDivs(rootNode, "not-assigned")
 
 	if len(unassignedDivs) > 1 {
-		return result, errors.New("More than 1 unassigned entry found")
+		return result, errors.New("more than 1 unassigned entry found")
 	}
 
 	if len(unassignedDivs) == 0 {
@@ -128,7 +128,7 @@ func unmarshalUnassignedCount(bodyBytes io.Reader) (result UnassignedCount, err 
 	dataTags := findAllDataTags(unassignedDiv)
 
 	if len(dataTags) != 1 {
-		return result, fmt.Errorf("Expected exactly one data tag in unassigned entry but got: #%d", len(dataTags))
+		return result, fmt.Errorf("expected exactly one data tag in unassigned entry but got: #%d", len(dataTags))
 	}
 
 	dataTag := dataTags[0]
@@ -153,14 +153,14 @@ func extractId(node *html.Node) (id string, err error) {
 		matches := idExtractionRegex.FindStringSubmatch(attr.Val)
 
 		if len(matches) != 2 {
-			return id, fmt.Errorf("Expected exactly two matches but got: %v", matches)
+			return id, fmt.Errorf("expected exactly two matches but got: %v", matches)
 		}
 
 		id = matches[1]
 	}
 
 	if id == "" {
-		return id, errors.New("No id found")
+		return id, errors.New("no id found")
 	}
 
 	return id, nil

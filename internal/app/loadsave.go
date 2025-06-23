@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"softbaer.dev/ass/internal/domain"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/model/loadsave"
 )
 
@@ -18,7 +18,6 @@ func LoadDialog(c *gin.Context) {
 }
 
 func Load(c *gin.Context) {
-	const batchSize = 10
 	db := GetDB(c)
 
 	formFile, err := c.FormFile("file")
@@ -38,7 +37,7 @@ func Load(c *gin.Context) {
 		return
 	}
 
-	courses, participants, err := loadsave.FromExcelBytes(file)
+	scenario, err := loadsave.ParseExcelFile(file)
 
 	if err != nil {
 		slog.Error("Could not unmarshal models from excel-file", "err", err)
@@ -52,15 +51,7 @@ func Load(c *gin.Context) {
 	}
 
 	err = db.Transaction(func(tx *gorm.DB) error {
-		if err := db.CreateInBatches(&courses, batchSize).Error; err != nil {
-			return err
-		}
-
-		if err := db.CreateInBatches(&participants, batchSize).Error; err != nil {
-			return err
-		}
-
-		return nil
+		return domain.OverwriteScenario(tx, scenario)
 	})
 
 	if err != nil {
@@ -76,24 +67,16 @@ func Load(c *gin.Context) {
 func Save(c *gin.Context) {
 	db := GetDB(c)
 
-	var participants []model.Participant
-	var courses []model.Course
+	scenario, err := domain.LoadScenario(db)
 
-	if err := db.Find(&participants).Error; err != nil {
-		slog.Error("Error while fetching participants from db", "err", err)
+	if err != nil {
+		slog.Error("Error while loading scenario", "err", err)
 		c.AbortWithError(500, err)
 
 		return
 	}
 
-	if err := db.Find(&courses).Error; err != nil {
-		slog.Error("Error while fetching course from db", "err", err)
-		c.AbortWithError(500, err)
-
-		return
-	}
-
-	excelBytes, err := loadsave.ToExcelBytes(courses, participants)
+	excelBytes, err := loadsave.WriteScenarioDataToExcel(scenario)
 
 	if err != nil {
 		slog.Error("Error while exporting models to ExcelBytes", "err", err)

@@ -11,7 +11,7 @@ import (
 
 type Course struct {
 	gorm.Model
-	ID int
+	ID           int
 	Name         string `gorm:"unique"`
 	MaxCapacity  int
 	MinCapacity  int
@@ -27,7 +27,7 @@ func (c *Course) Allocation() int {
 }
 
 func (c *Course) RemainingCapacity() int {
-	return c.MaxCapacity - c.Allocation() 
+	return c.MaxCapacity - c.Allocation()
 }
 
 func (c *Course) GapToMinCapacity() int {
@@ -35,25 +35,25 @@ func (c *Course) GapToMinCapacity() int {
 }
 
 func (c *Course) Valid() map[string]string {
-	errors := make(map[string]string, 0)
+	errs := make(map[string]string, 0)
 
 	if c.MinCapacity > c.MaxCapacity {
-		errors["min-capacity"] = "Die minmale Kapazität muss kleiner oder gleich der maximalen Kapazität sein"
-		errors["max-capacity"] = "Die maxmale Kapazität muss größer oder gleich der minimalen Kapazität sein"
+		errs["min-capacity"] = "Die minmale Kapazität muss kleiner oder gleich der maximalen Kapazität sein"
+		errs["max-capacity"] = "Die maxmale Kapazität muss größer oder gleich der minimalen Kapazität sein"
 	}
 
 	if c.MaxCapacity <= 0 {
-		errors["max-capacity"] = "Die maximale Kapazität muss größer null sein"
+		errs["max-capacity"] = "Die maximale Kapazität muss größer null sein"
 	}
 
-	validateNonEmpty(c.Name, "name", "Name darf nicht leer sein", errors)
+	validateNonEmpty(c.Name, "name", "Name darf nicht leer sein", errs)
 
 	c.TrimFields()
 
-	return errors
+	return errs
 }
 
-func (c *Course) TrimFields()  {
+func (c *Course) TrimFields() {
 	c.Name = strings.TrimSpace(c.Name)
 }
 
@@ -69,7 +69,7 @@ func (c *Course) MarshalRecord() []string {
 func (c *Course) UnmarshalRecord(record []string) error {
 	const recordLen int = 4
 	if len(record) != recordLen {
-		return fmt.Errorf("Die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet.", len(record), recordLen)
+		return fmt.Errorf("die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet", len(record), recordLen)
 	}
 
 	if id, err := strconv.Atoi(record[0]); err == nil {
@@ -98,14 +98,14 @@ func (c *Course) UnmarshalRecord(record []string) error {
 type Courses []Course
 
 func (cs Courses) Names() []string {
-        var names []string
-        for _, course := range cs {
-                names = append(names, course.Name)
-        }
-        return names
+	var names []string
+	for _, course := range cs {
+		names = append(names, course.Name)
+	}
+	return names
 }
 
-func MapToCourseId(courses []Course) []int{
+func MapToCourseId(courses []Course) []int {
 	courseIds := make([]int, 0)
 	for _, course := range courses {
 		courseIds = append(courseIds, course.ID)
@@ -121,8 +121,8 @@ func stackValidationErrors(validationErrors map[string]string) error {
 
 	validErrMessages := make([]string, 0)
 	for _, value := range validationErrors {
-		validErrMessages= append(validErrMessages, value)
-	}			
+		validErrMessages = append(validErrMessages, value)
+	}
 
 	return errors.New(strings.Join(validErrMessages, "\n"))
 }

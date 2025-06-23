@@ -31,6 +31,11 @@ function dragLeave(e) {
  * @param {DragEvent} e
  */
 function drop(e) {
+    e.preventDefault();
+
+    const dropzone = e.currentTarget;
+    dropzone.classList.remove("drop-ready");
+
     const participantElementId = e.dataTransfer.getData("css-id");
     const participantId = extractNumericId(participantElementId);
     const courseElementId = e.target.id;

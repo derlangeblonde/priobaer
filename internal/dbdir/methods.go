@@ -46,7 +46,7 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 	}
 
 	if count > 1 {
-		return nil, fmt.Errorf("Critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count)
+		return nil, fmt.Errorf("critical! Found multiple session entries in session table. dbId=%s, count=%d", dbId, count)
 	}
 
 	d.scheduleRemove(dbId)
@@ -70,7 +70,7 @@ func (d *DbDirectory) Close() []error {
 		}
 
 		if entry.expirationTimer == nil {
-			errs = append(errs, fmt.Errorf("No expiration timer found for %s.", dbId))
+			errs = append(errs, fmt.Errorf("no expiration timer found for %s", dbId))
 		}
 
 		entry.expirationTimer.Stop()

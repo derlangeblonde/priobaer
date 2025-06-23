@@ -42,18 +42,17 @@ func (p *Participant) TrimFields() {
 
 func (p *Participant) UnmarshalRecord(record []string) error {
 	const fn string = "UnmarshalRecord"
-	const structType string = "Teilnehmer"
 
 	const recordLen int = 4
 	if len(record) != recordLen {
-		return fmt.Errorf("Die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet.", len(record), recordLen)
+		return fmt.Errorf("die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet", len(record), recordLen)
 	}
 
 	if id, err := strconv.Atoi(record[0]); err == nil {
 		p.ID = id
 	} else {
-		slog.Error(fn + ": Could not parse int", "err", err)
-		return errors.New(fmt.Sprintf("Spalte: ID\n%s ist keine valide Zahl", record[0])) 
+		slog.Error(fn+": Could not parse int", "err", err)
+		return errors.New(fmt.Sprintf("Spalte: ID\n%s ist keine valide Zahl", record[0]))
 	}
 
 	p.Prename = record[1]
@@ -67,7 +66,7 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 		}
 	}
 
-	return stackValidationErrors(p.Valid()) 
+	return stackValidationErrors(p.Valid())
 }
 
 func (p *Participant) MarshalRecord() []string {
@@ -84,11 +83,9 @@ func (p *Participant) MarshalRecord() []string {
 	}
 }
 
-func  ParticipantIds(ps []Participant) (result []int) {
+func ParticipantIds(ps []Participant) (result []int) {
 	for _, p := range ps {
 		result = append(result, p.ID)
 	}
 	return
 }
-
-
