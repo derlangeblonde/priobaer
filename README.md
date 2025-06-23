@@ -1,6 +1,8 @@
 # Prio Solver
 *Prio Solver is a web-based application that calculates optimal assignments of participants to courses based on their stated priorities.*
 
+![How it looks](assets/demo.gif)
+
 This is a learning project for me to 
 - improve my ability to design and build complete systems.
 - play around with different technologies and concepts.
