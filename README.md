@@ -1,5 +1,5 @@
-# Prio Solver
-*Prio Solver is a web-based application that calculates optimal assignments of participants to courses based on their stated priorities.*
+# Priobär
+*Priobär is a web-based application that calculates optimal assignments of participants to courses based on their stated priorities.*
 
 ![How it looks](assets/demo.gif)
 
