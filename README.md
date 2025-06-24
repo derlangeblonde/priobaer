@@ -8,7 +8,8 @@ This is a learning project for me to
 - play around with different technologies and concepts.
 - make my own mistakes and learn from them.
 
-## Running Project Locally (for Development) 
+## Running Project Locally (for Development)
+Currently only Linux is supported.
 
 The project uses z3 for solving "optimal" assignments. You have to build z3 first. To do that navigate to `internal/z3` and execute:
 ```sh
