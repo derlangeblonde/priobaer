@@ -29,7 +29,7 @@ type candidatePrioList struct {
 }
 
 func validateParticipantHeader(header []string) error {
-	expected := domain.Participant{}.RecordHeader()
+	expected := domain.ParticipantData{}.RecordHeader()
 
 	if len(header) < len(expected)+1 {
 		return invalidHeaderError(participantsSheetName, header, expected)
@@ -72,15 +72,15 @@ func ParseExcelFile(fileReader io.Reader) (*domain.Scenario, error) {
 	if err != nil && err != io.EOF {
 		return scenario, err
 	}
-	if !slices.Equal(courseHeader, domain.Course{}.RecordHeader()) {
-		return scenario, invalidHeaderError(courseSheetName, courseHeader, domain.Course{}.RecordHeader())
+	if !slices.Equal(courseHeader, domain.CourseData{}.RecordHeader()) {
+		return scenario, invalidHeaderError(courseSheetName, courseHeader, domain.CourseData{}.RecordHeader())
 	}
 	for record, err := reader.read(); err != io.EOF; record, err = reader.read() {
 		if err != nil {
 			return scenario, err
 		}
 
-		course := domain.Course{}
+		course := domain.CourseData{}
 		err := course.UnmarshalRecord(record)
 		if err != nil {
 			return scenario, fmt.Errorf("Tabellenblatt: Kurse\n%w", err)
@@ -104,14 +104,14 @@ func ParseExcelFile(fileReader io.Reader) (*domain.Scenario, error) {
 			return scenario, err
 		}
 
-		participant := domain.Participant{}
+		participant := domain.ParticipantData{}
 		if err = participant.UnmarshalRecord(record); err != nil {
 			return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
 		}
 
 		scenario.AddParticipant(participant)
 
-		minimumRecordLen := len(domain.Participant{}.RecordHeader()) + 1
+		minimumRecordLen := len(domain.ParticipantData{}.RecordHeader()) + 1
 
 		if len(record) < minimumRecordLen {
 			return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, fmt.Errorf("zeile hat %d Werte. Es müssen mind. %d sein", len(record), minimumRecordLen))
@@ -170,7 +170,7 @@ func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
 		return buf.Bytes(), err
 	}
 
-	err = writer.write(domain.Course{}.RecordHeader())
+	err = writer.write(domain.CourseData{}.RecordHeader())
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
 		return buf.Bytes(), err
 	}
 
-	participantsSheetHeader := append(domain.Participant{}.RecordHeader(), assignmentColumnHeader)
+	participantsSheetHeader := append(domain.ParticipantData{}.RecordHeader(), assignmentColumnHeader)
 	for i := range scenario.MaxAmountOfPriorities() {
 		participantsSheetHeader = append(participantsSheetHeader, nthPriorityColumnHeader(i+1))
 	}
@@ -215,7 +215,7 @@ func WriteScenarioDataToExcel(scenario *domain.Scenario) ([]byte, error) {
 		return buf.Bytes(), err
 	}
 
-	if err = writer.write(append(domain.Participant{}.RecordHeader(), assignmentColumnHeader)); err != nil {
+	if err = writer.write(append(domain.ParticipantData{}.RecordHeader(), assignmentColumnHeader)); err != nil {
 		return nil, err
 	}
 	for participant := range scenario.AllParticipants() {

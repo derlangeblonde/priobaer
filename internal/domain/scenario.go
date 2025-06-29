@@ -9,32 +9,32 @@ import (
 )
 
 type Scenario struct {
-	courses         []Course
-	participants    []Participant
-	assignmentTable map[ParticipantID]*Course
-	priorityTable   map[ParticipantID][]*Course
+	courses         []CourseData
+	participants    []ParticipantData
+	assignmentTable map[ParticipantID]*CourseData
+	priorityTable   map[ParticipantID][]*CourseData
 }
 
 func EmptyScenario() *Scenario {
 	return &Scenario{
-		courses:         make([]Course, 0),
-		participants:    make([]Participant, 0),
-		assignmentTable: make(map[ParticipantID]*Course, 0),
-		priorityTable:   make(map[ParticipantID][]*Course, 0),
+		courses:         make([]CourseData, 0),
+		participants:    make([]ParticipantData, 0),
+		assignmentTable: make(map[ParticipantID]*CourseData, 0),
+		priorityTable:   make(map[ParticipantID][]*CourseData, 0),
 	}
 }
 
-func (s *Scenario) AddCourse(c Course) {
+func (s *Scenario) AddCourse(c CourseData) {
 	s.courses = append(s.courses, c)
 }
 
-func (s *Scenario) AddParticipant(p Participant) {
+func (s *Scenario) AddParticipant(p ParticipantData) {
 	s.participants = append(s.participants, p)
 }
 
 var ErrNotFound = errors.New("not found")
 
-func (s *Scenario) course(cid CourseID) (*Course, bool) {
+func (s *Scenario) course(cid CourseID) (*CourseData, bool) {
 	for i := range s.courses {
 		if s.courses[i].ID == cid {
 			return &s.courses[i], true
@@ -43,7 +43,7 @@ func (s *Scenario) course(cid CourseID) (*Course, bool) {
 	return nil, false
 }
 
-func (s *Scenario) participant(pid ParticipantID) (*Participant, bool) {
+func (s *Scenario) participant(pid ParticipantID) (*ParticipantData, bool) {
 	for i := range s.participants {
 		if s.participants[i].ID == pid {
 			return &s.participants[i], true
@@ -79,7 +79,7 @@ func (s *Scenario) Prioritize(pid ParticipantID, cids []CourseID) error {
 		return ErrNotFound
 	}
 
-	prioCourses := make([]*Course, 0, len(cids))
+	prioCourses := make([]*CourseData, 0, len(cids))
 	for _, cid := range cids {
 		c, ok := s.course(cid)
 		if !ok {
@@ -91,19 +91,19 @@ func (s *Scenario) Prioritize(pid ParticipantID, cids []CourseID) error {
 	return nil
 }
 
-func (s *Scenario) AllCourses() iter.Seq[Course] {
+func (s *Scenario) AllCourses() iter.Seq[CourseData] {
 	return slices.Values(s.courses)
 }
 
-func (s *Scenario) AllParticipants() iter.Seq[Participant] {
+func (s *Scenario) AllParticipants() iter.Seq[ParticipantData] {
 	return slices.Values(s.participants)
 }
 
-func (s *Scenario) AllPrioLists() iter.Seq2[ParticipantID, []Course] {
+func (s *Scenario) AllPrioLists() iter.Seq2[ParticipantID, []CourseData] {
 
-	return func (yield func(ParticipantID, []Course) bool)  {
-		for pid, coursePointers := range s.priorityTable{
-			var courses []Course
+	return func(yield func(ParticipantID, []CourseData) bool) {
+		for pid, coursePointers := range s.priorityTable {
+			var courses []CourseData
 			for _, coursePointer := range coursePointers {
 				courses = append(courses, *coursePointer)
 			}
@@ -115,10 +115,9 @@ func (s *Scenario) AllPrioLists() iter.Seq2[ParticipantID, []Course] {
 	}
 }
 
-
 func (s *Scenario) AllPriorities() iter.Seq[Priority] {
-	return func (yield func(Priority) bool)  {
-		for pid, courses := range s.priorityTable{
+	return func(yield func(Priority) bool) {
+		for pid, courses := range s.priorityTable {
 			participant, ok := s.participant(pid)
 
 			if !ok {
@@ -126,7 +125,7 @@ func (s *Scenario) AllPriorities() iter.Seq[Priority] {
 			}
 
 			for i, course := range courses {
-				current := Priority{Level: PriorityLevel(i+1), Participant: *participant,  Course: *course}
+				current := Priority{Level: PriorityLevel(i + 1), Participant: *participant, Course: *course}
 				if !yield(current) {
 					return
 				}
@@ -136,20 +135,20 @@ func (s *Scenario) AllPriorities() iter.Seq[Priority] {
 	}
 }
 
-func (s *Scenario) AssignedCourse(pid ParticipantID) (Course, bool) {
+func (s *Scenario) AssignedCourse(pid ParticipantID) (CourseData, bool) {
 	course, ok := s.assignmentTable[pid]
 
 	if !ok {
-		return Course{}, false
+		return CourseData{}, false
 	}
 
 	return *course, true
 }
 
-func (s *Scenario) PrioritizedCoursesOrdered(pid ParticipantID) iter.Seq[Course] {
+func (s *Scenario) PrioritizedCoursesOrdered(pid ParticipantID) iter.Seq[CourseData] {
 	courses := s.priorityTable[pid]
 
-	return func(yield func(Course) bool) {
+	return func(yield func(CourseData) bool) {
 		for _, course := range courses {
 			if !yield(*course) {
 				return

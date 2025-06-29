@@ -4,6 +4,6 @@ type PriorityLevel uint8
 
 type Priority struct {
 	Level       PriorityLevel
-	Participant Participant
-	Course      Course
+	Participant ParticipantData
+	Course      CourseData
 }

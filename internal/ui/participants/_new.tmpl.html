@@ -1,7 +1,7 @@
 <div id="participants-new">
 	<h2>Neuer Teilnehmer</h2>
 
-	<form hx-post="/participants" hx-target="#participants-new" hx-swap="outerHTML" class="column">
+	<form hx-post="/participants" hx-target="#participants-new" hx-swap="outerHTML" class="column" hx-include=".selected">
 		<label>Vorname</label>
 		<input type="text" name="prename" value="{{ .Value.Prename }}">
 		{{ template "general/error-message" index .Errors "prename" }}

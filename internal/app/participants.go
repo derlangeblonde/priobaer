@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"softbaer.dev/ass/internal/domain"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/store"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -29,14 +29,13 @@ func ParticipantsCreate(c *gin.Context) {
 		Prename              string `form:"prename"`
 		Surname              string `form:"surname"`
 		PrioritizedCourseIDs []int  `form:"prio[]"`
+		SelectedCourseID     *int   `form:"course-id"`
 	}
 
 	db := GetDB(c)
 
 	var req request
-	err := c.Bind(&req)
-
-	if err != nil {
+	if err := c.Bind(&req); err != nil {
 		return
 	}
 
@@ -48,27 +47,21 @@ func ParticipantsCreate(c *gin.Context) {
 		return
 	}
 
-	participant := model.Participant{Prename: req.Prename, Surname: req.Surname}
-	validationErrors := participant.Valid()
+	candidate := domain.NewParticipantCandidate(req.Prename, req.Surname)
+	candidate.Prioritize(req.PrioritizedCourseIDs)
+	candidate.Assign(req.SelectedCourseID)
+	validationErrors := candidate.Valid()
 
 	if len(validationErrors) > 0 {
-		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": toViewParticipant(participant, make([]model.Course, 0))})
+		c.HTML(422, "participants/_new", gin.H{"Errors": validationErrors, "Value": candidateToViewParticipant(*candidate)})
 
 		return
 	}
 
-	var priorities []model.Course
-	err = db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&participant).Error; err != nil {
-			return err
-		}
-
-		if err := store.SetPriorities(tx, participant.ID, req.PrioritizedCourseIDs); err != nil {
-			return err
-		}
-
-		priorities, err = store.GetPriorities(tx, participant.ID)
-
+	var createdParticipant domain.Participant
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		createdParticipant, err = candidate.Save(tx)
 		if err != nil {
 			return err
 		}
@@ -82,7 +75,7 @@ func ParticipantsCreate(c *gin.Context) {
 	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "participants/_show-with-new-button", toViewParticipant(participant, priorities))
+		c.HTML(http.StatusOK, "participants/_show-with-new-button", domainToViewParticipant(createdParticipant))
 	} else {
 		c.Redirect(http.StatusSeeOther, "/assignments")
 	}
@@ -123,6 +116,32 @@ func ParticipantsDelete(c *gin.Context) {
 
 func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
+}
+
+// Copies toViewParticipant, which can be removed eventually, when domain refactoring is done.
+func candidateToViewParticipant(model domain.ParticipantCandidate) ui.Participant {
+	result := ui.Participant{
+		Prename: model.Prename,
+		Surname: model.Surname,
+	}
+
+	return result
+}
+
+// Copies toViewParticipant, which can be removed eventually, when domain refactoring is done.
+func domainToViewParticipant(participant domain.Participant) ui.Participant {
+	result := ui.Participant{
+		ID:         int(participant.ID),
+		Prename:    participant.Prename,
+		Surname:    participant.Surname,
+		Priorities: make([]ui.Priority, len(participant.PrioritizedCourses)),
+	}
+
+	for i, prio := range participant.PrioritizedCourses {
+		result.Priorities[i] = ui.Priority{CourseName: prio.Name, Level: uint8(i + 1)}
+	}
+
+	return result
 }
 
 func toViewParticipant(model model.Participant, priorities []model.Course) ui.Participant {

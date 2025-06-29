@@ -8,18 +8,18 @@ import (
 
 type CourseID int
 
-type Course struct {
+type CourseData struct {
 	ID          CourseID
 	Name        string
 	MinCapacity int
 	MaxCapacity int
 }
 
-func (c Course) RecordHeader() []string {
+func (c CourseData) RecordHeader() []string {
 	return []string{"ID", "Name", "Minimale Kapazität", "Maximale Kapazität"}
 }
 
-func (c *Course) MarshalRecord() []string {
+func (c *CourseData) MarshalRecord() []string {
 	return []string{
 		strconv.Itoa(int(c.ID)),
 		c.Name,
@@ -28,7 +28,7 @@ func (c *Course) MarshalRecord() []string {
 	}
 }
 
-func (c *Course) Valid() map[string]string {
+func (c *CourseData) Valid() map[string]string {
 	errors := make(map[string]string, 0)
 
 	if c.MinCapacity > c.MaxCapacity {
@@ -47,10 +47,10 @@ func (c *Course) Valid() map[string]string {
 	return errors
 }
 
-func (c *Course) TrimFields() {
+func (c *CourseData) TrimFields() {
 	c.Name = strings.TrimSpace(c.Name)
 }
-func (c *Course) UnmarshalRecord(record []string) error {
+func (c *CourseData) UnmarshalRecord(record []string) error {
 	const recordLen int = 4
 	if len(record) != recordLen {
 		return fmt.Errorf("die Zeile hat %d Werte bzw. Spalten. Genau %d sind erwartet", len(record), recordLen)

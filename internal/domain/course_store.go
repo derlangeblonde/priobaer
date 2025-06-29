@@ -2,23 +2,23 @@ package domain
 
 import "softbaer.dev/ass/internal/model"
 
-func CourseFromDbModel(model model.Course) Course {
-	return Course{ID: CourseID(model.ID),
+func CourseFromDbModel(model model.Course) CourseData {
+	return CourseData{ID: CourseID(model.ID),
 		Name:        model.Name,
 		MaxCapacity: model.MaxCapacity,
 		MinCapacity: model.MinCapacity,
 	}
 }
 
-func CoursesFromDbModels(models []model.Course) []Course {
-	courses := make([]Course, len(models))
+func CoursesFromDbModels(models []model.Course) []CourseData {
+	courses := make([]CourseData, len(models))
 	for i, model := range models {
 		courses[i] = CourseFromDbModel(model)
 	}
 	return courses
 }
 
-func CourseToDbModel(course Course) model.Course {
+func CourseToDbModel(course CourseData) model.Course {
 	return model.Course{
 		ID:          int(course.ID),
 		Name:        course.Name,
@@ -27,7 +27,7 @@ func CourseToDbModel(course Course) model.Course {
 	}
 }
 
-func CoursesToDbModels(courses []Course) []model.Course {
+func CoursesToDbModels(courses []CourseData) []model.Course {
 	dbModels := make([]model.Course, len(courses))
 	for i, course := range courses {
 		dbModels[i] = CourseToDbModel(course)
