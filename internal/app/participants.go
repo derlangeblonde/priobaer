@@ -103,7 +103,7 @@ func ParticipantsDelete(c *gin.Context) {
 
 	if err != nil {
 		slog.Error("Database error occurred when trying to delete participant", "err", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		DbError(c, err, "ParticipantsDelete")
 
 		return
 	}
