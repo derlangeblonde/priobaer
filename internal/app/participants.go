@@ -97,18 +97,15 @@ func ParticipantsDelete(c *gin.Context) {
 		return
 	}
 
-	participant := model.Participant{ID: int(req.ID)}
-	result := db.Unscoped().Delete(&participant)
-	// TODO:
-	// 2025/02/28 00:04:31 /home/joni/dev/ass/controller/participants.go:147 FOREIGN KEY constraint failed
-	// [0.681ms] [rows:0] DELETE FROM `participants` WHERE `participants`.`id` = 5
-	// 2025/02/28 00:04:31 ERROR Delete of participants failed on db level err="FOREIGN KEY constraint failed"
-	// [GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 200
+	err = db.Transaction(func(tx *gorm.DB) error {
+		return domain.DeleteParticipant(db, domain.ParticipantID(req.ID))
+	})
 
-	if result.Error != nil {
-		slog.Error("Delete of participants failed on db level", "err", result.Error)
+	if err != nil {
+		slog.Error("Database error occurred when trying to delete participant", "err", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 
+		return
 	}
 
 	c.Data(http.StatusOK, "text/html", []byte(""))

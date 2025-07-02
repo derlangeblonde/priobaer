@@ -8,11 +8,11 @@ type PriorityLevel uint8
 
 type Priority struct {
 	gorm.Model
-	Level PriorityLevel 
-	CourseID int
+	Level         PriorityLevel
+	CourseID      int
 	ParticipantID int
-	Course Course
-	Participant Participant
+	Course        Course
+	Participant   Participant
 }
 
 func NewPriority(level PriorityLevel, course Course, participant Participant) Priority {
@@ -20,7 +20,7 @@ func NewPriority(level PriorityLevel, course Course, participant Participant) Pr
 }
 
 func (p Priority) AssignmentID() AssignmentID {
-	return AssignmentID{CourseId: p.CourseID, ParticipantId: p.ParticipantID} 
+	return AssignmentID{CourseId: p.CourseID, ParticipantId: p.ParticipantID}
 }
 
 type Priorities []Priority

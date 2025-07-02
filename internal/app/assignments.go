@@ -5,11 +5,11 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"softbaer.dev/ass/internal/domain/store"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/store"
 	"softbaer.dev/ass/internal/ui"
 )
 

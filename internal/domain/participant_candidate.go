@@ -3,8 +3,8 @@ package domain
 import (
 	"database/sql"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/domain/store"
 	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/store"
 )
 
 type ParticipantCandidate struct {

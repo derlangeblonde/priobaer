@@ -121,7 +121,8 @@ func TestGetPrioritiesForMultipleReturnsPrioritiesInCorrectOrder(t *testing.T) {
 
 	var participantIDs []int
 	for participantID, wantCourses := range wantMap {
-		SetPriorities(db, participantID, model.MapToCourseId(wantCourses))
+		err := SetPriorities(db, participantID, model.MapToCourseId(wantCourses))
+		is.NoErr(err)
 		participantIDs = append(participantIDs, participantID)
 	}
 
