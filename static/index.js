@@ -156,3 +156,112 @@ class PrioInput extends HTMLElement {
 }
 
 customElements.define("prio-input", PrioInput)
+
+
+// I actually want this:
+//
+// <!DOCTYPE html>
+// <html>
+// <head>
+// <meta name="viewport" content="width=device-width, initial-scale=1">
+// <style>
+// .focused {
+// 	background-color: lightblue;
+// }
+//
+// .show {display: block;}
+//
+// .chip {
+//     display: inline-block;
+//     padding: 5px 10px;
+//     margin: 5px;
+//     background-color: lightgray;
+//     border-radius: 16px;
+// }
+//
+// .chip .close {
+//     margin-left: 8px;
+//     cursor: pointer;
+//     color: red;
+// }
+// </style>
+// </head>
+// <body style="background-color:white;">
+//
+// <h2>Search/Filter Dropdown</h2>
+// <p>Click on the button to open the dropdown menu, and use the input field to search for a specific dropdown link.</p>
+//
+// <div class="dropdown">
+//   <div id="myDropdown" class="dropdown-content show">
+//     <input type="text" placeholder="Search.." id="myInput" onkeyup="filterFunction(event)">
+//     <div id="chipContainer"></div>
+//     <option value="abc" class="focused">abc</option>
+//     <option value="abcd">abcd</option>
+//     <option value="abcde">abcde</option>
+//     <option value="hjk">hjk</option>
+//     <option value="hjkl">hjkl</option>
+//   </div>
+// </div>
+//
+// <script>
+// let focusedIndex = 0;
+//
+// function filterFunction(event) {
+//   if (event.key === "ArrowUp") {
+//      focusedIndex -= 1;
+//   } else if (event.key === "ArrowDown") {
+//     focusedIndex += 1;
+//   } else if (event.key === "Enter") {
+//     const selectedOption = document.querySelector('option.focused');
+//     if (selectedOption) {
+//       addChip(selectedOption.textContent);
+//     }
+//     return;
+//   } else {
+//   	focusedIndex = 0;
+//   }
+//
+//   const input = document.getElementById("myInput");
+//   const filter = input.value.toUpperCase();
+//   const div = document.getElementById("myDropdown");
+//   const a = div.getElementsByTagName("option");
+//   let showCount = 0;
+//   for (let i = 0; i < a.length; i++) {
+//     const txtValue = a[i].textContent || a[i].innerText;
+//     if (txtValue.toUpperCase().indexOf(filter) > -1) {
+//       a[i].style.display = "";
+//       showCount += 1;
+//
+//       if (showCount === focusedIndex) {
+//       	a[i].classList.add("focused");
+//       } else {
+//       	a[i].classList.remove("focused");
+//       }
+//
+//     } else {
+//       a[i].style.display = "none";
+//     }
+//   }
+// }
+//
+// function addChip(text) {
+//   const chipContainer = document.getElementById("chipContainer");
+//   const chip = document.createElement('span');
+//   chip.className = 'chip';
+//   chip.textContent = text;
+//
+//   const closeBtn = document.createElement('span');
+//   closeBtn.className = 'close';
+//   closeBtn.textContent = 'x';
+//   closeBtn.onclick = function() {
+//     chipContainer.removeChild(chip);
+//   };
+//
+//   chip.appendChild(closeBtn);
+//   chipContainer.appendChild(chip);
+// }
+// </script>
+//
+// </body>
+// </html>
+//
