@@ -23,7 +23,7 @@ func ParticipantsFromDbModel(dbModels []model.Participant) []ParticipantData {
 	return participants
 }
 
-// DeleteParticipant Deletes a participant together with all associations that require the participant.
+// DeleteParticipant deletes a participant together with all associations that require the participant.
 // Parameter tx should be a transaction. Otherwise, we could delete some but not all data.
 func DeleteParticipant(tx *gorm.DB, ParticipantID ParticipantID) error {
 	if err := tx.Unscoped().Where("participant_id = ?", int(ParticipantID)).Delete(&model.Priority{}).Error; err != nil {
