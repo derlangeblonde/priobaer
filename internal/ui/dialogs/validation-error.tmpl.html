@@ -1,4 +1,4 @@
-<dialog open>
+<dialog open onclose="this.remove()">
 	<h1 class="error">Fehler</h1>
 	{{ range . }}
 		<p> {{ . }} </p>

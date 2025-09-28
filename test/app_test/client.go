@@ -116,6 +116,18 @@ func (c *TestClient) ParticipantsIndexAction() []ui.Participant {
 	return participants
 }
 
+func (c *TestClient) ParticipantsDeleteAction(participantId int) {
+	is := is.New(c.T)
+
+	req, err := http.NewRequest("DELETE", c.Endpoint(fmt.Sprintf("/participants/%d", participantId)), nil)
+	is.NoErr(err)
+	resp, err := c.client.Do(req)
+	is.NoErr(err)
+
+	is.Equal(resp.StatusCode, 200)
+	defer resp.Body.Close()
+}
+
 func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) ui.Course {
 	if finish != nil {
 		defer finish.Done()

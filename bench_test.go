@@ -1,15 +1,15 @@
-package main 
+package main
 
 import (
 	"path"
 	"slices"
+	"softbaer.dev/ass/internal/domain/store"
 	"testing"
 
 	"github.com/matryer/is"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/model"
-	"softbaer.dev/ass/internal/model/store"
 )
 
 const nCourses int = 500
@@ -70,7 +70,7 @@ func populateDB(testDir string, t *testing.B) *gorm.DB {
 
 	db.Transaction(func(tx *gorm.DB) error {
 		for _, toAssign := range participantsToAssign {
-			selectedCourseId := selectRandomCourseId(courses)			
+			selectedCourseId := selectRandomCourseId(courses)
 			if err := tx.Model(&toAssign).Update("course_id", selectedCourseId).Error; err != nil {
 				return err
 			}
@@ -101,7 +101,6 @@ func populateDB(testDir string, t *testing.B) *gorm.DB {
 
 	return db
 }
-
 
 func selectRandomCourseId(courses []model.Course) int {
 	selectedCourseIndex := model.SeededRand.Intn(nCourses)
