@@ -8,11 +8,10 @@ import (
 
 func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 	router.GET("/health", HealthHandler())
-	router.GET("/index", LandingPage)
 
 	router.Static("/static", "./static")
 
-	router.GET("/favicon.png", FaviconHandler)
+	router.GET("/favicon.png", staticfiles.FaviconHandler)
 	router.GET("/style.css", staticfiles.StyleCssHandler)
 	router.GET("/index.js", staticfiles.IndexJsHandler)
 

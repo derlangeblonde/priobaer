@@ -20,10 +20,17 @@ var styleCss []byte
 //go:embed index.js
 var indexJs []byte
 
+//go:embed favicon.ico
+var faviconBytes []byte
+
 func StyleCssHandler(c *gin.Context) {
 	c.Data(http.StatusOK, "text/css", styleCss)
 }
 
 func IndexJsHandler(c *gin.Context) {
 	c.Data(http.StatusOK, "text/javascript", indexJs)
+}
+
+func FaviconHandler(c *gin.Context) {
+	c.Data(http.StatusOK, "image/x-icon", faviconBytes)
 }
