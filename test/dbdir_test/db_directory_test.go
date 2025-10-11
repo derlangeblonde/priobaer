@@ -202,7 +202,7 @@ func TestNewDbDirectory_RemovesExpiredDbs(t *testing.T) {
 	clock.Advance(time.Second * 10)
 
 	deadlockPrevention := time.After(time.Second * 1)
-	done := make(chan bool, 0)
+	done := make(chan bool)
 
 	go func() {
 		_, err = dbdir.New(tmpDir, time.Second*60, clock, []any{})

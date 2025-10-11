@@ -19,8 +19,8 @@ func EmptyScenario() *Scenario {
 	return &Scenario{
 		courses:         make([]CourseData, 0),
 		participants:    make([]ParticipantData, 0),
-		assignmentTable: make(map[ParticipantID]*CourseData, 0),
-		priorityTable:   make(map[ParticipantID][]*CourseData, 0),
+		assignmentTable: make(map[ParticipantID]*CourseData),
+		priorityTable:   make(map[ParticipantID][]*CourseData),
 	}
 }
 

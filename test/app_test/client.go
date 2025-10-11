@@ -257,7 +257,7 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 }
 
 func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []int) map[int][]int {
-	courseIdToAssignedParticipantId := make(map[int][]int, 0)
+	courseIdToAssignedParticipantId := make(map[int][]int)
 
 	for _, expectedAlloc := range expectedAllocations {
 		course := c.CoursesCreateAction(model.RandomCourse(), nil)

@@ -35,7 +35,7 @@ func (c *Course) GapToMinCapacity() int {
 }
 
 func (c *Course) Valid() map[string]string {
-	errs := make(map[string]string, 0)
+	errs := make(map[string]string)
 
 	if c.MinCapacity > c.MaxCapacity {
 		errs["min-capacity"] = "Die minmale Kapazität muss kleiner oder gleich der maximalen Kapazität sein"

@@ -13,7 +13,7 @@ type solutionParser struct {
 }
 
 func newSolutionParser() *solutionParser {
-	return &solutionParser{coursesById: make(map[int]Course, 0), participantsById: make(map[int]Participant, 0)}
+	return &solutionParser{coursesById: make(map[int]Course), participantsById: make(map[int]Participant)}
 }
 
 func (s *solutionParser) registerLookups(p Participant, c Course) {

@@ -13,7 +13,7 @@ import (
 
 func CoursesNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, "courses/new", gin.H{"Errors": make(map[string]string, 0)})
+		c.HTML(http.StatusOK, "courses/new", gin.H{"Errors": make(map[string]string)})
 	}
 }
 
@@ -43,7 +43,6 @@ func CoursesCreate() gin.HandlerFunc {
 
 			return
 		}
-
 
 		result := db.Create(&course)
 

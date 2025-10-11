@@ -81,7 +81,7 @@ func TestSolveAssignmentAssertAssignmentCounts(t *testing.T) {
 
 			is.NoErr(err)
 
-			gotAssignmentCountPerCourseId := make(map[int]int, 0)
+			gotAssignmentCountPerCourseId := make(map[int]int)
 			for _, assignment := range assignments {
 				gotAssignmentCountPerCourseId[assignment.Course.ID] += 1
 			}
@@ -156,7 +156,7 @@ func TestSolveAssignmentAssertExactAssignments(t *testing.T) {
 			assignments, err := SolveAssignment(priorities)
 
 			if tc.printInsteadOfAssert {
-				assignmentsMap := make(map[int]int, 0)
+				assignmentsMap := make(map[int]int)
 				for _, a := range assignments {
 					assignmentsMap[a.Participant.ID] = a.Course.ID
 				}

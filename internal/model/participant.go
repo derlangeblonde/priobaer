@@ -25,7 +25,7 @@ func (p Participant) RecordHeader() []string {
 }
 
 func (p *Participant) Valid() map[string]string {
-	validationErrors := make(map[string]string, 0)
+	validationErrors := make(map[string]string)
 
 	validateNonEmpty(p.Surname, "surname", "Nachname darf nicht leer sein", validationErrors)
 	validateNonEmpty(p.Prename, "prename", "Vorname darf nicht leer sein", validationErrors)

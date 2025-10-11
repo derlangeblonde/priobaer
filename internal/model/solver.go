@@ -76,7 +76,7 @@ type maximumCapacityConstraint struct {
 }
 
 func newMaximumCapacityConstraint(s *optimizationProblem) *maximumCapacityConstraint {
-	return &maximumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[int][]*z3.AST), remainingCapacityByCourseId: make(map[int]int, 0)}
+	return &maximumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[int][]*z3.AST), remainingCapacityByCourseId: make(map[int]int)}
 }
 
 func (c *maximumCapacityConstraint) add(prio Priority, variable *z3.AST) {
@@ -102,7 +102,7 @@ type minimumCapacityConstraint struct {
 }
 
 func newMinimumCapacityConstraint(s *optimizationProblem) *minimumCapacityConstraint {
-	return &minimumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[int][]*z3.AST), gapToMinCapacityByCourseId: make(map[int]int, 0)}
+	return &minimumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[int][]*z3.AST), gapToMinCapacityByCourseId: make(map[int]int)}
 }
 
 func (c *minimumCapacityConstraint) add(prio Priority, variable *z3.AST) {

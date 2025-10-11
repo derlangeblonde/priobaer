@@ -30,7 +30,7 @@ func LoadScenario(db *gorm.DB) (scenario *Scenario, err error) {
 	var priorities []model.Priority
 	db.Find(&priorities)
 
-	priosPerParticipantId := make(map[int][]int, 0)
+	priosPerParticipantId := make(map[int][]int)
 	for _, prio := range priorities {
 		priosPerParticipantId[prio.ParticipantID] = append(priosPerParticipantId[prio.ParticipantID], prio.CourseID)
 	}

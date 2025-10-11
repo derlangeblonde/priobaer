@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+
 	"softbaer.dev/ass/internal/domain/store"
 
 	"github.com/gin-gonic/gin"
@@ -148,6 +149,7 @@ func AssignmentsUpdate(c *gin.Context) {
 	var coursesToUpdate []model.Course
 	var updateUnassignedEntry bool
 
+	// Fetch affected Pp
 	result := db.First(&participant, req.ParticipantId)
 
 	courseIdUnassigned := participant.CourseID

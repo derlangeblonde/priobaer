@@ -29,7 +29,7 @@ func (c *CourseData) MarshalRecord() []string {
 }
 
 func (c *CourseData) Valid() map[string]string {
-	errors := make(map[string]string, 0)
+	errors := make(map[string]string)
 
 	if c.MinCapacity > c.MaxCapacity {
 		errors["min-capacity"] = "Die minmale Kapazität muss kleiner oder gleich der maximalen Kapazität sein"

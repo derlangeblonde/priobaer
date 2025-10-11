@@ -21,7 +21,7 @@ func ParticipantsNew(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "participants/_new", gin.H{"Errors": make(map[string]string, 0), "Courses": courses})
+	c.HTML(http.StatusOK, "participants/_new", gin.H{"Errors": make(map[string]string), "Courses": courses})
 }
 
 func ParticipantsCreate(c *gin.Context) {
