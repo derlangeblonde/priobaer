@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/domain"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,7 @@ func ParticipantsCreate(c *gin.Context) {
 	}
 
 	db := GetDB(c)
+	secret := crypt.GetSecret(c)
 
 	var req request
 	if err := c.Bind(&req); err != nil {
@@ -62,7 +64,7 @@ func ParticipantsCreate(c *gin.Context) {
 	var createdParticipant domain.Participant
 	err := db.Transaction(func(tx *gorm.DB) error {
 		var err error
-		createdParticipant, err = candidate.Save(tx)
+		createdParticipant, err = candidate.Save(tx, secret)
 		if err != nil {
 			return err
 		}
@@ -116,7 +118,6 @@ func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
 }
 
-// Copies toViewParticipant, which can be removed eventually, when domain refactoring is done.
 func candidateToViewParticipant(model domain.ParticipantCandidate) ui.Participant {
 	result := ui.Participant{
 		Prename: model.Prename,
@@ -126,7 +127,6 @@ func candidateToViewParticipant(model domain.ParticipantCandidate) ui.Participan
 	return result
 }
 
-// Copies toViewParticipant, which can be removed eventually, when domain refactoring is done.
 func domainToViewParticipant(participant domain.Participant) ui.Participant {
 	result := ui.Participant{
 		ID:         int(participant.ID),
@@ -142,9 +142,9 @@ func domainToViewParticipant(participant domain.Participant) ui.Participant {
 	return result
 }
 
-func toViewParticipant(model model.Participant, priorities []model.Course) ui.Participant {
+func toViewParticipant(model domain.ParticipantData, priorities []domain.CourseData) ui.Participant {
 	result := ui.Participant{
-		ID:         model.ID,
+		ID:         int(model.ID),
 		Prename:    model.Prename,
 		Surname:    model.Surname,
 		Priorities: []ui.Priority{},
@@ -157,9 +157,10 @@ func toViewParticipant(model model.Participant, priorities []model.Course) ui.Pa
 	return result
 }
 
-func toViewParticipants(models []model.Participant, prioritiesById map[int][]model.Course) (results []ui.Participant) {
-	for _, m := range models {
-		results = append(results, toViewParticipant(m, prioritiesById[m.ID]))
+func toViewParticipants(participants []domain.ParticipantData, prioritiesById map[domain.ParticipantID][]domain.CourseData) (results []ui.Participant) {
+	for _, participant := range participants {
+		results = append(results, toViewParticipant(participant, prioritiesById[participant.ID]))
 	}
+
 	return
 }
