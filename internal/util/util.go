@@ -1,7 +1,9 @@
 package util
 
+import "iter"
+
 type MaybeInt struct {
-	Value int 
+	Value int
 	Valid bool
 }
 
@@ -18,9 +20,17 @@ type IDer interface {
 }
 
 func IDs[T IDer](items []T) []int {
-    out := make([]int, len(items))
-    for i, v := range items {
-        out[i] = v.Id()
-    }
-    return out
+	out := make([]int, len(items))
+	for i, v := range items {
+		out[i] = v.Id()
+	}
+	return out
+}
+
+func Seq2ToMap[K comparable, V any](seq iter.Seq2[K, V]) map[K]V {
+	m := make(map[K]V)
+	for k, v := range seq {
+		m[k] = v
+	}
+	return m
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/dbdir"
 )
 
@@ -25,6 +26,7 @@ func SessionCreate(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 		}
 
 		session.Set(sessionIdKey, newDbId.String())
+		crypt.SetNewSecret(c)
 		err = session.Save()
 
 		if err != nil {
