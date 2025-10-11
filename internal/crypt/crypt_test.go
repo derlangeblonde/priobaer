@@ -26,3 +26,14 @@ func TestEncryptDecryptRoundtripIsConsistent(t *testing.T) {
 		is.Equal(plaintext, plaintext2) // want plaintext to stay the same through a en- decrypt roundtrip
 	}
 }
+
+func BenchmarkCryptRoundtrip(t *testing.B) {
+	secret := generateSecret()
+	plaintext := "einmittellangerstring"
+
+	for t.Loop() {
+		ciphertext, _ := Encrypt(plaintext, secret)
+		Decrypt(ciphertext, secret)
+	}
+
+}
