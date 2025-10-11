@@ -74,7 +74,7 @@ func (pc *ParticipantCandidate) Save(db *gorm.DB) (Participant, error) {
 		return Participant{}, err
 	}
 
-	result.PrioritizedCourses = CoursesFromDbModels(courseRows)
+	result.PrioritizedCourses = coursesFromDbModels(courseRows)
 
 	if pc.isAssigned {
 		var assignedCourseRow model.Course
@@ -82,7 +82,7 @@ func (pc *ParticipantCandidate) Save(db *gorm.DB) (Participant, error) {
 			return Participant{}, err
 		}
 
-		result.assignedCourse = CourseFromDbModel(assignedCourseRow)
+		result.assignedCourse = courseFromDbModel(assignedCourseRow)
 	}
 
 	return result, nil

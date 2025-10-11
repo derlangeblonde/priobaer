@@ -1,8 +1,20 @@
 package domain
 
-import "softbaer.dev/ass/internal/model"
+import (
+	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/model"
+)
 
-func CourseFromDbModel(model model.Course) CourseData {
+func FindSingleCourseData(db *gorm.DB, cid CourseID) (CourseData, error) {
+	var model model.Course
+	if err := db.First(&model, "id = ?", cid).Error; err != nil {
+		return CourseData{}, err
+	}
+
+	return courseFromDbModel(model), nil
+}
+
+func courseFromDbModel(model model.Course) CourseData {
 	return CourseData{ID: CourseID(model.ID),
 		Name:        model.Name,
 		MaxCapacity: model.MaxCapacity,
@@ -10,15 +22,15 @@ func CourseFromDbModel(model model.Course) CourseData {
 	}
 }
 
-func CoursesFromDbModels(models []model.Course) []CourseData {
+func coursesFromDbModels(models []model.Course) []CourseData {
 	courses := make([]CourseData, len(models))
 	for i, dbCourse := range models {
-		courses[i] = CourseFromDbModel(dbCourse)
+		courses[i] = courseFromDbModel(dbCourse)
 	}
 	return courses
 }
 
-func CourseToDbModel(course CourseData) model.Course {
+func courseToDbModel(course CourseData) model.Course {
 	return model.Course{
 		ID:          int(course.ID),
 		Name:        course.Name,
@@ -27,10 +39,10 @@ func CourseToDbModel(course CourseData) model.Course {
 	}
 }
 
-func CoursesToDbModels(courses []CourseData) []model.Course {
+func coursesToDbModels(courses []CourseData) []model.Course {
 	dbModels := make([]model.Course, len(courses))
 	for i, course := range courses {
-		dbModels[i] = CourseToDbModel(course)
+		dbModels[i] = courseToDbModel(course)
 	}
 	return dbModels
 }

@@ -17,7 +17,7 @@ func LoadScenario(db *gorm.DB) (scenario *Scenario, err error) {
 		return nil, err
 	}
 	scenario.participants = ParticipantsFromDbModel(participants)
-	scenario.courses = CoursesFromDbModels(courses)
+	scenario.courses = coursesFromDbModels(courses)
 
 	for _, participant := range participants {
 		if participant.CourseID.Valid {
@@ -57,7 +57,7 @@ func OverwriteScenario(db *gorm.DB, scenario *Scenario) error {
 
 	}
 
-	courseRecords := CoursesToDbModels(scenario.courses)
+	courseRecords := coursesToDbModels(scenario.courses)
 	db.CreateInBatches(courseRecords, 100)
 
 	participantRecords := scenario.allParticipantsAsDbModels()

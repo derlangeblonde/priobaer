@@ -31,18 +31,25 @@ function drop(e) {
     const participantId = extractNumericId(participantElementId);
     const courseElementId = e.target.id;
 
-    const payload = {
-        "participant-id": participantId,
-    };
+    const isInitialAssign = document.querySelector(".selected").id === "not-assigned"
+    const isUnassign = courseElementId !== "not-assigned"
 
-    if (courseElementId !== "not-assigned") {
-        payload["course-id"] = extractNumericId(courseElementId);
+    if (isInitialAssign) {
+        const courseId = extractNumericId(courseElementId);
+        htmx.ajax("POST", `/participants/${participantId}/assignments?course-id=${courseId}`, {
+            "target": "#" + participantElementId,
+        });
+    } else if (isUnassign){
+        htmx.ajax("DELETE", `/participants/${participantId}/assignments`, {
+            "target": "#" + participantElementId,
+        });
+    } else {
+        // isReassign
+        const courseId = extractNumericId(courseElementId);
+        htmx.ajax("PUT", `/participants/${participantId}/assignments?course-id=${courseId}`, {
+            "target": "#" + participantElementId,
+        });
     }
-
-    htmx.ajax("PUT", "/assignments", {
-        "target": "#" + participantElementId,
-        "values": payload,
-    });
 }
 
 /**

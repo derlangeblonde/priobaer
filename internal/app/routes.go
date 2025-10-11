@@ -27,7 +27,9 @@ func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 
 	router.GET("/scenario", ScenarioIndex)
 
-	router.PUT("/assignments", AssignmentsUpdate)
+	router.POST("/participants/:id/assignments", AssignmentsCreate)
+	router.PUT("/participants/:id/assignments", AssignmentsUpdate)
+	//router.DELETE("/participants/:id/assignments", AssignmentsDelete)
 
 	router.GET("/save", Save)
 	router.GET("/load", LoadDialog)

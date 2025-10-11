@@ -1,9 +1,35 @@
 package domain
 
 import (
+	"errors"
+	"strings"
+
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/model"
 )
+
+var (
+	ErrParticipantNotFound = errors.New("participant not found")
+	ErrCourseNotFound      = errors.New("course not found")
+)
+
+func InitialAssign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
+	result := tx.Model(model.Participant{}).Where("ID = ?", pid).Update("course_id", cid)
+
+	if result.Error != nil {
+		if strings.Contains(result.Error.Error(), "FOREIGN KEY constraint failed") {
+			return ErrParticipantNotFound
+		}
+
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrCourseNotFound
+	}
+
+	return nil
+}
 
 func ParticipantDataFromDbModel(dbModel model.Participant) ParticipantData {
 	return ParticipantData{

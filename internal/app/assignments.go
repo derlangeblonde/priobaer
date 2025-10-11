@@ -2,10 +2,13 @@ package app
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
@@ -17,6 +20,87 @@ type assignmentUpdateRequest struct {
 
 func (r *assignmentUpdateRequest) IsUnassign() bool {
 	return r.CourseId == 0
+}
+
+func AssignmentsCreate(c *gin.Context) {
+	type uriRequest struct {
+		ParticipantID uint `uri:"id" binding:"required"`
+	}
+	type queryRequest struct {
+		CourseID uint `form:"course-id" binding:"required"`
+	}
+	logger := slog.With("Func", "AssignmentsCreate")
+	db := GetDB(c)
+
+	var uriReq uriRequest
+	var queryReq queryRequest
+
+	if err := c.ShouldBindUri(&uriReq); err != nil {
+		logger.Error("Failed to bind uri request", "err", err)
+		return
+	}
+
+	if err := c.ShouldBindQuery(&queryReq); err != nil {
+		logger.Error("Failed to bind query params", "err", err)
+		return
+	}
+
+	var participantID = domain.ParticipantID(uriReq.ParticipantID)
+	var courseID = domain.CourseID(queryReq.CourseID)
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		return domain.InitialAssign(tx, participantID, courseID)
+	})
+
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrParticipantNotFound):
+			logger.Error("Received non-existing ParticipantID", "id", participantID)
+			emptyBadRequestResponse(c)
+			return
+		case errors.Is(err, domain.ErrCourseNotFound):
+			logger.Error("Received non-existing CourseID", "id", courseID)
+			emptyBadRequestResponse(c)
+			return
+		default:
+			logger.Error("Writing initial assignment to db failed", "err", err)
+			internalServerErrorResponse(c)
+			return
+		}
+	}
+
+	unassignedCount, err := domain.CountUnassigned(db)
+	if err != nil {
+		logger.Error("Counting unassigned participants failed", "err", err)
+		internalServerErrorResponse(c)
+		return
+	}
+
+	courseData, err := domain.FindSingleCourseData(db, courseID)
+	if err != nil {
+		logger.Error("Finding course data failed", "err", err)
+		internalServerErrorResponse(c)
+		return
+	}
+
+	newCourseAllocation, err := domain.CountAllocation(db, courseID)
+	if err != nil {
+		logger.Error("Counting allocation of assign target failed", "err", err)
+		internalServerErrorResponse(c)
+		return
+	}
+	uiUpdate := ui.NewOutOfBandCourseListUpdate().SelectUnassignedEntry().SetUnassignedCount(unassignedCount)
+	uiUpdate.AppendCourse(
+		ui.Course{
+			ID:          int(courseData.ID),
+			Name:        courseData.Name,
+			MaxCapacity: courseData.MaxCapacity,
+			MinCapacity: courseData.MinCapacity,
+			Allocation:  newCourseAllocation,
+		},
+	)
+
+	c.HTML(http.StatusOK, "scenario/course-list", uiUpdate)
 }
 
 func AssignmentsUpdate(c *gin.Context) {
