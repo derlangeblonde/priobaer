@@ -40,14 +40,14 @@ func TestSolveAssignmentDontReassignParticipants(t *testing.T) {
 
 	alreadyAssignedParticipantIndex := 0
 	alreadyAssignedCourseIndex := 2
-	testClient.AssignmentsUpdateAction(participantIds[alreadyAssignedParticipantIndex], util.JustInt(courseIds[alreadyAssignedCourseIndex]))
+	testClient.InitialAssignAction(participantIds[alreadyAssignedParticipantIndex], courseIds[alreadyAssignedCourseIndex])
 
 	_, unassigned := testClient.AssignmentsIndexAction("solve", "true")
 	is.Equal(len(unassigned), 0)
 
 	_, participantsAssignedToCourse := testClient.AssignmentsIndexAction("selected-course", strconv.Itoa(courseIds[alreadyAssignedCourseIndex]))
 	participantIDsAssignedToCourse := util.IDs(participantsAssignedToCourse)
-	
+
 	is.True(slices.Contains(participantIDsAssignedToCourse, participantIds[alreadyAssignedParticipantIndex]))
 }
 

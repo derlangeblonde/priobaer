@@ -14,7 +14,34 @@ var (
 	ErrCourseNotFound      = errors.New("course not found")
 )
 
+func FindAssignedCourse(db *gorm.DB, pid ParticipantID) (CourseData, error) {
+	var courseID int64
+	if err := db.Model(&model.Participant{}).Where("id = ?", pid).Select("course_id").First(&courseID).Error; err != nil {
+		return CourseData{}, err
+	}
+
+	return FindSingleCourseData(db, CourseID(courseID))
+}
+
 func InitialAssign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
+	result := tx.Model(model.Participant{}).Where("id = ?", pid).Update("course_id", cid)
+
+	if result.Error != nil {
+		if strings.Contains(result.Error.Error(), "FOREIGN KEY constraint failed") {
+			return ErrParticipantNotFound
+		}
+
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrCourseNotFound
+	}
+
+	return nil
+}
+
+func Reassign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
 	result := tx.Model(model.Participant{}).Where("ID = ?", pid).Update("course_id", cid)
 
 	if result.Error != nil {
@@ -27,6 +54,34 @@ func InitialAssign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
 
 	if result.RowsAffected == 0 {
 		return ErrCourseNotFound
+	}
+
+	return nil
+}
+
+func Unassign(tx *gorm.DB, pid ParticipantID) error {
+	result := tx.Model(model.Participant{}).Where("ID = ?", pid).Update("course_id", nil)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrCourseNotFound
+	}
+
+	return nil
+}
+
+// DeleteParticipant deletes a participant together with all associations that require the participant.
+// Parameter tx should be a transaction. Otherwise, we could delete some but not all data.
+func DeleteParticipant(tx *gorm.DB, ParticipantID ParticipantID) error {
+	if err := tx.Unscoped().Where("participant_id = ?", int(ParticipantID)).Delete(&model.Priority{}).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Unscoped().Where("id = ?", int(ParticipantID)).Delete(&model.Participant{}).Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -59,18 +114,4 @@ func participantsFromDbModel(dbModels []model.Participant, secret crypt.Secret) 
 	}
 
 	return participants, nil
-}
-
-// DeleteParticipant deletes a participant together with all associations that require the participant.
-// Parameter tx should be a transaction. Otherwise, we could delete some but not all data.
-func DeleteParticipant(tx *gorm.DB, ParticipantID ParticipantID) error {
-	if err := tx.Unscoped().Where("participant_id = ?", int(ParticipantID)).Delete(&model.Priority{}).Error; err != nil {
-		return err
-	}
-
-	if err := tx.Unscoped().Where("id = ?", int(ParticipantID)).Delete(&model.Participant{}).Error; err != nil {
-		return err
-	}
-
-	return nil
 }

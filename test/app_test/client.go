@@ -17,7 +17,6 @@ import (
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
-	"softbaer.dev/ass/internal/util"
 )
 
 type TestClient struct {
@@ -226,16 +225,56 @@ type UnassignedCount struct {
 	Value   int
 }
 
-func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) AssignmentViewUpdate {
+func (c *TestClient) InitialAssignAction(participantId int, courseId int) AssignmentViewUpdate {
 	is := is.New(c.T)
 
-	data := []string{"participant-id", strconv.Itoa(participantId)}
+	err, bodyBytes := c.ChangeAssignmentRequest("POST", participantId, courseId, is)
 
-	if courseId.Valid {
-		data = slices.Concat(data, []string{"course-id", strconv.Itoa(courseId.Value)})
+	coursesUpdated, err := unmarshalAll[ui.Course](bytes.NewReader(bodyBytes), "course-")
+	is.NoErr(err)
+
+	unassignedCount, err := unmarshalUnassignedCount(bytes.NewReader(bodyBytes))
+	is.NoErr(err)
+
+	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
+}
+
+func (c *TestClient) ReassignAction(participantId int, courseId int) AssignmentViewUpdate {
+	is := is.New(c.T)
+
+	err, bodyBytes := c.ChangeAssignmentRequest("PUT", participantId, courseId, is)
+
+	coursesUpdated, err := unmarshalAll[ui.Course](bytes.NewReader(bodyBytes), "course-")
+	is.NoErr(err)
+
+	return AssignmentViewUpdate{courses: coursesUpdated}
+}
+
+func (c *TestClient) UnassignAction(participantId int) AssignmentViewUpdate {
+	is := is.New(c.T)
+
+	err, bodyBytes := c.ChangeAssignmentRequest("DELETE", participantId, 0, is)
+
+	coursesUpdated, err := unmarshalAll[ui.Course](bytes.NewReader(bodyBytes), "course-")
+	is.NoErr(err)
+
+	unassignedCount, err := unmarshalUnassignedCount(bytes.NewReader(bodyBytes))
+	is.NoErr(err)
+
+	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
+}
+
+// ChangeAssignmentRequest performs a request to either do an initial assign, a reassign or an unassign.
+// The method defines which of these. POST is an initial assign, PUT is a reassign and DELETE is an unassign.
+func (c *TestClient) ChangeAssignmentRequest(method string, participantId int, courseId int, is *is.I) (error, []byte) {
+	var route string
+	if method == "DELETE" {
+		route = fmt.Sprintf("participants/%d/assignments", participantId)
+	} else {
+		route = fmt.Sprintf("participants/%d/assignments/%d", participantId, courseId)
 	}
 
-	req := c.RequestWithFormBody("PUT", c.Endpoint("assignments"), data...)
+	req := c.RequestWithFormBody(method, c.Endpoint(route))
 
 	resp, err := c.client.Do(req)
 	is.NoErr(err) // error while doing put request to "scenario"
@@ -245,14 +284,7 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	is.NoErr(err) // error while reading resp.Body to bytes
-
-	coursesUpdated, err := unmarshalAll[ui.Course](bytes.NewReader(bodyBytes), "course-")
-	is.NoErr(err)
-
-	unassignedCount, err := unmarshalUnassignedCount(bytes.NewReader(bodyBytes))
-	is.NoErr(err)
-
-	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
+	return err, bodyBytes
 }
 
 func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []int) map[int][]int {
@@ -264,7 +296,7 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 
 		for i := 0; i < expectedAlloc; i++ {
 			participant := c.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
-			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+			c.InitialAssignAction(participant.ID, course.ID)
 
 			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)
 		}

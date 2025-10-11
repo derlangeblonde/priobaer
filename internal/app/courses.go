@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/ui"
 )
 
 func CoursesNew() gin.HandlerFunc {
@@ -111,4 +112,16 @@ func CoursesDelete() gin.HandlerFunc {
 
 func CoursesButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "courses/_new-button", nil)
+}
+
+func toViewCourse(model model.Course, selectedId sql.NullInt64, asOobSwap bool) ui.Course {
+	return ui.Course{
+		ID:          model.ID,
+		Name:        model.Name,
+		MinCapacity: model.MinCapacity,
+		MaxCapacity: model.MaxCapacity,
+		Selected:    selectedId.Valid && model.ID == int(selectedId.Int64),
+		Allocation:  model.Allocation(),
+		AsOobSwap:   asOobSwap,
+	}
 }

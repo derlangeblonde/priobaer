@@ -32,11 +32,11 @@ function drop(e) {
     const courseElementId = e.target.id;
 
     const isInitialAssign = document.querySelector(".selected").id === "not-assigned"
-    const isUnassign = courseElementId !== "not-assigned"
+    const isUnassign = courseElementId === "not-assigned"
 
     if (isInitialAssign) {
         const courseId = extractNumericId(courseElementId);
-        htmx.ajax("POST", `/participants/${participantId}/assignments?course-id=${courseId}`, {
+        htmx.ajax("POST", `/participants/${participantId}/assignments/${courseId}`, {
             "target": "#" + participantElementId,
         });
     } else if (isUnassign){
@@ -46,7 +46,7 @@ function drop(e) {
     } else {
         // isReassign
         const courseId = extractNumericId(courseElementId);
-        htmx.ajax("PUT", `/participants/${participantId}/assignments?course-id=${courseId}`, {
+        htmx.ajax("PUT", `/participants/${participantId}/assignments/${courseId}`, {
             "target": "#" + participantElementId,
         });
     }

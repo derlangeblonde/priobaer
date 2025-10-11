@@ -7,7 +7,6 @@ import (
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
-	"softbaer.dev/ass/internal/util"
 )
 
 func TestCreateAndReadParticpantWithPrios(t *testing.T) {
@@ -97,7 +96,7 @@ func TestCreateParticipantWithAssignmentAndPriosCanBeDeleted(t *testing.T) {
 
 	wantParticipant := client.ParticipantsCreateAction(model.RandomParticipant(), wantPrioritizedCourseIds, nil)
 
-	client.AssignmentsUpdateAction(wantParticipant.ID, util.JustInt(wantCourses[0].ID))
+	client.InitialAssignAction(wantParticipant.ID, wantCourses[0].ID)
 
 	_, renderedParticipants := client.AssignmentsIndexAction("selected-course", strconv.Itoa(wantCourses[0].ID))
 
