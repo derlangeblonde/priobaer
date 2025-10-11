@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/gin-gonic/gin"
+	"softbaer.dev/ass/internal/app/staticfiles"
 	"softbaer.dev/ass/internal/dbdir"
 )
 
@@ -12,6 +13,8 @@ func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 	router.Static("/static", "./static")
 
 	router.GET("/favicon.png", FaviconHandler)
+	router.GET("/style.css", staticfiles.StyleCssHandler)
+	router.GET("/index.js", staticfiles.IndexJsHandler)
 
 	router.GET("/courses/new", CoursesNew())
 	router.POST("/courses", CoursesCreate())
