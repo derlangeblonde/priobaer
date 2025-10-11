@@ -221,7 +221,7 @@ func (s *Scenario) allParticipantsAsDbModels(secret crypt.Secret) ([]model.Parti
 			nullableAssignedId = sql.NullInt64{Valid: false}
 		}
 
-		encryptedName, err := p.ParticipantName.Encrypt(secret)
+		encryptedName, err := p.ParticipantName.encrypt(secret)
 		if err != nil {
 			return result, err
 		}

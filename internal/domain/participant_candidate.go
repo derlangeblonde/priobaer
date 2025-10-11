@@ -45,7 +45,7 @@ func (pc *ParticipantCandidate) Valid() map[string]string {
 }
 
 func (pc *ParticipantCandidate) Save(db *gorm.DB, secret crypt.Secret) (Participant, error) {
-	encryptedName, err := pc.ParticipantName.Encrypt(secret)
+	encryptedName, err := pc.ParticipantName.encrypt(secret)
 	if err != nil {
 		return Participant{}, err
 	}

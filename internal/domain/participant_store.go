@@ -7,11 +7,11 @@ import (
 )
 
 func participantDataFromDbModel(dbModel model.Participant, secret crypt.Secret) (ParticipantData, error) {
-	encryptName := EncryptedParticipantName{
+	encryptName := encryptedParticipantName{
 		Prename: dbModel.Prename,
 		Surname: dbModel.Surname,
 	}
-	decryptedName, err := encryptName.Decrypt(secret)
+	decryptedName, err := encryptName.decrypt(secret)
 	if err != nil {
 		return ParticipantData{}, err
 	}
