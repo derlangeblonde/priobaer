@@ -8,8 +8,8 @@ import (
 )
 
 type sheetReader struct {
-	file      *excelize.File
-	sheetName string
+	file       *excelize.File
+	sheetName  string
 	currentRow int
 }
 
@@ -19,12 +19,14 @@ func newSheetReader(file *excelize.File, sheetName string) (*sheetReader, error)
 		return nil, err
 	}
 	if index == -1 {
-		file.NewSheet(sheetName)
+		if _, err = file.NewSheet(sheetName); err != nil {
+			return nil, err
+		}
 	}
 
 	return &sheetReader{
-		file:      file,
-		sheetName: sheetName,
+		file:       file,
+		sheetName:  sheetName,
 		currentRow: 1,
 	}, nil
 }
@@ -35,9 +37,9 @@ func (sr *sheetReader) read() ([]string, error) {
 		return nil, fmt.Errorf("failed to read rows from sheet: %w", err)
 	}
 	if sr.currentRow > len(row) {
-		return nil, io.EOF 
+		return nil, io.EOF
 	}
-	result := row[sr.currentRow-1] 
+	result := row[sr.currentRow-1]
 	sr.currentRow++
 	return result, nil
 }

@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -33,8 +34,12 @@ func newOptimizationProblem(priorities []Priority) *optimizationProblem {
 }
 
 func (p *optimizationProblem) Close() {
-	p.optimize.Close()
-	p.ctx.Close()
+	if err := p.optimize.Close(); err != nil {
+		slog.Error("Could not close z3.Optimize", "err", err)
+	}
+	if err := p.ctx.Close(); err != nil {
+		slog.Error("Could not close ctx", "err", err)
+	}
 }
 
 type constraintBuilder interface {
@@ -211,7 +216,9 @@ func (p *optimizationProblem) priorityVariable(prio Priority) *z3.AST {
 func newZ3Optimizer() (*z3.Context, *z3.Optimize) {
 	config := z3.NewConfig()
 	ctx := z3.NewContext(config)
-	config.Close()
+	if err := config.Close(); err != nil {
+		slog.Error("Failed to close config", "err", err)
+	}
 	o := ctx.NewOptimizer()
 
 	return ctx, o
