@@ -160,7 +160,7 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 func (c *TestClient) CoursesIndexAction() []ui.Course {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("assignments"))
+	resp, err := c.client.Get(c.Endpoint("scenario"))
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get courses did not return 200
 	defer resp.Body.Close()
@@ -188,7 +188,7 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]ui.Course,
 	}
 	is := is.New(c.T)
 
-	endpoint := c.Endpoint("assignments")
+	endpoint := c.Endpoint("scenario")
 
 	var foo []string
 	for keyValueSlice := range slices.Chunk(queryParams, 2) {

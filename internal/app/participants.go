@@ -78,7 +78,7 @@ func ParticipantsCreate(c *gin.Context) {
 	if c.GetHeader("HX-Request") == "true" {
 		c.HTML(http.StatusOK, "participants/_show-with-new-button", domainToViewParticipant(createdParticipant))
 	} else {
-		c.Redirect(http.StatusSeeOther, "/assignments")
+		c.Redirect(http.StatusSeeOther, "/scenario")
 	}
 }
 

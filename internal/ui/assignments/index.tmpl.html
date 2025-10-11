@@ -12,7 +12,7 @@
 
 			<a hx-boost="false" href="/save"> Speichern </a>
 
-			<a hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML" class="link">Zuteilen</a>
+			<a hx-get="/scenario?solve=true" hx-target="#assignments" hx-swap="outerHTML" class="link">Zuteilen</a>
 		</div>
 	{{ end }}
 
@@ -38,7 +38,7 @@
 			{{ block "assignments/course-list" .courseList}}
 				{{ block "assignments/unassigned-entry" .UnassignedEntry }}
 					{{ if .ShouldRender }}
-						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
+						<div id="not-assigned" hx-get="/scenario" hx-target="#assignments" hx-swap="outerHTML"
 							class="{{ if .Selected }}selected{{ end }} clickable"
 							{{ if .AsOobSwap }}hx-swap-oob="outerHTML:#not-assigned"{{ end }}
 							ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)">

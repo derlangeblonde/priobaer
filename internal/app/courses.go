@@ -65,7 +65,7 @@ func CoursesCreate() gin.HandlerFunc {
 		if c.GetHeader("HX-Request") == "true" {
 			c.HTML(http.StatusOK, "courses/_show-with-new-button", viewCourse)
 		} else {
-			c.Redirect(http.StatusSeeOther, "/assignments")
+			c.Redirect(http.StatusSeeOther, "/scenario")
 		}
 	}
 }
