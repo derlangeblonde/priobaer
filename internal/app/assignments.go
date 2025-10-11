@@ -99,7 +99,7 @@ func AssignmentsUpdate(c *gin.Context) {
 
 		viewUpdates.UnassignedEntry = ui.UnassignedEntry{ShouldRender: true, ParticipantsCount: int(unassignedParticipantsCount), AsOobSwap: true}
 	}
-	c.HTML(http.StatusOK, "assignments/course-list", viewUpdates)
+	c.HTML(http.StatusOK, "scenario/course-list", viewUpdates)
 }
 
 func toViewCourses(models []model.Course, selectedId sql.NullInt64, allAsOobSwap bool) ui.CourseList {

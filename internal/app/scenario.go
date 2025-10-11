@@ -113,10 +113,10 @@ func ScenarioIndex(c *gin.Context) {
 	prioritiesByParticipantIds, err := store.GetPrioritiesForMultiple(db, model.ParticipantIds(participants))
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
+		c.HTML(http.StatusOK, "scenario/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
+	c.HTML(http.StatusOK, "scenario/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
 }

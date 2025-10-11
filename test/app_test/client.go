@@ -104,7 +104,7 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, pri
 func (c *TestClient) ParticipantsIndexAction() []ui.Participant {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("assignments"))
+	resp, err := c.client.Get(c.Endpoint("scenario"))
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get participants did not return 200
 	defer resp.Body.Close()
@@ -202,7 +202,7 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]ui.Course,
 
 	resp, err := c.client.Get(endpoint)
 	is.NoErr(err)                  // get request failed
-	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
+	is.Equal(resp.StatusCode, 200) // get scenario did not return 200
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -238,7 +238,7 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	req := c.RequestWithFormBody("PUT", c.Endpoint("assignments"), data...)
 
 	resp, err := c.client.Do(req)
-	is.NoErr(err) // error while doing put request to "assignments"
+	is.NoErr(err) // error while doing put request to "scenario"
 
 	is.Equal(resp.StatusCode, 200)
 	defer resp.Body.Close()
