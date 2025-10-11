@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/util"
 )
 
 type Scenario struct {
@@ -100,7 +101,7 @@ func (s *Scenario) AllParticipants() iter.Seq[ParticipantData] {
 	return slices.Values(s.participants)
 }
 
-func (s *Scenario) AllPrioLists() iter.Seq2[ParticipantID, []CourseData] {
+func (s *Scenario) allPrioListsIter() iter.Seq2[ParticipantID, []CourseData] {
 
 	return func(yield func(ParticipantID, []CourseData) bool) {
 		for pid, coursePointers := range s.priorityTable {
@@ -114,6 +115,10 @@ func (s *Scenario) AllPrioLists() iter.Seq2[ParticipantID, []CourseData] {
 			}
 		}
 	}
+}
+
+func (s *Scenario) AllPrioLists() map[ParticipantID][]CourseData {
+	return util.Seq2ToMap(s.allPrioListsIter())
 }
 
 func (s *Scenario) AllPriorities() iter.Seq[Priority] {
@@ -134,6 +139,16 @@ func (s *Scenario) AllPriorities() iter.Seq[Priority] {
 
 		}
 	}
+}
+
+func (s *Scenario) AllocationOf(cid CourseID) (allocation int) {
+	for _, course := range s.assignmentTable {
+		if course.ID == cid {
+			allocation++
+		}
+	}
+
+	return
 }
 
 func (s *Scenario) AssignedCourse(pid ParticipantID) (CourseData, bool) {

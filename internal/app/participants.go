@@ -142,9 +142,9 @@ func domainToViewParticipant(participant domain.Participant) ui.Participant {
 	return result
 }
 
-func toViewParticipant(model model.Participant, priorities []model.Course) ui.Participant {
+func toViewParticipant(model domain.ParticipantData, priorities []domain.CourseData) ui.Participant {
 	result := ui.Participant{
-		ID:         model.ID,
+		ID:         int(model.ID),
 		Prename:    model.Prename,
 		Surname:    model.Surname,
 		Priorities: []ui.Priority{},
@@ -157,9 +157,12 @@ func toViewParticipant(model model.Participant, priorities []model.Course) ui.Pa
 	return result
 }
 
-func toViewParticipants(models []model.Participant, prioritiesById map[int][]model.Course) (results []ui.Participant) {
-	for _, m := range models {
-		results = append(results, toViewParticipant(m, prioritiesById[m.ID]))
+func toViewParticipants(scenario *domain.Scenario) (results []ui.Participant) {
+	prioritiesById := scenario.AllPrioLists()
+
+	for participant := range scenario.AllParticipants() {
+		results = append(results, toViewParticipant(participant, prioritiesById[participant.ID]))
 	}
+
 	return
 }
