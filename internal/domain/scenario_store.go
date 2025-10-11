@@ -17,7 +17,7 @@ func LoadScenario(db *gorm.DB, secret crypt.Secret) (scenario *Scenario, err err
 	if err := db.Find(&courses).Error; err != nil {
 		return nil, err
 	}
-	if scenario.participants, err = ParticipantsFromDbModel(participants, secret); err != nil {
+	if scenario.participants, err = participantsFromDbModel(participants, secret); err != nil {
 		return nil, err
 	}
 	scenario.courses = CoursesFromDbModels(courses)

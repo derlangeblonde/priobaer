@@ -6,7 +6,7 @@ import (
 	"softbaer.dev/ass/internal/model"
 )
 
-func ParticipantDataFromDbModel(dbModel model.Participant, secret crypt.Secret) (ParticipantData, error) {
+func participantDataFromDbModel(dbModel model.Participant, secret crypt.Secret) (ParticipantData, error) {
 	encryptName := EncryptedParticipantName{
 		Prename: dbModel.Prename,
 		Surname: dbModel.Surname,
@@ -22,10 +22,10 @@ func ParticipantDataFromDbModel(dbModel model.Participant, secret crypt.Secret) 
 	}, nil
 }
 
-func ParticipantsFromDbModel(dbModels []model.Participant, secret crypt.Secret) ([]ParticipantData, error) {
+func participantsFromDbModel(dbModels []model.Participant, secret crypt.Secret) ([]ParticipantData, error) {
 	var participants []ParticipantData
 	for _, dbModel := range dbModels {
-		participant, err := ParticipantDataFromDbModel(dbModel, secret)
+		participant, err := participantDataFromDbModel(dbModel, secret)
 		if err != nil {
 			return participants, err
 		}

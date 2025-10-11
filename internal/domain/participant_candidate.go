@@ -70,7 +70,7 @@ func (pc *ParticipantCandidate) Save(db *gorm.DB, secret crypt.Secret) (Particip
 		return Participant{}, err
 	}
 
-	savedData, err := ParticipantDataFromDbModel(dbModel, secret)
+	savedData, err := participantDataFromDbModel(dbModel, secret)
 	if err != nil {
 		return Participant{}, err
 	}
