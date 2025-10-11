@@ -7,34 +7,7 @@ import (
 	"encoding/base64"
 	"io"
 	"log/slog"
-
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
 )
-
-type Secret []byte
-
-const userSecretKey = "secret"
-
-func GetSecret(ctx *gin.Context) Secret {
-	session := sessions.Default(ctx)
-	secretInBase64 := session.Get(userSecretKey).(string)
-	secret, err := base64.StdEncoding.DecodeString(secretInBase64)
-
-	if err != nil {
-		slog.Error("Error decoding secret", "err", err)
-		panic(err)
-	}
-
-	return secret
-}
-
-func SetNewSecret(ctx *gin.Context) {
-	session := sessions.Default(ctx)
-	secret := generateSecret()
-	secretInBase64 := base64.StdEncoding.EncodeToString(secret)
-	session.Set(userSecretKey, secretInBase64)
-}
 
 func Encrypt(plaintext string, secret Secret) (string, error) {
 	logger := slog.With("Func", "Encrypt")
@@ -90,22 +63,4 @@ func Decrypt(ciphertext string, secret Secret) (string, error) {
 	}
 
 	return string(plaintext), nil
-}
-
-func generateSecret() Secret {
-	secret := make([]byte, 32)
-	n, err := rand.Reader.Read(secret)
-
-	if err != nil {
-		slog.Error("Error generating secret", "err", err)
-		panic(err)
-	}
-
-	if n != 32 {
-		msg := "Could not generate secret in full length"
-		slog.Error(msg, "n", n)
-		panic(msg)
-	}
-
-	return secret
 }
