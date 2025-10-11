@@ -6,10 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"softbaer.dev/ass/internal/domain/store"
-
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
@@ -19,7 +18,6 @@ func AssignmentsIndex(c *gin.Context) {
 		CourseIdSelected *int `form:"selected-course"`
 		Solve            bool `form:"solve"`
 	}
-	fnName := "AssignmentsIndex"
 
 	db := GetDB(c)
 
@@ -79,49 +77,30 @@ func AssignmentsIndex(c *gin.Context) {
 		}
 	}
 
-	var courses []model.Course
-	err = db.Preload("Participants").Find(&courses).Error
-
+	scenario, err := domain.LoadScenario(db)
 	if err != nil {
-		DbError(c, err, fnName)
+		slog.Error("Error while loading scenario", "err", err)
+		c.HTML(500, "general/500", gin.H{})
 		return
 	}
 
-	var participants []model.Participant
-	err = db.Where("course_id is null").Find(&participants).Error
-	unassignedCount := len(participants)
-	participantsSet := false
-	// TODO: logic in this block and the block above might be overly complex
-	// Let's see if we find sth more simple.
-	if req.CourseIdSelected != nil {
-		for _, course := range courses {
-			if course.ID == *req.CourseIdSelected {
-				participants = course.Participants
-				participantsSet = true
-				break
-			}
-		}
+	var selectedParticipants []domain.ParticipantData
+	if req.CourseIdSelected == nil {
+		selectedParticipants = scenario.Unassigned()
+	} else {
+		selectedParticipants = scenario.ParticipantsAssignedTo(domain.CourseID(*req.CourseIdSelected))
 	}
 
-	if !participantsSet && req.CourseIdSelected != nil {
-		slog.Error("Could not find course with id. Defaulting to unassigned", "course_id", req.CourseIdSelected)
-		req.CourseIdSelected = nil
-	}
-
-	viewCourses := toViewCourses(courses, pointerToNullable(req.CourseIdSelected), false)
-	viewCourses.UnassignedEntry.Selected = req.CourseIdSelected == nil
-	viewCourses.UnassignedEntry.ParticipantsCount = unassignedCount
-	viewCourses.UnassignedEntry.ShouldRender = true
-
-	prioritiesByParticipantIds, err := store.GetPrioritiesForMultiple(db, model.ParticipantIds(participants))
+	viewCourses := scenarioToViewCourses(scenario, pointerToNullable(req.CourseIdSelected), false)
+	viewParticipants := toViewParticipants(selectedParticipants, scenario.AllPrioLists())
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
+		c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": false, "participants": viewParticipants, "courseList": viewCourses})
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": toViewParticipants(participants, prioritiesByParticipantIds), "courseList": viewCourses})
+	c.HTML(http.StatusOK, "assignments/index", gin.H{"fullPage": true, "participants": viewParticipants, "courseList": viewCourses})
 }
 
 type assignmentUpdateRequest struct {
@@ -235,6 +214,29 @@ func toViewCourse(model model.Course, selectedId sql.NullInt64, asOobSwap bool) 
 		MaxCapacity: model.MaxCapacity,
 		Selected:    selectedId.Valid && model.ID == int(selectedId.Int64),
 		Allocation:  model.Allocation(),
+		AsOobSwap:   asOobSwap,
+	}
+}
+
+func scenarioToViewCourses(scenario *domain.Scenario, selectedId sql.NullInt64, allAsOobSwap bool) ui.CourseList {
+	var courseViews []ui.Course
+
+	for course := range scenario.AllCourses() {
+		view := scenarioToViewCourse(course, scenario.AllocationOf(course.ID), selectedId, allAsOobSwap)
+		courseViews = append(courseViews, view)
+	}
+
+	return ui.CourseList{CourseEntries: courseViews}
+}
+
+func scenarioToViewCourse(model domain.CourseData, allocation int, selectedId sql.NullInt64, asOobSwap bool) ui.Course {
+	return ui.Course{
+		ID:          int(model.ID),
+		Name:        model.Name,
+		MinCapacity: model.MinCapacity,
+		MaxCapacity: model.MaxCapacity,
+		Selected:    selectedId.Valid && int(model.ID) == int(selectedId.Int64),
+		Allocation:  allocation,
 		AsOobSwap:   asOobSwap,
 	}
 }

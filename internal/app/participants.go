@@ -116,7 +116,6 @@ func ParticipantsButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "participants/_new-button", nil)
 }
 
-// Copies toViewParticipant, which can be removed eventually, when domain refactoring is done.
 func candidateToViewParticipant(model domain.ParticipantCandidate) ui.Participant {
 	result := ui.Participant{
 		Prename: model.Prename,
@@ -126,7 +125,6 @@ func candidateToViewParticipant(model domain.ParticipantCandidate) ui.Participan
 	return result
 }
 
-// Copies toViewParticipant, which can be removed eventually, when domain refactoring is done.
 func domainToViewParticipant(participant domain.Participant) ui.Participant {
 	result := ui.Participant{
 		ID:         int(participant.ID),
@@ -157,10 +155,8 @@ func toViewParticipant(model domain.ParticipantData, priorities []domain.CourseD
 	return result
 }
 
-func toViewParticipants(scenario *domain.Scenario) (results []ui.Participant) {
-	prioritiesById := scenario.AllPrioLists()
-
-	for participant := range scenario.AllParticipants() {
+func toViewParticipants(participants []domain.ParticipantData, prioritiesById map[domain.ParticipantID][]domain.CourseData) (results []ui.Participant) {
+	for _, participant := range participants {
 		results = append(results, toViewParticipant(participant, prioritiesById[participant.ID]))
 	}
 

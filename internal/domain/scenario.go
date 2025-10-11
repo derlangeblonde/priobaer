@@ -101,6 +101,31 @@ func (s *Scenario) AllParticipants() iter.Seq[ParticipantData] {
 	return slices.Values(s.participants)
 }
 
+func (s *Scenario) ParticipantsAssignedTo(cid CourseID) (result []ParticipantData) {
+	for _, p := range s.participants {
+		assignedCourse, ok := s.assignmentTable[p.ID]
+		if !ok {
+			continue
+		}
+
+		if assignedCourse.ID == cid {
+			result = append(result, p)
+		}
+	}
+
+	return
+}
+
+func (s *Scenario) Unassigned() (result []ParticipantData) {
+	for _, p := range s.participants {
+		if _, ok := s.assignmentTable[p.ID]; !ok {
+			result = append(result, p)
+		}
+	}
+
+	return
+}
+
 func (s *Scenario) allPrioListsIter() iter.Seq2[ParticipantID, []CourseData] {
 
 	return func(yield func(ParticipantID, []CourseData) bool) {
