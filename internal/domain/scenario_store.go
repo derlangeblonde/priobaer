@@ -45,13 +45,13 @@ func LoadScenario(db *gorm.DB) (scenario *Scenario, err error) {
 }
 
 func OverwriteScenario(db *gorm.DB, scenario *Scenario) error {
-	modelsToDelete := []any{
+	tablesToDelete := []any{
 		&model.Priority{},
 		&model.Participant{},
 		&model.Course{},
 	}
-	for _, model := range modelsToDelete {
-		if err := db.Unscoped().Delete(model, "deleted_at is null").Error; err != nil {
+	for _, table := range tablesToDelete {
+		if err := db.Unscoped().Delete(table, "deleted_at is null").Error; err != nil {
 			return err
 		}
 
@@ -63,7 +63,10 @@ func OverwriteScenario(db *gorm.DB, scenario *Scenario) error {
 	participantRecords := scenario.allParticipantsAsDbModels()
 	db.CreateInBatches(participantRecords, 100)
 
-	savePriorities(db, scenario.AllPriorities())
+	err := savePriorities(db, scenario.AllPriorities())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

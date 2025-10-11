@@ -74,6 +74,7 @@ func unmarshal[T any](instance *T, node *html.Node) error {
 			continue
 		}
 
+		//goland:noinspection GoSwitchMissingCasesForIotaConsts
 		switch field.Kind() {
 		case reflect.String:
 			field.SetString(value)

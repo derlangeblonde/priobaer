@@ -12,8 +12,8 @@ func CourseFromDbModel(model model.Course) CourseData {
 
 func CoursesFromDbModels(models []model.Course) []CourseData {
 	courses := make([]CourseData, len(models))
-	for i, model := range models {
-		courses[i] = CourseFromDbModel(model)
+	for i, dbCourse := range models {
+		courses[i] = CourseFromDbModel(dbCourse)
 	}
 	return courses
 }
