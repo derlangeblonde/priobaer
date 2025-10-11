@@ -3,8 +3,9 @@ package main
 import (
 	"path"
 	"slices"
-	"softbaer.dev/ass/internal/domain/store"
 	"testing"
+
+	"softbaer.dev/ass/internal/domain/store"
 
 	"github.com/matryer/is"
 	"gorm.io/driver/sqlite"

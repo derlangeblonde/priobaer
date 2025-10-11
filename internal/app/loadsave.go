@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"softbaer.dev/ass/internal/domain"
 	"strings"
+
+	"softbaer.dev/ass/internal/domain"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

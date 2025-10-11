@@ -2,8 +2,9 @@ package loadsave
 
 import (
 	"bytes"
-	"softbaer.dev/ass/internal/domain"
 	"testing"
+
+	"softbaer.dev/ass/internal/domain"
 
 	"github.com/matryer/is"
 )

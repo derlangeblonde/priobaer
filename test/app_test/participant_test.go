@@ -1,12 +1,13 @@
 package apptest
 
 import (
+	"strconv"
+	"testing"
+
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 	"softbaer.dev/ass/internal/util"
-	"strconv"
-	"testing"
 )
 
 func TestCreateAndReadParticpantWithPrios(t *testing.T) {
