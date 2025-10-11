@@ -6,6 +6,7 @@ import "C"
 // LBool is the lifted boolean type representing false, true, and undefined.
 type LBool int8
 
+//goland:noinspection GoUnusedConst
 const (
 	False LBool = C.Z3_L_FALSE
 	Undef       = C.Z3_L_UNDEF

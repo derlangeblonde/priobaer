@@ -8,6 +8,7 @@ import "C"
 // ErrorCode represents the enum of error codes Z3 supports.
 type ErrorCode uint
 
+//goland:noinspection GoUnusedConst
 const (
 	ErrorCodeOk              ErrorCode = C.Z3_OK
 	ErrorCodeSortError                 = C.Z3_SORT_ERROR

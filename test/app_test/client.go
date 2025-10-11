@@ -67,9 +67,8 @@ func (c *TestClient) AcquireSessionCookie() {
 	c.client.Jar.SetCookies(c.baseUrl, cookies)
 }
 
-// TODO: I want to get rid of paricipant.Priority member and replace it with a map[int]int
-// Therefore I need to change this functions signature and its usages
 func (c *TestClient) ParticipantsCreateAction(participant model.Participant, prioritizedCourseIDs []int, finish *sync.WaitGroup) ui.Participant {
+	// TODO: I want to get rid of paricipant.Priority member and replace it with a map[int]int, therefore I need to change this functions signature and its usages
 	if finish != nil {
 		defer finish.Done()
 	}

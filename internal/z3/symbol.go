@@ -15,7 +15,7 @@ type Symbol struct {
 	rawSymbol C.Z3_symbol
 }
 
-// Create a symbol named by a string within the context.
+// Symbol creates a symbol named by a string within the context.
 //
 // The memory associated with this symbol is freed when the context is freed.
 func (c *Context) Symbol(name string) *Symbol {
@@ -28,7 +28,7 @@ func (c *Context) Symbol(name string) *Symbol {
 	}
 }
 
-// Create a symbol named by an int within the context.
+// SymbolInt creates a symbol named by an int within the context.
 //
 // The memory associated with this symbol is freed when the context is freed.
 func (c *Context) SymbolInt(name int) *Symbol {

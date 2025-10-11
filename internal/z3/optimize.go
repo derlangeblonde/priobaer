@@ -34,7 +34,6 @@ func (o *Optimize) Assert(a *AST) {
 	C.Z3_optimize_assert(o.rawCtx, o.rawOptimize, a.rawAST)
 }
 
-// Z3_lbool Z3_API Z3_optimize_check(Z3_context c, Z3_optimize o, unsigned num_assumptions, Z3_ast const assumptions[]);
 // Check checks if the currently set formula is consistent.
 //
 // Maps to: Z3_optimize_check
