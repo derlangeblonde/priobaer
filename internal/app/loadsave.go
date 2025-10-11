@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/domain"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ func LoadDialog(c *gin.Context) {
 
 func Load(c *gin.Context) {
 	db := GetDB(c)
+	secret := crypt.GetSecret(c)
 
 	formFile, err := c.FormFile("file")
 
@@ -52,7 +54,7 @@ func Load(c *gin.Context) {
 	}
 
 	err = db.Transaction(func(tx *gorm.DB) error {
-		return domain.OverwriteScenario(tx, scenario)
+		return domain.OverwriteScenario(tx, scenario, secret)
 	})
 
 	if err != nil {
@@ -67,8 +69,9 @@ func Load(c *gin.Context) {
 
 func Save(c *gin.Context) {
 	db := GetDB(c)
+	secret := crypt.GetSecret(c)
 
-	scenario, err := domain.LoadScenario(db)
+	scenario, err := domain.LoadScenario(db, secret)
 
 	if err != nil {
 		slog.Error("Error while loading scenario", "err", err)

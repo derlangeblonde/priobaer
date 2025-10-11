@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/domain"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,7 @@ func ParticipantsCreate(c *gin.Context) {
 	}
 
 	db := GetDB(c)
+	secret := crypt.GetSecret(c)
 
 	var req request
 	if err := c.Bind(&req); err != nil {
@@ -62,7 +64,7 @@ func ParticipantsCreate(c *gin.Context) {
 	var createdParticipant domain.Participant
 	err := db.Transaction(func(tx *gorm.DB) error {
 		var err error
-		createdParticipant, err = candidate.Save(tx)
+		createdParticipant, err = candidate.Save(tx, secret)
 		if err != nil {
 			return err
 		}

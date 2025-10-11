@@ -2,25 +2,37 @@ package domain
 
 import (
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/model"
 )
 
-func ParticipantDataFromDbModel(dbModel model.Participant) ParticipantData {
-	return ParticipantData{
-		ID: ParticipantID(dbModel.ID),
-		ParticipantName: ParticipantName{
-			Prename: dbModel.Prename,
-			Surname: dbModel.Surname,
-		},
+func ParticipantDataFromDbModel(dbModel model.Participant, secret crypt.Secret) (ParticipantData, error) {
+	encryptName := EncryptedParticipantName{
+		Prename: dbModel.Prename,
+		Surname: dbModel.Surname,
 	}
+	decryptedName, err := encryptName.Decrypt(secret)
+	if err != nil {
+		return ParticipantData{}, err
+	}
+
+	return ParticipantData{
+		ID:              ParticipantID(dbModel.ID),
+		ParticipantName: decryptedName,
+	}, nil
 }
 
-func ParticipantsFromDbModel(dbModels []model.Participant) []ParticipantData {
-	participants := make([]ParticipantData, len(dbModels))
-	for i, dbModel := range dbModels {
-		participants[i] = ParticipantDataFromDbModel(dbModel)
+func ParticipantsFromDbModel(dbModels []model.Participant, secret crypt.Secret) ([]ParticipantData, error) {
+	var participants []ParticipantData
+	for _, dbModel := range dbModels {
+		participant, err := ParticipantDataFromDbModel(dbModel, secret)
+		if err != nil {
+			return participants, err
+		}
+		participants = append(participants, participant)
 	}
-	return participants
+
+	return participants, nil
 }
 
 // DeleteParticipant deletes a participant together with all associations that require the participant.

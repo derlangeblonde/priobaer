@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/domain/store"
 	"softbaer.dev/ass/internal/model"
 )
@@ -43,10 +44,15 @@ func (pc *ParticipantCandidate) Valid() map[string]string {
 	return pc.ParticipantNameValid()
 }
 
-func (pc *ParticipantCandidate) Save(db *gorm.DB) (Participant, error) {
+func (pc *ParticipantCandidate) Save(db *gorm.DB, secret crypt.Secret) (Participant, error) {
+	encryptedName, err := pc.ParticipantName.Encrypt(secret)
+	if err != nil {
+		return Participant{}, err
+	}
+
 	dbModel := model.Participant{
-		Prename:  pc.Prename,
-		Surname:  pc.Surname,
+		Prename:  encryptedName.Prename,
+		Surname:  encryptedName.Surname,
 		CourseID: sql.NullInt64{Valid: pc.isAssigned, Int64: int64(pc.assignedCourseId)},
 	}
 
@@ -64,8 +70,13 @@ func (pc *ParticipantCandidate) Save(db *gorm.DB) (Participant, error) {
 		return Participant{}, err
 	}
 
+	savedData, err := ParticipantDataFromDbModel(dbModel, secret)
+	if err != nil {
+		return Participant{}, err
+	}
+
 	result := Participant{
-		ParticipantData: ParticipantDataFromDbModel(dbModel),
+		ParticipantData: savedData,
 	}
 
 	courseRows, err := store.GetPriorities(db, dbModel.ID)

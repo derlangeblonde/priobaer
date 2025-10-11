@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
@@ -20,6 +21,7 @@ func AssignmentsIndex(c *gin.Context) {
 	}
 
 	db := GetDB(c)
+	secret := crypt.GetSecret(c)
 
 	var req request
 	err := c.Bind(&req)
@@ -77,7 +79,7 @@ func AssignmentsIndex(c *gin.Context) {
 		}
 	}
 
-	scenario, err := domain.LoadScenario(db)
+	scenario, err := domain.LoadScenario(db, secret)
 	if err != nil {
 		slog.Error("Error while loading scenario", "err", err)
 		c.HTML(500, "general/500", gin.H{})

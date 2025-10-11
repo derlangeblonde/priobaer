@@ -6,6 +6,7 @@ import (
 	"iter"
 	"slices"
 
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/util"
 )
@@ -209,7 +210,7 @@ func (s *Scenario) MaxAmountOfPriorities() (result int) {
 	return
 }
 
-func (s *Scenario) allParticipantsAsDbModels() []model.Participant {
+func (s *Scenario) allParticipantsAsDbModels(secret crypt.Secret) ([]model.Participant, error) {
 	result := make([]model.Participant, len(s.participants))
 	for i, p := range s.participants {
 		assignedCourse, ok := s.assignmentTable[p.ID]
@@ -219,8 +220,13 @@ func (s *Scenario) allParticipantsAsDbModels() []model.Participant {
 		} else {
 			nullableAssignedId = sql.NullInt64{Valid: false}
 		}
-		result[i] = model.Participant{ID: int(p.ID), Prename: p.Prename, Surname: p.Surname, CourseID: nullableAssignedId}
+
+		encryptedName, err := p.ParticipantName.Encrypt(secret)
+		if err != nil {
+			return result, err
+		}
+		result[i] = model.Participant{ID: int(p.ID), Prename: encryptedName.Prename, Surname: encryptedName.Surname, CourseID: nullableAssignedId}
 	}
 
-	return result
+	return result, nil
 }

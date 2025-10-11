@@ -2,10 +2,11 @@ package domain
 
 import (
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/model"
 )
 
-func LoadScenario(db *gorm.DB) (scenario *Scenario, err error) {
+func LoadScenario(db *gorm.DB, secret crypt.Secret) (scenario *Scenario, err error) {
 	scenario = EmptyScenario()
 	var participants []model.Participant
 	var courses []model.Course
@@ -16,7 +17,9 @@ func LoadScenario(db *gorm.DB) (scenario *Scenario, err error) {
 	if err := db.Find(&courses).Error; err != nil {
 		return nil, err
 	}
-	scenario.participants = ParticipantsFromDbModel(participants)
+	if scenario.participants, err = ParticipantsFromDbModel(participants, secret); err != nil {
+		return nil, err
+	}
 	scenario.courses = CoursesFromDbModels(courses)
 
 	for _, participant := range participants {
@@ -44,7 +47,7 @@ func LoadScenario(db *gorm.DB) (scenario *Scenario, err error) {
 	return
 }
 
-func OverwriteScenario(db *gorm.DB, scenario *Scenario) error {
+func OverwriteScenario(db *gorm.DB, scenario *Scenario, secret crypt.Secret) error {
 	tablesToDelete := []any{
 		&model.Priority{},
 		&model.Participant{},
@@ -60,10 +63,14 @@ func OverwriteScenario(db *gorm.DB, scenario *Scenario) error {
 	courseRecords := CoursesToDbModels(scenario.courses)
 	db.CreateInBatches(courseRecords, 100)
 
-	participantRecords := scenario.allParticipantsAsDbModels()
+	participantRecords, err := scenario.allParticipantsAsDbModels(secret)
+	if err != nil {
+		return err
+	}
+
 	db.CreateInBatches(participantRecords, 100)
 
-	err := savePriorities(db, scenario.AllPriorities())
+	err = savePriorities(db, scenario.AllPriorities())
 	if err != nil {
 		return err
 	}
