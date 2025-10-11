@@ -15,7 +15,7 @@ type CourseData struct {
 	MaxCapacity int
 }
 
-func (c CourseData) RecordHeader() []string {
+func CourseDataRecordHeader() []string {
 	return []string{"ID", "Name", "Minimale Kapazität", "Maximale Kapazität"}
 }
 

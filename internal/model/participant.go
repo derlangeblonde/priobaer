@@ -20,10 +20,6 @@ type Participant struct {
 	Course   Course `gorm:"constraint:OnDelete:SET NULL;"`
 }
 
-func (p Participant) RecordHeader() []string {
-	return []string{"ID", "Vorname", "Nachname", "Zuteilung (Kurs ID)"}
-}
-
 func (p *Participant) Valid() map[string]string {
 	validationErrors := make(map[string]string)
 

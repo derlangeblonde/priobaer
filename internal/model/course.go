@@ -18,10 +18,6 @@ type Course struct {
 	Participants []Participant
 }
 
-func (c Course) RecordHeader() []string {
-	return []string{"ID", "Name", "Minimale Kapazität", "Maximale Kapazität"}
-}
-
 func (c *Course) Allocation() int {
 	return len(c.Participants)
 }

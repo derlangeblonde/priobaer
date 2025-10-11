@@ -13,7 +13,7 @@ type ParticipantData struct {
 	ParticipantName
 }
 
-func (p ParticipantData) RecordHeader() []string {
+func ParticipantDataRecordHeader() []string {
 	return []string{"ID", "Vorname", "Nachname"}
 }
 func (p *ParticipantData) MarshalRecord() []string {
