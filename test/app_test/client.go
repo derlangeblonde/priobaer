@@ -189,13 +189,13 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]ui.Course,
 
 	endpoint := c.Endpoint("scenario")
 
-	var foo []string
+	var keyValuePairs []string
 	for keyValueSlice := range slices.Chunk(queryParams, 2) {
 		keyValuePair := fmt.Sprintf("%s=%s", keyValueSlice[0], keyValueSlice[1])
-		foo = append(foo, keyValuePair)
+		keyValuePairs = append(keyValuePairs, keyValuePair)
 	}
 
-	queryString := "?" + strings.Join(foo, "&")
+	queryString := "?" + strings.Join(keyValuePairs, "&")
 
 	endpoint += queryString
 
@@ -213,6 +213,20 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]ui.Course,
 	is.NoErr(err) // error while unmarshalling courses
 
 	return courses, participants
+}
+
+func (c *TestClient) SolveAssignmentsAction() {
+	is := is.New(c.T)
+
+	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), nil)
+	is.NoErr(err) // want to create request successfully
+	resp, err := c.client.Do(req)
+	defer resp.Body.Close()
+	is.NoErr(err)                  // want request to be successful
+	is.Equal(resp.StatusCode, 303) // want to be redirected with 303
+
+	loc := resp.Header.Get("Location")
+	is.Equal(loc, "/scenario") //  want to redirected to '/scenario'
 }
 
 type AssignmentViewUpdate struct {
