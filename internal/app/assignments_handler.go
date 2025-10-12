@@ -32,17 +32,8 @@ func AssignmentsCreate(c *gin.Context) {
 	})
 
 	if err != nil {
-		switch {
-		case errors.Is(err, domain.ErrParticipantNotFound):
-			respond.BadRequest(c, "Received non-existing ParticipantID", "id", participantID)
-			return
-		case errors.Is(err, domain.ErrCourseNotFound):
-			respond.BadRequest(c, "Received non-existing CourseID", "id", courseID)
-			return
-		default:
-			respond.InternalServerError(c, "Writing initial assignment to db failed", err)
-			return
-		}
+		respondForAssignError(c, err, "assignType", "initialassign", "participantId", participantID, "targetCourseId", courseID)
+		return
 	}
 
 	unassignedCount, err := domain.CountUnassigned(db)
@@ -62,19 +53,11 @@ func AssignmentsCreate(c *gin.Context) {
 		respond.InternalServerError(c, "Counting allocation of assign target failed", err)
 		return
 	}
+
 	uiUpdate := ui.NewOutOfBandCourseListUpdate().
 		SelectUnassignedEntry().
 		SetUnassignedCount(unassignedCount)
-
-	uiUpdate.AppendCourse(
-		ui.Course{
-			ID:          int(courseData.ID),
-			Name:        courseData.Name,
-			MaxCapacity: courseData.MaxCapacity,
-			MinCapacity: courseData.MinCapacity,
-			Allocation:  newCourseAllocation,
-		},
-	)
+	uiUpdate.AppendCourse(newUiCourse(courseData, newCourseAllocation))
 
 	c.HTML(http.StatusOK, "scenario/course-list", uiUpdate)
 }
@@ -110,18 +93,10 @@ func AssignmentsUpdate(c *gin.Context) {
 	})
 
 	if err != nil {
-		switch {
-		case errors.Is(err, domain.ErrParticipantNotFound):
-			respond.BadRequest(c, "Received non-existing ParticipantID", "id", participantID)
-			return
-		case errors.Is(err, domain.ErrCourseNotFound):
-			respond.BadRequest(c, "Received non-existing CourseID", "id", targetID)
-			return
-		default:
-			respond.InternalServerError(c, "Writing initial assignment to db failed", err)
-			return
-		}
+		respondForAssignError(c, err, "assignType", "reassign", "participantId", participantID, "targetCourseId", targetID)
+		return
 	}
+
 	uiUpdate := ui.NewOutOfBandCourseListUpdate()
 	for _, course := range []domain.CourseData{source, target} {
 		newCourseAllocation, err := domain.CountAllocation(db, course.ID)
@@ -138,7 +113,7 @@ func AssignmentsUpdate(c *gin.Context) {
 
 func AssignmentsDelete(c *gin.Context) {
 	type unassignUriParams struct {
-		ParticipantID uint `uri:"id" binding:"required"`
+		ParticipantID domain.ParticipantID `uri:"id" binding:"required"`
 	}
 
 	logger := slog.With("Func", "AssignmentsDelete")
@@ -150,7 +125,7 @@ func AssignmentsDelete(c *gin.Context) {
 		return
 	}
 
-	participantID := domain.ParticipantID(uriParams.ParticipantID)
+	participantID := uriParams.ParticipantID
 	source, err := domain.FindAssignedCourse(db, participantID)
 	if err != nil {
 		respond.InternalServerError(c, "Finding currently assigned course data failed", err)
@@ -161,12 +136,8 @@ func AssignmentsDelete(c *gin.Context) {
 		return domain.Unassign(tx, participantID)
 	})
 
-	switch {
-	case errors.Is(err, domain.ErrParticipantNotFound):
-		respond.BadRequest(c, "Received non-existing ParticipantID", "id", participantID)
-		return
-	case err != nil:
-		respond.InternalServerError(c, "Deleting assignment in db failed", err)
+	if err != nil {
+		respondForAssignError(c, err, "assignType", "unassign", "participantId", participantID)
 		return
 	}
 
@@ -187,6 +158,20 @@ func AssignmentsDelete(c *gin.Context) {
 	uiUpdate.AppendCourse(newUiCourse(source, sourceAllocation))
 
 	c.HTML(http.StatusOK, "scenario/course-list", uiUpdate)
+}
+
+func respondForAssignError(c *gin.Context, err error, logArgs ...any) {
+	switch {
+	case errors.Is(err, domain.ErrParticipantNotFound):
+		respond.BadRequest(c, "Received non-existing ParticipantID", logArgs)
+		return
+	case errors.Is(err, domain.ErrCourseNotFound):
+		respond.BadRequest(c, "Received non-existing CourseID", logArgs)
+		return
+	default:
+		respond.InternalServerError(c, "Writing assignment change to db failed", err, logArgs)
+		return
+	}
 }
 
 func pointerToNullable(i *int) sql.NullInt64 {
