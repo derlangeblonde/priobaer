@@ -23,8 +23,8 @@ func AssignmentsCreate(c *gin.Context) {
 		return
 	}
 
-	var participantID = domain.ParticipantID(uriParams.ParticipantID)
-	var courseID = domain.CourseID(uriParams.CourseID)
+	var participantID = uriParams.ParticipantID
+	var courseID = uriParams.CourseID
 
 	err := db.Transaction(func(tx *gorm.DB) error {
 		return domain.InitialAssign(tx, participantID, courseID)
@@ -67,7 +67,10 @@ func AssignmentsCreate(c *gin.Context) {
 		internalServerErrorResponse(c)
 		return
 	}
-	uiUpdate := ui.NewOutOfBandCourseListUpdate().SelectUnassignedEntry().SetUnassignedCount(unassignedCount)
+	uiUpdate := ui.NewOutOfBandCourseListUpdate().
+		SelectUnassignedEntry().
+		SetUnassignedCount(unassignedCount)
+
 	uiUpdate.AppendCourse(
 		ui.Course{
 			ID:          int(courseData.ID),
@@ -92,8 +95,8 @@ func AssignmentsUpdate(c *gin.Context) {
 		return
 	}
 
-	participantID := domain.ParticipantID(uriParams.ParticipantID)
-	targetID := domain.CourseID(uriParams.CourseID)
+	participantID := uriParams.ParticipantID
+	targetID := uriParams.CourseID
 	var source, target domain.CourseData
 
 	target, err := domain.FindSingleCourseData(db, targetID)
@@ -138,15 +141,7 @@ func AssignmentsUpdate(c *gin.Context) {
 			return
 		}
 
-		uiUpdate.AppendCourse(
-			ui.Course{
-				ID:          int(course.ID),
-				Name:        course.Name,
-				MaxCapacity: course.MaxCapacity,
-				MinCapacity: course.MinCapacity,
-				Allocation:  newCourseAllocation,
-			},
-		)
+		uiUpdate.AppendCourse(newUiCourse(course, newCourseAllocation))
 	}
 
 	c.HTML(http.StatusOK, "scenario/course-list", uiUpdate)
@@ -203,16 +198,9 @@ func AssignmentsDelete(c *gin.Context) {
 		return
 	}
 
-	uiUpdate := ui.NewOutOfBandCourseListUpdate().SetUnassignedCount(unassignedCount)
-	uiUpdate.AppendCourse(
-		ui.Course{
-			ID:          int(source.ID),
-			Name:        source.Name,
-			MaxCapacity: source.MaxCapacity,
-			MinCapacity: source.MinCapacity,
-			Allocation:  sourceAllocation,
-		},
-	)
+	uiUpdate := ui.NewOutOfBandCourseListUpdate().
+		SetUnassignedCount(unassignedCount)
+	uiUpdate.AppendCourse(newUiCourse(source, sourceAllocation))
 
 	c.HTML(http.StatusOK, "scenario/course-list", uiUpdate)
 }
@@ -225,7 +213,17 @@ func pointerToNullable(i *int) sql.NullInt64 {
 	return sql.NullInt64{Valid: true, Int64: int64(*i)}
 }
 
+func newUiCourse(courseData domain.CourseData, allocation int) ui.Course {
+	return ui.Course{
+		ID:          int(courseData.ID),
+		Name:        courseData.Name,
+		MaxCapacity: courseData.MaxCapacity,
+		MinCapacity: courseData.MinCapacity,
+		Allocation:  allocation,
+	}
+}
+
 type assignUriParams struct {
-	ParticipantID uint `uri:"id" binding:"required"`
-	CourseID      uint `uri:"course-id" binding:"required"`
+	ParticipantID domain.ParticipantID `uri:"id" binding:"required"`
+	CourseID      domain.CourseID      `uri:"course-id" binding:"required"`
 }
