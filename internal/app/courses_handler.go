@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
@@ -88,15 +89,8 @@ func CoursesDelete() gin.HandlerFunc {
 			return
 		}
 
-		course := model.Course{ID: req.ID}
 		err = db.Transaction(func(tx *gorm.DB) error {
-			err := db.Model(model.Participant{}).Where("course_id = ?", req.ID).Update("course_id", nil).Error
-
-			if err != nil {
-				return err
-			}
-
-			return db.Unscoped().Delete(&course).Error
+			return domain.DeleteCourse(tx, req.ID)
 		})
 
 		if err != nil {

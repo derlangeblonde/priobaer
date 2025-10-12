@@ -54,3 +54,17 @@ func toCourseIds(ids []int) []CourseID {
 	}
 	return courseIds
 }
+
+func DeleteCourse(tx *gorm.DB, courseId int) error {
+	err := tx.Model(model.Participant{}).Where("course_id = ?", courseId).Update("course_id", nil).Error
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Unscoped().Delete(&model.Priority{}, "course_id = ?", courseId).Error; err != nil {
+		return err
+	}
+
+	course := model.Course{ID: courseId}
+	return tx.Unscoped().Delete(&course).Error
+}
