@@ -14,6 +14,23 @@ func FindSingleCourseData(db *gorm.DB, cid CourseID) (CourseData, error) {
 	return courseFromDbModel(model), nil
 }
 
+// DeleteCourse deletes the course with the specified id together with all existing associations.
+// I.e. participants assigned to that course will be unassigned and priorities to that courses will be deleted.
+// Prefer passing a transaction, so that partial changes will be rolled back in case of an error.
+func DeleteCourse(tx *gorm.DB, courseId int) error {
+	err := tx.Model(model.Participant{}).Where("course_id = ?", courseId).Update("course_id", nil).Error
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Unscoped().Delete(&model.Priority{}, "course_id = ?", courseId).Error; err != nil {
+		return err
+	}
+
+	course := model.Course{ID: courseId}
+	return tx.Unscoped().Delete(&course).Error
+}
+
 func courseFromDbModel(model model.Course) CourseData {
 	return CourseData{ID: CourseID(model.ID),
 		Name:        model.Name,
@@ -53,18 +70,4 @@ func toCourseIds(ids []int) []CourseID {
 		courseIds[i] = CourseID(id)
 	}
 	return courseIds
-}
-
-func DeleteCourse(tx *gorm.DB, courseId int) error {
-	err := tx.Model(model.Participant{}).Where("course_id = ?", courseId).Update("course_id", nil).Error
-	if err != nil {
-		return err
-	}
-
-	if err := tx.Unscoped().Delete(&model.Priority{}, "course_id = ?", courseId).Error; err != nil {
-		return err
-	}
-
-	course := model.Course{ID: courseId}
-	return tx.Unscoped().Delete(&course).Error
 }
