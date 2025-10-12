@@ -8,7 +8,6 @@ import (
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
-	"softbaer.dev/ass/internal/util"
 )
 
 func TestParticipantsAreUnassignedIntially(t *testing.T) {
@@ -55,7 +54,7 @@ func TestAssignParticipant(t *testing.T) {
 	idParticipantToAssign := unassignedParticipants[0].ID
 	courseIdToAssignTo := allCourses[0].ID
 
-	testClient.AssignmentsUpdateAction(idParticipantToAssign, util.JustInt(courseIdToAssignTo))
+	testClient.InitialAssignAction(idParticipantToAssign, courseIdToAssignTo)
 
 	_, unassignedParticipants = testClient.AssignmentsIndexAction()
 
@@ -65,7 +64,7 @@ func TestAssignParticipant(t *testing.T) {
 
 	is.Equal(len(participantsAssignedToCourse), 1) // expect exactly one participant after creating one
 
-	testClient.AssignmentsUpdateAction(idParticipantToAssign, util.NoneInt())
+	testClient.UnassignAction(idParticipantToAssign)
 
 	_, unassignedParticipants = testClient.AssignmentsIndexAction()
 
@@ -116,10 +115,10 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 	courseNew := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 	participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
 
-	testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseOld.ID))
+	testClient.InitialAssignAction(participant.ID, courseOld.ID)
 
 	// act
-	viewUpdate := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(courseNew.ID))
+	viewUpdate := testClient.ReassignAction(participant.ID, courseNew.ID)
 
 	// assert
 	is.Equal(len(viewUpdate.courses), 2) // expect exactly to courses to have updated allocation
@@ -164,7 +163,7 @@ func TestAssignmentUpdateWithMultipleParticipantsUpdatesViewCorrectly(t *testing
 		loopCounter++
 	}
 
-	viewUpdate := testClient.AssignmentsUpdateAction(participantId, util.JustInt(newCourseId))
+	viewUpdate := testClient.ReassignAction(participantId, newCourseId)
 
 	var updatedAllocations []int
 	for _, courseUpdated := range viewUpdate.courses {
@@ -192,7 +191,7 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 
 	// act
-	viewUpdate := testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+	viewUpdate := testClient.InitialAssignAction(participant.ID, course.ID)
 
 	// assert
 	is.True(viewUpdate.UnassignedCount.Updated) // expect that unassigned count was updated
@@ -212,11 +211,11 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
-		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+		testClient.InitialAssignAction(participant.ID, course.ID)
 	}
 
 	// act
-	viewUpdate := testClient.AssignmentsUpdateAction(participant.ID, util.NoneInt())
+	viewUpdate := testClient.UnassignAction(participant.ID)
 
 	// assert
 	is.True(viewUpdate.UnassignedCount.Updated) // expect that unassigned count was updated
@@ -236,7 +235,7 @@ func TestParticipantsGetUnassignedWhenTheirAssignedCourseIsDeleted(t *testing.T)
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
 		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
-		testClient.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+		testClient.InitialAssignAction(participant.ID, course.ID)
 	}
 
 	// act

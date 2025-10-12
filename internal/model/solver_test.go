@@ -104,10 +104,28 @@ func TestSolveAssignmentAssertExactAssignments(t *testing.T) {
 		courseCapacities          []CourseOption
 		participantCount          int
 		participantsPriosBuilders []participantPriosBuilder
-		// ParticipantIds to CourseIds
-		expectedAssignments  map[int]int
-		printInsteadOfAssert bool
+		testResultingAssignment   func(t *testing.T, resultingAssignments []Assignment, err error)
+		printInsteadOfAssert      bool
 	}{
+		{
+			"Solver respects max capacity of a course",
+			[]CourseOption{WithCapacity(0, 2), WithCapacity(0, 2), WithCapacity(0, 2)},
+			6,
+			[]participantPriosBuilder{
+				{0, []int{0, 1, 2}},
+				{1, []int{0, 1, 2}},
+				{2, []int{0, 1, 2}},
+				{3, []int{0, 1, 2}},
+				{4, []int{0, 1, 2}},
+				{5, []int{0, 1, 2}},
+			},
+			assertAllocations(map[int]int{
+				1: 2,
+				2: 2,
+				3: 2,
+			}),
+			false,
+		},
 		{
 			"Equal capacity & harmonic priorities should give everyone their first prio",
 			[]CourseOption{WithCapacity(0, 2), WithCapacity(0, 2), WithCapacity(0, 2)},
@@ -120,14 +138,14 @@ func TestSolveAssignmentAssertExactAssignments(t *testing.T) {
 				{4, []int{2, 0, 1}},
 				{5, []int{2, 0, 1}},
 			},
-			map[int]int{
+			assertExactAssignment(map[int]int{
 				1: 1,
 				2: 1,
 				3: 2,
 				4: 2,
 				5: 3,
 				6: 3,
-			},
+			}),
 			false,
 		},
 		{
@@ -140,15 +158,13 @@ func TestSolveAssignmentAssertExactAssignments(t *testing.T) {
 				{2, []int{1, 2, 0}},
 				{3, []int{2, 0, 1}},
 			},
-			map[int]int{},
+			assertIsNotSolvable(),
 			false,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			is := is.New(t)
-
 			courses := buildCourses(tc.courseCapacities)
 			participants := buildParticipants(tc.participantCount)
 			priorities := buildPriorities(tc.participantsPriosBuilders, courses, participants)
@@ -167,26 +183,60 @@ func TestSolveAssignmentAssertExactAssignments(t *testing.T) {
 				return
 			}
 
-			if len(tc.expectedAssignments) == 0 {
-				is.Equal(err, NotSolvable)
-				is.Equal(len(assignments), 0)
-
-				return
-			}
-
-			is.NoErr(err)
-
-			is.Equal(len(assignments), len(tc.expectedAssignments)) // each participant has gotten assigned
-
-			for _, assignment := range assignments {
-				gotCourseId := assignment.Course.ID
-				wantCourseId, ok := tc.expectedAssignments[assignment.Participant.ID]
-				is.True(ok) // there has to exist an assignment for each participant
-				if gotCourseId != wantCourseId {
-					t.Fatalf("Participant %d should have been assigned to Course %d, but is assigned to Course %d", assignment.Participant.ID, wantCourseId, gotCourseId)
-				}
-			}
+			tc.testResultingAssignment(t, assignments, err)
 		})
+	}
+}
+
+type assignmentAsserter func(t *testing.T, resultingAssignments []Assignment, err error)
+
+// assertAllocations returns a func that checks whether some assignments have the same allocation(-distribution)
+// as the wantAllocations (maps CourseIds to allocation) passed to this builder func.
+func assertAllocations(wantAllocations map[int]int) assignmentAsserter {
+	return func(t *testing.T, got []Assignment, err error) {
+		is := is.New(t)
+
+		is.NoErr(err) // want assignments to be successfully solved
+		actualAllocations := make(map[int]int)
+		for _, assignment := range got {
+			count, _ := actualAllocations[assignment.Course.ID]
+			actualAllocations[assignment.Course.ID] = count + 1
+		}
+
+		for courseId, expectedAllocation := range wantAllocations {
+			actualAllocation, ok := actualAllocations[courseId]
+			is.True(ok)                                    // Want an actual allocation for each expected allocation
+			is.Equal(expectedAllocation, actualAllocation) // Want actual and expected allocation to match
+		}
+	}
+}
+
+func assertIsNotSolvable() assignmentAsserter {
+	return func(t *testing.T, resultingAssignments []Assignment, err error) {
+		is := is.New(t)
+
+		is.Equal(err, NotSolvable)
+		is.Equal(len(resultingAssignments), 0)
+	}
+}
+
+// assertExactAssignment returns a func that checks whether some assignments match the wantAssignments passed
+// to this builder func. ExpectedAssignments maps ParticipantIds to CourseIds.
+func assertExactAssignment(wantAssignments map[int]int) assignmentAsserter {
+	return func(t *testing.T, got []Assignment, err error) {
+		is := is.New(t)
+
+		is.NoErr(err)
+		is.Equal(len(got), len(wantAssignments)) // each participant has gotten assigned
+
+		for _, assignment := range got {
+			gotCourseId := assignment.Course.ID
+			wantCourseId, ok := wantAssignments[assignment.Participant.ID]
+			is.True(ok) // there has to exist an assignment for each participant
+			if gotCourseId != wantCourseId {
+				t.Fatalf("Participant %d should have been assigned to Course %d, but is assigned to Course %d", assignment.Participant.ID, wantCourseId, gotCourseId)
+			}
+		}
 	}
 }
 

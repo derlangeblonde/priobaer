@@ -1,5 +1,5 @@
-<div id="course-{{ .ID }}" class="{{if .Selected }}selected{{ end }} clickable" hx-get="/assignments?selected-course={{ .ID }}"
-	hx-target="#assignments" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"
+<div id="course-{{ .ID }}" class="{{if .Selected }}selected{{ end }} clickable" hx-get="/scenario?selected-course={{ .ID }}"
+	hx-target="#scenario" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"
 	{{ if .AsOobSwap }} hx-swap-oob="outerHtml:#course-{{ .ID }}" {{ end }}>
 	<input type="hidden" name="course-id" value="{{ .ID }}">
 	<b> {{ Field "Name" . }} </b> <br>

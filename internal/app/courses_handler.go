@@ -8,7 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/ui"
 )
 
 func CoursesNew() gin.HandlerFunc {
@@ -65,7 +67,7 @@ func CoursesCreate() gin.HandlerFunc {
 		if c.GetHeader("HX-Request") == "true" {
 			c.HTML(http.StatusOK, "courses/_show-with-new-button", viewCourse)
 		} else {
-			c.Redirect(http.StatusSeeOther, "/assignments")
+			c.Redirect(http.StatusSeeOther, "/scenario")
 		}
 	}
 }
@@ -87,15 +89,8 @@ func CoursesDelete() gin.HandlerFunc {
 			return
 		}
 
-		course := model.Course{ID: req.ID}
 		err = db.Transaction(func(tx *gorm.DB) error {
-			err := db.Model(model.Participant{}).Where("course_id = ?", req.ID).Update("course_id", nil).Error
-
-			if err != nil {
-				return err
-			}
-
-			return db.Unscoped().Delete(&course).Error
+			return domain.DeleteCourse(tx, req.ID)
 		})
 
 		if err != nil {
@@ -111,4 +106,16 @@ func CoursesDelete() gin.HandlerFunc {
 
 func CoursesButtonNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "courses/_new-button", nil)
+}
+
+func toViewCourse(model model.Course, selectedId sql.NullInt64, asOobSwap bool) ui.Course {
+	return ui.Course{
+		ID:          model.ID,
+		Name:        model.Name,
+		MinCapacity: model.MinCapacity,
+		MaxCapacity: model.MaxCapacity,
+		Selected:    selectedId.Valid && model.ID == int(selectedId.Int64),
+		Allocation:  model.Allocation(),
+		AsOobSwap:   asOobSwap,
+	}
 }

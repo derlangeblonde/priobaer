@@ -17,7 +17,6 @@ import (
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
-	"softbaer.dev/ass/internal/util"
 )
 
 type TestClient struct {
@@ -104,7 +103,7 @@ func (c *TestClient) ParticipantsCreateAction(participant model.Participant, pri
 func (c *TestClient) ParticipantsIndexAction() []ui.Participant {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("assignments"))
+	resp, err := c.client.Get(c.Endpoint("scenario"))
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get participants did not return 200
 	defer resp.Body.Close()
@@ -160,7 +159,7 @@ func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitG
 func (c *TestClient) CoursesIndexAction() []ui.Course {
 	is := is.New(c.T)
 
-	resp, err := c.client.Get(c.Endpoint("assignments"))
+	resp, err := c.client.Get(c.Endpoint("scenario"))
 	is.NoErr(err)                  // get request failed
 	is.Equal(resp.StatusCode, 200) // get courses did not return 200
 	defer resp.Body.Close()
@@ -188,21 +187,21 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]ui.Course,
 	}
 	is := is.New(c.T)
 
-	endpoint := c.Endpoint("assignments")
+	endpoint := c.Endpoint("scenario")
 
-	var foo []string
+	var keyValuePairs []string
 	for keyValueSlice := range slices.Chunk(queryParams, 2) {
 		keyValuePair := fmt.Sprintf("%s=%s", keyValueSlice[0], keyValueSlice[1])
-		foo = append(foo, keyValuePair)
+		keyValuePairs = append(keyValuePairs, keyValuePair)
 	}
 
-	queryString := "?" + strings.Join(foo, "&")
+	queryString := "?" + strings.Join(keyValuePairs, "&")
 
 	endpoint += queryString
 
 	resp, err := c.client.Get(endpoint)
 	is.NoErr(err)                  // get request failed
-	is.Equal(resp.StatusCode, 200) // get assignments did not return 200
+	is.Equal(resp.StatusCode, 200) // get scenario did not return 200
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -216,6 +215,20 @@ func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]ui.Course,
 	return courses, participants
 }
 
+func (c *TestClient) SolveAssignmentsAction() {
+	is := is.New(c.T)
+
+	req, err := http.NewRequest("PUT", c.Endpoint("assignments"), nil)
+	is.NoErr(err) // want to create request successfully
+	resp, err := c.client.Do(req)
+	defer resp.Body.Close()
+	is.NoErr(err)                  // want request to be successful
+	is.Equal(resp.StatusCode, 303) // want to be redirected with 303
+
+	loc := resp.Header.Get("Location")
+	is.Equal(loc, "/scenario") //  want to redirected to '/scenario'
+}
+
 type AssignmentViewUpdate struct {
 	courses         []ui.Course
 	UnassignedCount UnassignedCount
@@ -226,25 +239,10 @@ type UnassignedCount struct {
 	Value   int
 }
 
-func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.MaybeInt) AssignmentViewUpdate {
+func (c *TestClient) InitialAssignAction(participantId int, courseId int) AssignmentViewUpdate {
 	is := is.New(c.T)
 
-	data := []string{"participant-id", strconv.Itoa(participantId)}
-
-	if courseId.Valid {
-		data = slices.Concat(data, []string{"course-id", strconv.Itoa(courseId.Value)})
-	}
-
-	req := c.RequestWithFormBody("PUT", c.Endpoint("assignments"), data...)
-
-	resp, err := c.client.Do(req)
-	is.NoErr(err) // error while doing put request to "assignments"
-
-	is.Equal(resp.StatusCode, 200)
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	is.NoErr(err) // error while reading resp.Body to bytes
+	err, bodyBytes := c.ChangeAssignmentRequest("POST", participantId, courseId, is)
 
 	coursesUpdated, err := unmarshalAll[ui.Course](bytes.NewReader(bodyBytes), "course-")
 	is.NoErr(err)
@@ -253,6 +251,54 @@ func (c *TestClient) AssignmentsUpdateAction(participantId int, courseId util.Ma
 	is.NoErr(err)
 
 	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
+}
+
+func (c *TestClient) ReassignAction(participantId int, courseId int) AssignmentViewUpdate {
+	is := is.New(c.T)
+
+	err, bodyBytes := c.ChangeAssignmentRequest("PUT", participantId, courseId, is)
+
+	coursesUpdated, err := unmarshalAll[ui.Course](bytes.NewReader(bodyBytes), "course-")
+	is.NoErr(err)
+
+	return AssignmentViewUpdate{courses: coursesUpdated}
+}
+
+func (c *TestClient) UnassignAction(participantId int) AssignmentViewUpdate {
+	is := is.New(c.T)
+
+	err, bodyBytes := c.ChangeAssignmentRequest("DELETE", participantId, 0, is)
+
+	coursesUpdated, err := unmarshalAll[ui.Course](bytes.NewReader(bodyBytes), "course-")
+	is.NoErr(err)
+
+	unassignedCount, err := unmarshalUnassignedCount(bytes.NewReader(bodyBytes))
+	is.NoErr(err)
+
+	return AssignmentViewUpdate{courses: coursesUpdated, UnassignedCount: unassignedCount}
+}
+
+// ChangeAssignmentRequest performs a request to either do an initial assign, a reassign or an unassign.
+// The method defines which of these. POST is an initial assign, PUT is a reassign and DELETE is an unassign.
+func (c *TestClient) ChangeAssignmentRequest(method string, participantId int, courseId int, is *is.I) (error, []byte) {
+	var route string
+	if method == "DELETE" {
+		route = fmt.Sprintf("participants/%d/assignments", participantId)
+	} else {
+		route = fmt.Sprintf("participants/%d/assignments/%d", participantId, courseId)
+	}
+
+	req := c.RequestWithFormBody(method, c.Endpoint(route))
+
+	resp, err := c.client.Do(req)
+	is.NoErr(err) // error while doing put request to "scenario"
+
+	is.Equal(resp.StatusCode, 200)
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	is.NoErr(err) // error while reading resp.Body to bytes
+	return err, bodyBytes
 }
 
 func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []int) map[int][]int {
@@ -264,7 +310,7 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 
 		for i := 0; i < expectedAlloc; i++ {
 			participant := c.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
-			c.AssignmentsUpdateAction(participant.ID, util.JustInt(course.ID))
+			c.InitialAssignAction(participant.ID, course.ID)
 
 			courseIdToAssignedParticipantId[course.ID] = append(courseIdToAssignedParticipantId[course.ID], participant.ID)
 		}

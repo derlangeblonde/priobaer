@@ -20,7 +20,7 @@ func LoadScenario(db *gorm.DB, secret crypt.Secret) (scenario *Scenario, err err
 	if scenario.participants, err = participantsFromDbModel(participants, secret); err != nil {
 		return nil, err
 	}
-	scenario.courses = CoursesFromDbModels(courses)
+	scenario.courses = coursesFromDbModels(courses)
 
 	for _, participant := range participants {
 		if participant.CourseID.Valid {
@@ -60,7 +60,7 @@ func OverwriteScenario(db *gorm.DB, scenario *Scenario, secret crypt.Secret) err
 
 	}
 
-	courseRecords := CoursesToDbModels(scenario.courses)
+	courseRecords := coursesToDbModels(scenario.courses)
 	db.CreateInBatches(courseRecords, 100)
 
 	participantRecords, err := scenario.allParticipantsAsDbModels(secret)

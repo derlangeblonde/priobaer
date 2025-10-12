@@ -40,14 +40,15 @@ func TestSolveAssignmentDontReassignParticipants(t *testing.T) {
 
 	alreadyAssignedParticipantIndex := 0
 	alreadyAssignedCourseIndex := 2
-	testClient.AssignmentsUpdateAction(participantIds[alreadyAssignedParticipantIndex], util.JustInt(courseIds[alreadyAssignedCourseIndex]))
+	testClient.InitialAssignAction(participantIds[alreadyAssignedParticipantIndex], courseIds[alreadyAssignedCourseIndex])
 
-	_, unassigned := testClient.AssignmentsIndexAction("solve", "true")
+	testClient.SolveAssignmentsAction()
+	_, unassigned := testClient.AssignmentsIndexAction()
 	is.Equal(len(unassigned), 0)
 
 	_, participantsAssignedToCourse := testClient.AssignmentsIndexAction("selected-course", strconv.Itoa(courseIds[alreadyAssignedCourseIndex]))
 	participantIDsAssignedToCourse := util.IDs(participantsAssignedToCourse)
-	
+
 	is.True(slices.Contains(participantIDsAssignedToCourse, participantIds[alreadyAssignedParticipantIndex]))
 }
 
@@ -77,7 +78,8 @@ func TestSolveAssignment(t *testing.T) {
 
 	expectedAllocations := []int{1, 2, 2}
 
-	coursesSolved, unassignedParticipants := testClient.AssignmentsIndexAction("solve", "true")
+	testClient.SolveAssignmentsAction()
+	coursesSolved, unassignedParticipants := testClient.AssignmentsIndexAction()
 	is.Equal(len(unassignedParticipants), 0) // after solving no unassigned participants should be left
 	var actualAllocations []int
 	for _, course := range coursesSolved {

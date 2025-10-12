@@ -64,7 +64,7 @@ func Load(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusSeeOther, "/assignments")
+	c.Redirect(http.StatusSeeOther, "/scenario")
 }
 
 func Save(c *gin.Context) {

@@ -8,19 +8,19 @@
 <body class="column center-cross-axis">
 	{{ block "action-column" . }}
 		<div class="row gap-10" id="action-row">
-			<a hx-get="/load" hx-target="#assignments" hx-swap="afterbegin" class="link">Laden</a>
+			<a hx-get="/load" hx-target="#scenario" hx-swap="afterbegin" class="link">Laden</a>
 
 			<a hx-boost="false" href="/save"> Speichern </a>
 
-			<a hx-get="/assignments?solve=true" hx-target="#assignments" hx-swap="outerHTML" class="link">Zuteilen</a>
+			<a hx-put="/assignments" hx-target="#scenario" hx-swap="outerHTML" class="link">Zuteilen</a>
 		</div>
 	{{ end }}
 
 	<h1>🐻 Priobär</h1>
 
 {{ end }}
-	<div class="row" id="assignments">
-		{{ block "assignments/_participants-column" .participants }}
+	<div class="row" id="scenario">
+		{{ block "scenario/_participants-column" .participants }}
 
 		<div id="participants-column" class="margin-lr width-fifth">
 			<h2>Teilnehmer</h2>
@@ -35,10 +35,10 @@
 
 		<div id="courses-column" class="margin-lr width-fifth">
 			<h2>Kurse</h2>
-			{{ block "assignments/course-list" .courseList}}
-				{{ block "assignments/unassigned-entry" .UnassignedEntry }}
+			{{ block "scenario/course-list" .courseList}}
+				{{ block "scenario/unassigned-entry" .UnassignedEntry }}
 					{{ if .ShouldRender }}
-						<div id="not-assigned" hx-get="/assignments" hx-target="#assignments" hx-swap="outerHTML" 
+						<div id="not-assigned" hx-get="/scenario" hx-target="#scenario" hx-swap="outerHTML"
 							class="{{ if .Selected }}selected{{ end }} clickable"
 							{{ if .AsOobSwap }}hx-swap-oob="outerHTML:#not-assigned"{{ end }}
 							ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)">

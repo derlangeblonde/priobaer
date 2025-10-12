@@ -41,6 +41,6 @@ func SessionCreate(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
-		c.Redirect(http.StatusSeeOther, "/assignments")
+		c.Redirect(http.StatusSeeOther, "/scenario")
 	}
 }
