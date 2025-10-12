@@ -134,9 +134,7 @@ class PrioInput extends HTMLElement {
         const listItems = this.shadowRoot.querySelectorAll('#selected-prios li');
         if (listItems.length === 0) return [];
 
-        const result = Array.prototype.map.call(listItems, li => li.textContent);
-
-        return result;
+        return Array.prototype.map.call(listItems, li => li.textContent);
     }
 
 
