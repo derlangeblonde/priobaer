@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/app/respond"
 	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/ui"
 )
@@ -33,38 +34,32 @@ func AssignmentsCreate(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrParticipantNotFound):
-			logger.Error("Received non-existing ParticipantID", "id", participantID)
-			emptyBadRequestResponse(c)
+			respond.BadRequest(c, "Received non-existing ParticipantID", "id", participantID)
 			return
 		case errors.Is(err, domain.ErrCourseNotFound):
-			logger.Error("Received non-existing CourseID", "id", courseID)
-			emptyBadRequestResponse(c)
+			respond.BadRequest(c, "Received non-existing CourseID", "id", courseID)
 			return
 		default:
-			logger.Error("Writing initial assignment to db failed", "err", err)
-			internalServerErrorResponse(c)
+			respond.InternalServerError(c, "Writing initial assignment to db failed", err)
 			return
 		}
 	}
 
 	unassignedCount, err := domain.CountUnassigned(db)
 	if err != nil {
-		logger.Error("Counting unassigned participants failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Counting unassigned participants failed", err)
 		return
 	}
 
 	courseData, err := domain.FindSingleCourseData(db, courseID)
 	if err != nil {
-		logger.Error("Finding course data failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Finding course data failed", err)
 		return
 	}
 
 	newCourseAllocation, err := domain.CountAllocation(db, courseID)
 	if err != nil {
-		logger.Error("Counting allocation of assign target failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Counting allocation of assign target failed", err)
 		return
 	}
 	uiUpdate := ui.NewOutOfBandCourseListUpdate().
@@ -101,14 +96,12 @@ func AssignmentsUpdate(c *gin.Context) {
 
 	target, err := domain.FindSingleCourseData(db, targetID)
 	if err != nil {
-		logger.Error("Finding target course data failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Finding target course data failed", err)
 		return
 	}
 	source, err = domain.FindAssignedCourse(db, participantID)
 	if err != nil {
-		logger.Error("Finding assigned course data failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Finding assigned course data failed", err)
 		return
 	}
 
@@ -119,16 +112,13 @@ func AssignmentsUpdate(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrParticipantNotFound):
-			logger.Error("Received non-existing ParticipantID", "id", participantID)
-			emptyBadRequestResponse(c)
+			respond.BadRequest(c, "Received non-existing ParticipantID", "id", participantID)
 			return
 		case errors.Is(err, domain.ErrCourseNotFound):
-			logger.Error("Received non-existing CourseID", "id", targetID)
-			emptyBadRequestResponse(c)
+			respond.BadRequest(c, "Received non-existing CourseID", "id", targetID)
 			return
 		default:
-			logger.Error("Writing initial assignment to db failed", "err", err)
-			internalServerErrorResponse(c)
+			respond.InternalServerError(c, "Writing initial assignment to db failed", err)
 			return
 		}
 	}
@@ -136,8 +126,7 @@ func AssignmentsUpdate(c *gin.Context) {
 	for _, course := range []domain.CourseData{source, target} {
 		newCourseAllocation, err := domain.CountAllocation(db, course.ID)
 		if err != nil {
-			logger.Error("Counting allocation of assigned target failed", "err", err, "courseID", course.ID)
-			internalServerErrorResponse(c)
+			respond.InternalServerError(c, "Counting allocation of assigned target failed", err, "courseID", course.ID)
 			return
 		}
 
@@ -164,8 +153,7 @@ func AssignmentsDelete(c *gin.Context) {
 	participantID := domain.ParticipantID(uriParams.ParticipantID)
 	source, err := domain.FindAssignedCourse(db, participantID)
 	if err != nil {
-		logger.Error("Finding currently assigned course data failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Finding currently assigned course data failed", err)
 		return
 	}
 
@@ -175,26 +163,22 @@ func AssignmentsDelete(c *gin.Context) {
 
 	switch {
 	case errors.Is(err, domain.ErrParticipantNotFound):
-		logger.Error("Received non-existing ParticipantID", "id", participantID)
-		emptyBadRequestResponse(c)
+		respond.BadRequest(c, "Received non-existing ParticipantID", "id", participantID)
 		return
 	case err != nil:
-		logger.Error("Deleting assignment in db failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Deleting assignment in db failed", err)
 		return
 	}
 
 	unassignedCount, err := domain.CountUnassigned(db)
 	if err != nil {
-		logger.Error("Counting unassigned failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Counting unassigned failed", err)
 		return
 	}
 
 	sourceAllocation, err := domain.CountAllocation(db, source.ID)
 	if err != nil {
-		logger.Error("Counting allocation of formerly assigned course failed", "err", err)
-		internalServerErrorResponse(c)
+		respond.InternalServerError(c, "Counting allocation of formerly assigned course failed", err)
 		return
 	}
 
