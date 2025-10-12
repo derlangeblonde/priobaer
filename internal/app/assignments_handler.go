@@ -182,16 +182,6 @@ func pointerToNullable(i *int) sql.NullInt64 {
 	return sql.NullInt64{Valid: true, Int64: int64(*i)}
 }
 
-func newUiCourse(courseData domain.CourseData, allocation int) ui.Course {
-	return ui.Course{
-		ID:          int(courseData.ID),
-		Name:        courseData.Name,
-		MaxCapacity: courseData.MaxCapacity,
-		MinCapacity: courseData.MinCapacity,
-		Allocation:  allocation,
-	}
-}
-
 type assignUriParams struct {
 	ParticipantID domain.ParticipantID `uri:"id" binding:"required"`
 	CourseID      domain.CourseID      `uri:"course-id" binding:"required"`

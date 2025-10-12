@@ -1,11 +1,11 @@
 package app
 
 import (
-	"database/sql"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"softbaer.dev/ass/internal/app/respond"
 	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/ui"
@@ -14,7 +14,6 @@ import (
 func ScenarioIndex(c *gin.Context) {
 	type request struct {
 		CourseIdSelected *int `form:"selected-course"`
-		Solve            bool `form:"solve"`
 	}
 
 	db := GetDB(c)
@@ -30,8 +29,7 @@ func ScenarioIndex(c *gin.Context) {
 
 	scenario, err := domain.LoadScenario(db, secret)
 	if err != nil {
-		slog.Error("Error while loading scenario", "err", err)
-		c.HTML(500, "general/500", gin.H{})
+		respond.InternalServerError(c, "Error while loading scenario", err)
 		return
 	}
 
@@ -42,43 +40,32 @@ func ScenarioIndex(c *gin.Context) {
 		selectedParticipants = scenario.ParticipantsAssignedTo(domain.CourseID(*req.CourseIdSelected))
 	}
 
-	viewCourses := scenarioToViewCourses(scenario, pointerToNullable(req.CourseIdSelected), false)
-	viewParticipants := toViewParticipants(selectedParticipants, scenario.AllPrioLists())
+	uiParticipants := toViewParticipants(selectedParticipants, scenario.AllPrioLists())
+	uiCourses := ui.NewInBandCourseListUpdate().
+		SetUnassignedCount(len(scenario.Unassigned()))
+
+	if req.CourseIdSelected == nil {
+		uiCourses.SelectUnassignedEntry()
+	}
+
+	for course := range scenario.AllCourses() {
+		allocation := scenario.AllocationOf(course.ID)
+
+		var uiCourse ui.Course
+		if req.CourseIdSelected != nil && *req.CourseIdSelected == int(course.ID) {
+			uiCourse = newSelectedUiCourse(course, allocation)
+		} else {
+			uiCourse = newUiCourse(course, allocation)
+		}
+
+		uiCourses.AppendCourse(uiCourse)
+	}
 
 	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "scenario/index", gin.H{"fullPage": false, "participants": viewParticipants, "courseList": viewCourses})
+		c.HTML(http.StatusOK, "scenario/index", gin.H{"fullPage": false, "participants": uiParticipants, "courseList": uiCourses})
 
 		return
 	}
 
-	c.HTML(http.StatusOK, "scenario/index", gin.H{"fullPage": true, "participants": viewParticipants, "courseList": viewCourses})
-}
-
-func scenarioToViewCourses(scenario *domain.Scenario, selectedId sql.NullInt64, allAsOobSwap bool) ui.CourseList {
-	var courseViews []ui.Course
-
-	for course := range scenario.AllCourses() {
-		view := scenarioToViewCourse(course, scenario.AllocationOf(course.ID), selectedId, allAsOobSwap)
-		courseViews = append(courseViews, view)
-	}
-
-	unassignedCount := len(scenario.Unassigned())
-	return ui.CourseList{CourseEntries: courseViews, UnassignedEntry: ui.UnassignedEntry{
-		ParticipantsCount: unassignedCount,
-		ShouldRender:      true,
-		AsOobSwap:         allAsOobSwap,
-		Selected:          !selectedId.Valid,
-	}}
-}
-
-func scenarioToViewCourse(courseData domain.CourseData, allocation int, selectedId sql.NullInt64, asOobSwap bool) ui.Course {
-	return ui.Course{
-		ID:          int(courseData.ID),
-		Name:        courseData.Name,
-		MinCapacity: courseData.MinCapacity,
-		MaxCapacity: courseData.MaxCapacity,
-		Selected:    selectedId.Valid && int(courseData.ID) == int(selectedId.Int64),
-		Allocation:  allocation,
-		AsOobSwap:   asOobSwap,
-	}
+	c.HTML(http.StatusOK, "scenario/index", gin.H{"fullPage": true, "participants": uiParticipants, "courseList": uiCourses})
 }

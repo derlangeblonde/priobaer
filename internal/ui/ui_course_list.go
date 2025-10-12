@@ -34,6 +34,12 @@ func NewOutOfBandCourseListUpdate() *CourseList {
 	}
 }
 
+func NewInBandCourseListUpdate() *CourseList {
+	return &CourseList{
+		AsOobSwap: false,
+	}
+}
+
 func (cl *CourseList) SelectUnassignedEntry() *CourseList {
 	cl.UnassignedEntry.Selected = true
 	cl.UnassignedEntry.ShouldRender = true
