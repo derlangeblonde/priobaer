@@ -35,6 +35,16 @@ func (s *Scenario) AddParticipant(p ParticipantData) {
 	s.participants = append(s.participants, p)
 }
 
+func (s *Scenario) FindCourseByName(name string) (CourseData, bool) {
+	for _, c := range s.courses {
+		if c.Name == name {
+			return c, true
+		}
+	}
+
+	return CourseData{}, false
+}
+
 var ErrNotFound = errors.New("not found")
 
 func (s *Scenario) course(cid CourseID) (*CourseData, bool) {

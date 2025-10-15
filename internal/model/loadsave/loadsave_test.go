@@ -154,11 +154,11 @@ func TestMarshalModelsIsRoundTripConsistent(t *testing.T) {
 			is := is.New(t)
 			scenario := buildScenario(tc.coursesInput, tc.participantsInput, tc.assignments, tc.priorities)
 
-			excelBytes, err := WriteScenarioDataToExcel(scenario)
+			excelBytes, err := SaveScenarioToExcelFile(scenario)
 			is.NoErr(err) // exporting should not error
 			is.True(len(excelBytes) > 0)
 
-			imported, err := ParseExcelFile(bytes.NewReader(excelBytes))
+			imported, err := LoadScenarioFromExcelFile(bytes.NewReader(excelBytes))
 			is.NoErr(err) // importing should not error
 
 			var gotCourses []domain.CourseData
