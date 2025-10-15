@@ -6,7 +6,7 @@ import (
 )
 
 func nthPriorityColumnHeader(n int) string {
-	return fmt.Sprintf("Priorität %d (Kurs ID)", n)
+	return fmt.Sprintf("Priorität %d", n)
 }
 
 func invalidHeaderError(sheetName string, gotHeader, wantHeader []string) error {
