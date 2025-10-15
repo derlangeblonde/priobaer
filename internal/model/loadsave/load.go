@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"slices"
-	"strconv"
 	"strings"
 
 	"softbaer.dev/ass/internal/domain"
@@ -90,15 +89,14 @@ func LoadScenarioFromExcelFile(fileReader io.Reader) (*domain.Scenario, error) {
 			continue
 		}
 
-		assignedCourseIdStr := record[0]
-		assignedCourseIdStr = strings.TrimSpace(assignedCourseIdStr)
+		assignedCourseName := record[0]
+		assignedCourseName = strings.TrimSpace(assignedCourseName)
 
-		if assignedCourseIdStr != "" {
-
-			if assignedCourseId, err := strconv.Atoi(assignedCourseIdStr); err != nil {
-				return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
+		if assignedCourseName != "" {
+			if assignedCourse, ok := scenario.FindCourseByName(assignedCourseName); !ok {
+				return scenario, fmt.Errorf("Tabellenblatt: %s\nKeine Zuteilung möglich da Kurs nicht existiert: '%s'", participantsSheetName, assignedCourseName)
 			} else {
-				candidateAssignments = append(candidateAssignments, candidateAssignment{participant.ID, domain.CourseID(assignedCourseId)})
+				candidateAssignments = append(candidateAssignments, candidateAssignment{participant.ID, assignedCourse.ID})
 			}
 		}
 		record = record[1:]
@@ -108,11 +106,11 @@ func LoadScenarioFromExcelFile(fileReader io.Reader) (*domain.Scenario, error) {
 		}
 
 		var prioList []domain.CourseID
-		for _, prioStr := range record {
-			if prio, err := strconv.Atoi(prioStr); err != nil {
-				return scenario, fmt.Errorf("Tabellenblatt: %s\n%w", participantsSheetName, err)
+		for _, prioName := range record {
+			if prio, ok := scenario.FindCourseByName(prioName); !ok {
+				return scenario, fmt.Errorf("Tabellenblatt: %s\nKeine Priorisierung möglich da Kurs nicht existiert: '%s'", participantsSheetName, prioName)
 			} else {
-				prioList = append(prioList, domain.CourseID(prio))
+				prioList = append(prioList, prio.ID)
 			}
 		}
 		candidatePrioLists = append(candidatePrioLists, candidatePrioList{participant.ID, prioList})

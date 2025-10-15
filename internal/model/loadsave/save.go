@@ -3,7 +3,6 @@ package loadsave
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 
 	"github.com/xuri/excelize/v2"
 	"softbaer.dev/ass/internal/domain"
@@ -41,41 +40,19 @@ func SaveScenarioToExcelFile(scenario *domain.Scenario) ([]byte, error) {
 	if err := writer.write(participantsSheetHeader); err != nil {
 		return nil, err
 	}
+
 	for participant := range scenario.AllParticipants() {
-		assignedCourse, ok := scenario.AssignedCourse(participant.ID)
-		courseIdMarshalled := "null"
+		assignedCourse, _ := scenario.AssignedCourse(participant.ID)
 
-		if ok {
-			courseIdMarshalled = strconv.Itoa(int(assignedCourse.ID))
-		}
-
-		row := append(participant.MarshalRecord(), courseIdMarshalled)
+		// If no course is assigned assignedCourse will be the default value with an empty string as Name.
+		// This is exactly what we want in that case.
+		row := append(participant.MarshalRecord(), assignedCourse.Name)
 
 		for course := range scenario.PrioritizedCoursesOrdered(participant.ID) {
-			row = append(row, strconv.Itoa(int(course.ID)))
+			row = append(row, course.Name)
 		}
 
 		if err := writer.write(row); err != nil {
-			return nil, err
-		}
-	}
-
-	if writer, err = newSheetWriter(file, participantsSheetName); err != nil {
-		return buf.Bytes(), err
-	}
-
-	if err = writer.write(append(domain.ParticipantDataRecordHeader(), assignmentColumnHeader)); err != nil {
-		return nil, err
-	}
-	for participant := range scenario.AllParticipants() {
-		assignedCourse, ok := scenario.AssignedCourse(participant.ID)
-		courseIdMarshalled := ""
-
-		if ok {
-			courseIdMarshalled = strconv.Itoa(int(assignedCourse.ID))
-		}
-
-		if err = writer.write(append(participant.MarshalRecord(), courseIdMarshalled)); err != nil {
 			return nil, err
 		}
 	}
