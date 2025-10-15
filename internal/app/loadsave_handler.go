@@ -40,7 +40,7 @@ func Load(c *gin.Context) {
 		return
 	}
 
-	scenario, err := loadsave.ParseExcelFile(file)
+	scenario, err := loadsave.LoadScenarioFromExcelFile(file)
 
 	if err != nil {
 		slog.Error("Could not unmarshal models from excel-file", "err", err)
@@ -80,7 +80,7 @@ func Save(c *gin.Context) {
 		return
 	}
 
-	excelBytes, err := loadsave.WriteScenarioDataToExcel(scenario)
+	excelBytes, err := loadsave.SaveScenarioToExcelFile(scenario)
 
 	if err != nil {
 		slog.Error("Error while exporting models to ExcelBytes", "err", err)
