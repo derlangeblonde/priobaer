@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/app/respond"
 	"softbaer.dev/ass/internal/domain/solve"
 )
 
@@ -28,9 +29,7 @@ func SolveAssignments(c *gin.Context) {
 	}
 
 	if err != nil {
-		logger.Error("Error while trying to solve assignment", "err", err)
-		c.AbortWithStatus(500)
-
+		respond.InternalServerError(c, "Error while trying to solve assignment", err)
 		return
 	}
 
