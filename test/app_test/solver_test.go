@@ -10,6 +10,42 @@ import (
 	"softbaer.dev/ass/internal/util"
 )
 
+func TestSolveAssignmentDoesNotOverbookWhenAssignmentsAlreadyExist(t *testing.T) {
+	is := is.New(t)
+	sut := StartupSystemUnderTest(t, nil)
+	defer sut.cancel()
+
+	testClient := NewTestClient(t, localhost)
+	courseCount := 2
+	maxCapacity := 2
+	var courseIds []int
+	for range courseCount {
+		course := testClient.CoursesCreateAction(model.RandomCourse(model.WithCapacity(0, maxCapacity)), nil)
+		courseIds = append(courseIds, course.ID)
+	}
+
+	prioLists := [][]int{
+		{courseIds[0], courseIds[1]},
+		{courseIds[0], courseIds[1]},
+		{courseIds[0], courseIds[1]},
+		{courseIds[0], courseIds[1]},
+	}
+	var participantIds []int
+	for _, prios := range prioLists {
+		participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), prios, nil)
+		participantIds = append(participantIds, participant.ID)
+	}
+
+	testClient.InitialAssignAction(participantIds[0], courseIds[0])
+	testClient.SolveAssignmentsAction()
+	courses, unassigned := testClient.AssignmentsIndexAction()
+
+	is.Equal(len(unassigned), 0)
+	for _, course := range courses {
+		is.Equal(course.Allocation, maxCapacity) // want that courses are allocated to exactly their max capacity
+	}
+}
+
 func TestSolveAssignmentDontReassignParticipants(t *testing.T) {
 	is := is.New(t)
 	sut := StartupSystemUnderTest(t, nil)

@@ -1,33 +1,41 @@
-package model
+package solve
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 
+	"golang.org/x/sync/semaphore"
+	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/z3"
 )
 
-const separator = "[in]"
-
 var NotSolvable = errors.New("problem instance is not solvable")
 
-func SolveAssignment(priorities []Priority) (assignments []Assignment, err error) {
+// rateLimit limits the number of assignment problems that can be solved in parallel.
+// Solving can be rather comput intensive. We limit parallelization to prevent CPU from being overbooked.
+var rateLimit = semaphore.NewWeighted(1)
+
+func computeOptimalAssignments(priorities []priorityConstraint) (assignments []computedAssignment, err error) {
+	if err = rateLimit.Acquire(context.Background(), 1); err != nil {
+		return nil, err
+	}
+	defer rateLimit.Release(1)
+
 	optimizationProblem := newOptimizationProblem(priorities)
 	defer optimizationProblem.Close()
 
-	return optimizationProblem.Solve()
+	return optimizationProblem.solve()
 }
 
 type optimizationProblem struct {
 	ctx        *z3.Context
 	optimize   *z3.Optimize
-	priorities []Priority
+	priorities []priorityConstraint
 }
 
-func newOptimizationProblem(priorities []Priority) *optimizationProblem {
+func newOptimizationProblem(priorities []priorityConstraint) *optimizationProblem {
 	ctx, o := newZ3Optimizer()
 
 	return &optimizationProblem{ctx: ctx, optimize: o, priorities: priorities}
@@ -43,25 +51,25 @@ func (p *optimizationProblem) Close() {
 }
 
 type constraintBuilder interface {
-	add(prio Priority, variable *z3.AST)
+	add(prio priorityConstraint, variable *z3.AST)
 	build()
 }
 
 func newExactlyOneCoursePerParticipantConstraint(s *optimizationProblem) *exactlyOneCoursePerParticipantConstraint {
-	return &exactlyOneCoursePerParticipantConstraint{ctx: s.ctx, optimize: s.optimize, variablesByParticipantId: make(map[int][]*z3.AST)}
+	return &exactlyOneCoursePerParticipantConstraint{ctx: s.ctx, optimize: s.optimize, variablesByParticipantId: make(map[domain.ParticipantID][]*z3.AST)}
 }
 
 type exactlyOneCoursePerParticipantConstraint struct {
 	ctx                      *z3.Context
 	optimize                 *z3.Optimize
-	variablesByParticipantId map[int][]*z3.AST
+	variablesByParticipantId map[domain.ParticipantID][]*z3.AST
 }
 
-func (c *exactlyOneCoursePerParticipantConstraint) add(prio Priority, variable *z3.AST) {
+func (c *exactlyOneCoursePerParticipantConstraint) add(prio priorityConstraint, variable *z3.AST) {
 	zero := c.ctx.Int(0, c.ctx.IntSort())
 	c.optimize.Assert(variable.Ge(zero))
 
-	c.variablesByParticipantId[prio.ParticipantID] = append(c.variablesByParticipantId[prio.ParticipantID], variable)
+	c.variablesByParticipantId[prio.participantID] = append(c.variablesByParticipantId[prio.participantID], variable)
 }
 
 func (c *exactlyOneCoursePerParticipantConstraint) build() {
@@ -76,17 +84,17 @@ func (c *exactlyOneCoursePerParticipantConstraint) build() {
 type maximumCapacityConstraint struct {
 	ctx                         *z3.Context
 	optimize                    *z3.Optimize
-	variablesByCourseId         map[int][]*z3.AST
-	remainingCapacityByCourseId map[int]int
+	variablesByCourseId         map[domain.CourseID][]*z3.AST
+	remainingCapacityByCourseId map[domain.CourseID]int
 }
 
 func newMaximumCapacityConstraint(s *optimizationProblem) *maximumCapacityConstraint {
-	return &maximumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[int][]*z3.AST), remainingCapacityByCourseId: make(map[int]int)}
+	return &maximumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[domain.CourseID][]*z3.AST), remainingCapacityByCourseId: make(map[domain.CourseID]int)}
 }
 
-func (c *maximumCapacityConstraint) add(prio Priority, variable *z3.AST) {
-	c.variablesByCourseId[prio.CourseID] = append(c.variablesByCourseId[prio.CourseID], variable)
-	c.remainingCapacityByCourseId[prio.CourseID] = prio.Course.RemainingCapacity()
+func (c *maximumCapacityConstraint) add(prio priorityConstraint, variable *z3.AST) {
+	c.variablesByCourseId[prio.courseConstraint.courseId] = append(c.variablesByCourseId[prio.courseConstraint.courseId], variable)
+	c.remainingCapacityByCourseId[prio.courseConstraint.courseId] = prio.courseConstraint.remainingCapacity
 }
 
 func (c *maximumCapacityConstraint) build() {
@@ -102,17 +110,17 @@ func (c *maximumCapacityConstraint) build() {
 type minimumCapacityConstraint struct {
 	ctx                        *z3.Context
 	optimize                   *z3.Optimize
-	variablesByCourseId        map[int][]*z3.AST
-	gapToMinCapacityByCourseId map[int]int
+	variablesByCourseId        map[domain.CourseID][]*z3.AST
+	gapToMinCapacityByCourseId map[domain.CourseID]int
 }
 
 func newMinimumCapacityConstraint(s *optimizationProblem) *minimumCapacityConstraint {
-	return &minimumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[int][]*z3.AST), gapToMinCapacityByCourseId: make(map[int]int)}
+	return &minimumCapacityConstraint{ctx: s.ctx, optimize: s.optimize, variablesByCourseId: make(map[domain.CourseID][]*z3.AST), gapToMinCapacityByCourseId: make(map[domain.CourseID]int)}
 }
 
-func (c *minimumCapacityConstraint) add(prio Priority, variable *z3.AST) {
-	c.variablesByCourseId[prio.CourseID] = append(c.variablesByCourseId[prio.CourseID], variable)
-	c.gapToMinCapacityByCourseId[prio.CourseID] = prio.Course.GapToMinCapacity()
+func (c *minimumCapacityConstraint) add(prio priorityConstraint, variable *z3.AST) {
+	c.variablesByCourseId[prio.courseConstraint.courseId] = append(c.variablesByCourseId[prio.courseConstraint.courseId], variable)
+	c.gapToMinCapacityByCourseId[prio.courseConstraint.courseId] = prio.courseConstraint.gapToMinCapacity
 }
 
 func (c *minimumCapacityConstraint) build() {
@@ -127,25 +135,25 @@ func (c *minimumCapacityConstraint) build() {
 
 type varWithPriorityLevel struct {
 	variable  *z3.AST
-	prioLevel PriorityLevel
+	prioLevel domain.PriorityLevel
 }
 
 type maximizeHighPrioritiesObjective struct {
 	ctx                         *z3.Context
 	optimize                    *z3.Optimize
 	variablesWithPriorityLevels []varWithPriorityLevel
-	maximumPrioLevel            PriorityLevel
+	maximumPrioLevel            domain.PriorityLevel
 }
 
 func newPreferHighPrioritiesObjective(s *optimizationProblem) *maximizeHighPrioritiesObjective {
 	return &maximizeHighPrioritiesObjective{ctx: s.ctx, optimize: s.optimize}
 }
 
-func (o *maximizeHighPrioritiesObjective) add(prio Priority, variable *z3.AST) {
-	o.variablesWithPriorityLevels = append(o.variablesWithPriorityLevels, varWithPriorityLevel{variable, prio.Level})
+func (o *maximizeHighPrioritiesObjective) add(prio priorityConstraint, variable *z3.AST) {
+	o.variablesWithPriorityLevels = append(o.variablesWithPriorityLevels, varWithPriorityLevel{variable, prio.level})
 
-	if prio.Level > o.maximumPrioLevel {
-		o.maximumPrioLevel = prio.Level
+	if prio.level > o.maximumPrioLevel {
+		o.maximumPrioLevel = prio.level
 	}
 }
 
@@ -161,7 +169,7 @@ func (o *maximizeHighPrioritiesObjective) build() {
 
 // invertPriorityLevel turns a raw PriorityLevel into a Z3 coefficient,
 // so that numerically low levels map to high coefficients.
-func (o *maximizeHighPrioritiesObjective) invertPriorityLevel(level PriorityLevel) *z3.AST {
+func (o *maximizeHighPrioritiesObjective) invertPriorityLevel(level domain.PriorityLevel) *z3.AST {
 	coeff := (int(o.maximumPrioLevel) + 1) - int(level)
 	return o.ctx.Int(coeff, o.ctx.IntSort())
 }
@@ -170,22 +178,20 @@ func (o *maximizeHighPrioritiesObjective) weightedTerm(varWithPriorityLevel varW
 	return o.invertPriorityLevel(varWithPriorityLevel.prioLevel).Mul(varWithPriorityLevel.variable)
 }
 
-func (p *optimizationProblem) Solve() (assignments []Assignment, err error) {
+func (p *optimizationProblem) solve() (assignments []computedAssignment, err error) {
 	constrainBuilders := []constraintBuilder{
 		newExactlyOneCoursePerParticipantConstraint(p),
 		newMaximumCapacityConstraint(p),
 		newMinimumCapacityConstraint(p),
 		newPreferHighPrioritiesObjective(p),
 	}
-	solutionParser := newSolutionParser()
 
 	for _, prio := range p.priorities {
-		if prio.Course.RemainingCapacity() <= 0 {
+		if prio.courseConstraint.remainingCapacity <= 0 {
 			continue
 		}
 
 		variable := p.priorityVariable(prio)
-		solutionParser.registerLookups(prio.Participant, prio.Course)
 
 		for _, constraint := range constrainBuilders {
 			constraint.add(prio, variable)
@@ -203,11 +209,11 @@ func (p *optimizationProblem) Solve() (assignments []Assignment, err error) {
 	m := p.optimize.Model()
 	solution := m.Assignments()
 
-	return solutionParser.parse(solution)
+	return parseSolution(solution)
 }
 
-func (p *optimizationProblem) priorityVariable(prio Priority) *z3.AST {
-	varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseID)
+func (p *optimizationProblem) priorityVariable(prio priorityConstraint) *z3.AST {
+	varName := fmt.Sprintf("%d%s%d", prio.participantID, separator, prio.courseConstraint.courseId)
 	variable := p.ctx.Const(p.ctx.Symbol(varName), p.ctx.IntSort())
 
 	return variable
@@ -222,26 +228,4 @@ func newZ3Optimizer() (*z3.Context, *z3.Optimize) {
 	o := ctx.NewOptimizer()
 
 	return ctx, o
-}
-
-func parseAssignmentId(varName string) (assignmentId AssignmentID, err error) {
-	idsAsStr := strings.Split(varName, separator)
-
-	if len(idsAsStr) != 2 {
-		return assignmentId, fmt.Errorf("splitting of varName did not give exactly two ids. VarName: %s", varName)
-	}
-
-	participantId, err := strconv.Atoi(idsAsStr[0])
-
-	if err != nil {
-		return assignmentId, fmt.Errorf("could not parse participantId: %d, err: %s", participantId, err)
-	}
-
-	courseId, err := strconv.Atoi(idsAsStr[1])
-
-	if err != nil {
-		return assignmentId, fmt.Errorf("could not parse courseId: %d, err: %s", courseId, err)
-	}
-
-	return AssignmentID{ParticipantId: participantId, CourseId: courseId}, err
 }
