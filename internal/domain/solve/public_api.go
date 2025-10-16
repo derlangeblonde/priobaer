@@ -1,6 +1,12 @@
 package solve
 
-import "gorm.io/gorm"
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
+
+var NotSolvable = errors.New("problem instance is not solvable")
 
 func ApplyOptimalAssignments(tx *gorm.DB) error {
 	priorityConstraints, err := queryPriorityConstraints(tx)

@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/domain/solve"
-	"softbaer.dev/ass/internal/model"
 )
 
 func SolveAssignments(c *gin.Context) {
@@ -21,7 +20,7 @@ func SolveAssignments(c *gin.Context) {
 		},
 	)
 
-	if errors.Is(err, model.NotSolvable) {
+	if errors.Is(err, solve.NotSolvable) {
 		logger.Info("Could not solve assignment", "err", err)
 		c.HTML(http.StatusOK, "dialogs/not-solvable", gin.H{})
 

@@ -1,7 +1,6 @@
 package solve
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -10,8 +9,6 @@ import (
 )
 
 const separator = "[in]"
-
-var NotSolvable = errors.New("problem instance is not solvable")
 
 func computeOptimalAssignments(priorities []priorityConstraint) (assignments []computedAssignment, err error) {
 	optimizationProblem := newOptimizationProblem(priorities)
