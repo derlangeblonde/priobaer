@@ -69,7 +69,7 @@ func (c *exactlyOneCoursePerParticipantConstraint) add(prio priorityConstraint, 
 	zero := c.ctx.Int(0, c.ctx.IntSort())
 	c.optimize.Assert(variable.Ge(zero))
 
-	c.variablesByParticipantId[prio.ParticipantID] = append(c.variablesByParticipantId[prio.ParticipantID], variable)
+	c.variablesByParticipantId[prio.participantID] = append(c.variablesByParticipantId[prio.participantID], variable)
 }
 
 func (c *exactlyOneCoursePerParticipantConstraint) build() {
@@ -93,8 +93,8 @@ func newMaximumCapacityConstraint(s *optimizationProblem) *maximumCapacityConstr
 }
 
 func (c *maximumCapacityConstraint) add(prio priorityConstraint, variable *z3.AST) {
-	c.variablesByCourseId[prio.CourseConstraint.courseId] = append(c.variablesByCourseId[prio.CourseConstraint.courseId], variable)
-	c.remainingCapacityByCourseId[prio.CourseConstraint.courseId] = prio.CourseConstraint.remainingCapacity
+	c.variablesByCourseId[prio.courseConstraint.courseId] = append(c.variablesByCourseId[prio.courseConstraint.courseId], variable)
+	c.remainingCapacityByCourseId[prio.courseConstraint.courseId] = prio.courseConstraint.remainingCapacity
 }
 
 func (c *maximumCapacityConstraint) build() {
@@ -119,8 +119,8 @@ func newMinimumCapacityConstraint(s *optimizationProblem) *minimumCapacityConstr
 }
 
 func (c *minimumCapacityConstraint) add(prio priorityConstraint, variable *z3.AST) {
-	c.variablesByCourseId[prio.CourseConstraint.courseId] = append(c.variablesByCourseId[prio.CourseConstraint.courseId], variable)
-	c.gapToMinCapacityByCourseId[prio.CourseConstraint.courseId] = prio.CourseConstraint.gapToMinCapacity
+	c.variablesByCourseId[prio.courseConstraint.courseId] = append(c.variablesByCourseId[prio.courseConstraint.courseId], variable)
+	c.gapToMinCapacityByCourseId[prio.courseConstraint.courseId] = prio.courseConstraint.gapToMinCapacity
 }
 
 func (c *minimumCapacityConstraint) build() {
@@ -150,10 +150,10 @@ func newPreferHighPrioritiesObjective(s *optimizationProblem) *maximizeHighPrior
 }
 
 func (o *maximizeHighPrioritiesObjective) add(prio priorityConstraint, variable *z3.AST) {
-	o.variablesWithPriorityLevels = append(o.variablesWithPriorityLevels, varWithPriorityLevel{variable, prio.Level})
+	o.variablesWithPriorityLevels = append(o.variablesWithPriorityLevels, varWithPriorityLevel{variable, prio.level})
 
-	if prio.Level > o.maximumPrioLevel {
-		o.maximumPrioLevel = prio.Level
+	if prio.level > o.maximumPrioLevel {
+		o.maximumPrioLevel = prio.level
 	}
 }
 
@@ -187,7 +187,7 @@ func (p *optimizationProblem) solve() (assignments []computedAssignment, err err
 	}
 
 	for _, prio := range p.priorities {
-		if prio.CourseConstraint.remainingCapacity <= 0 {
+		if prio.courseConstraint.remainingCapacity <= 0 {
 			continue
 		}
 
@@ -213,7 +213,7 @@ func (p *optimizationProblem) solve() (assignments []computedAssignment, err err
 }
 
 func (p *optimizationProblem) priorityVariable(prio priorityConstraint) *z3.AST {
-	varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseConstraint.courseId)
+	varName := fmt.Sprintf("%d%s%d", prio.participantID, separator, prio.courseConstraint.courseId)
 	variable := p.ctx.Const(p.ctx.Symbol(varName), p.ctx.IntSort())
 
 	return variable
