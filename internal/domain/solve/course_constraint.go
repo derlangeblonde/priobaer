@@ -3,11 +3,11 @@ package solve
 import "softbaer.dev/ass/internal/domain"
 
 type courseConstraint struct {
-	CourseID          domain.CourseID
-	GapToMinCapacity  int
-	RemainingCapacity int
+	courseId          domain.CourseID
+	gapToMinCapacity  int
+	remainingCapacity int
 }
 
 func newCourseConstraint(cid domain.CourseID, gapToMinCapacity, remainingCapacity int) courseConstraint {
-	return courseConstraint{CourseID: cid, GapToMinCapacity: gapToMinCapacity, RemainingCapacity: remainingCapacity}
+	return courseConstraint{courseId: cid, gapToMinCapacity: gapToMinCapacity, remainingCapacity: remainingCapacity}
 }

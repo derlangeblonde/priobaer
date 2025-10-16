@@ -93,8 +93,8 @@ func newMaximumCapacityConstraint(s *optimizationProblem) *maximumCapacityConstr
 }
 
 func (c *maximumCapacityConstraint) add(prio priorityConstraint, variable *z3.AST) {
-	c.variablesByCourseId[prio.CourseConstraint.CourseID] = append(c.variablesByCourseId[prio.CourseConstraint.CourseID], variable)
-	c.remainingCapacityByCourseId[prio.CourseConstraint.CourseID] = prio.CourseConstraint.RemainingCapacity
+	c.variablesByCourseId[prio.CourseConstraint.courseId] = append(c.variablesByCourseId[prio.CourseConstraint.courseId], variable)
+	c.remainingCapacityByCourseId[prio.CourseConstraint.courseId] = prio.CourseConstraint.remainingCapacity
 }
 
 func (c *maximumCapacityConstraint) build() {
@@ -119,8 +119,8 @@ func newMinimumCapacityConstraint(s *optimizationProblem) *minimumCapacityConstr
 }
 
 func (c *minimumCapacityConstraint) add(prio priorityConstraint, variable *z3.AST) {
-	c.variablesByCourseId[prio.CourseConstraint.CourseID] = append(c.variablesByCourseId[prio.CourseConstraint.CourseID], variable)
-	c.gapToMinCapacityByCourseId[prio.CourseConstraint.CourseID] = prio.CourseConstraint.GapToMinCapacity
+	c.variablesByCourseId[prio.CourseConstraint.courseId] = append(c.variablesByCourseId[prio.CourseConstraint.courseId], variable)
+	c.gapToMinCapacityByCourseId[prio.CourseConstraint.courseId] = prio.CourseConstraint.gapToMinCapacity
 }
 
 func (c *minimumCapacityConstraint) build() {
@@ -187,7 +187,7 @@ func (p *optimizationProblem) solve() (assignments []computedAssignment, err err
 	}
 
 	for _, prio := range p.priorities {
-		if prio.CourseConstraint.RemainingCapacity <= 0 {
+		if prio.CourseConstraint.remainingCapacity <= 0 {
 			continue
 		}
 
@@ -213,7 +213,7 @@ func (p *optimizationProblem) solve() (assignments []computedAssignment, err err
 }
 
 func (p *optimizationProblem) priorityVariable(prio priorityConstraint) *z3.AST {
-	varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseConstraint.CourseID)
+	varName := fmt.Sprintf("%d%s%d", prio.ParticipantID, separator, prio.CourseConstraint.courseId)
 	variable := p.ctx.Const(p.ctx.Symbol(varName), p.ctx.IntSort())
 
 	return variable
