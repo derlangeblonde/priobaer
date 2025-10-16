@@ -39,16 +39,4 @@ func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 
 	router.GET("/sessions/new", SessionNew)
 	router.POST("sessions", SessionCreate(dbDirectory))
-
-	//router.GET("/foo", func(context *gin.Context) {
-	//	db := GetDB(context)
-	//	pcs, err := solve.QueryPriorityConstraints(db)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//
-	//	for _, pc := range pcs {
-	//		_, _ = fmt.Fprintf(context.Writer, "PrioConst[Level: %d, CID: %d, PID: %d, Gap: %d, Rem: %d]\n", pc.Level, pc.ParticipantID, pc.CourseConstraint.CourseID, pc.CourseConstraint.GapToMinCapacity, pc.CourseConstraint.RemainingCapacity)
-	//	}
-	//})
 }
