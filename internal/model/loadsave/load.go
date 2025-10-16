@@ -15,7 +15,7 @@ const participantsSheetName = "Teilnehmer"
 const courseSheetName = "Kurse"
 const versionSheetName = "Version"
 
-const assignmentColumnHeader = "Zuteilung (Kurs ID)"
+const assignmentColumnHeader = "Zuteilung"
 
 type candidateAssignment struct {
 	pid domain.ParticipantID
@@ -132,26 +132,32 @@ func LoadScenarioFromExcelFile(fileReader io.Reader) (*domain.Scenario, error) {
 }
 
 func validateParticipantHeader(header []string) error {
-	expected := domain.ParticipantDataRecordHeader()
+	requiredHeaders := append(domain.ParticipantDataRecordHeader(), "Zuteilung")
 
-	if len(header) < len(expected)+1 {
-		return invalidHeaderError(participantsSheetName, header, expected)
-	}
+	column := 1
+	for len(requiredHeaders) > 0 {
+		got := strings.TrimSpace(header[0])
+		want := strings.TrimSpace(requiredHeaders[0])
 
-	for i, want := range expected {
-		if header[i] != want {
-			return invalidHeaderError(participantsSheetName, header, expected)
+		if got != want {
+			return fmt.Errorf("Tabellenblatt: %s: Der %d. Eintrag der Kopfzeile sollte '%s' sein ist aber '%s'", participantsSheetName, column, want, got)
 		}
+
+		header = header[1:]
+		requiredHeaders = requiredHeaders[1:]
+		column++
 	}
 
-	if header[len(expected)] != assignmentColumnHeader {
-		return invalidHeaderError(participantsSheetName, header, expected)
-	}
+	prio := 1
+	for len(header) > 0 {
+		got := strings.TrimSpace(header[0])
+		want := nthPriorityColumnHeader(prio)
 
-	for i := len(expected) + 1; i < len(header); i++ {
-		if header[i] != nthPriorityColumnHeader(i-len(expected)) {
-			return invalidHeaderError(participantsSheetName, header, expected)
+		if got != want {
+			return fmt.Errorf("Tabellenblatt: %s: Der %d. Eintrag der Kopfzeile sollte '%s' sein ist aber '%s'", participantsSheetName, column, want, got)
 		}
+		header = header[1:]
+		prio++
 	}
 
 	return nil
