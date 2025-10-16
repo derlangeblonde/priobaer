@@ -16,7 +16,7 @@ func SolveAssignments(c *gin.Context) {
 
 	err := db.Transaction(
 		func(tx *gorm.DB) error {
-			return solve.ApplyOptimalAssignments(tx)
+			return solve.ComputeAndApplyOptimalAssignments(tx)
 		},
 	)
 

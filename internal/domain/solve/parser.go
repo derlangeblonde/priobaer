@@ -9,6 +9,8 @@ import (
 	"softbaer.dev/ass/internal/z3"
 )
 
+const separator = "[in]"
+
 func parseSolution(solution map[string]*z3.AST) (assignments []computedAssignment, err error) {
 	for varName, solutionStr := range solution {
 		solution, err := strconv.Atoi(solutionStr.String())

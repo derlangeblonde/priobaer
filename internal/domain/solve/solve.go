@@ -1,6 +1,7 @@
 package solve
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -8,13 +9,13 @@ import (
 	"softbaer.dev/ass/internal/z3"
 )
 
-const separator = "[in]"
+var NotSolvable = errors.New("problem instance is not solvable")
 
 func computeOptimalAssignments(priorities []priorityConstraint) (assignments []computedAssignment, err error) {
 	optimizationProblem := newOptimizationProblem(priorities)
 	defer optimizationProblem.Close()
 
-	return optimizationProblem.Solve()
+	return optimizationProblem.solve()
 }
 
 type optimizationProblem struct {
@@ -166,7 +167,7 @@ func (o *maximizeHighPrioritiesObjective) weightedTerm(varWithPriorityLevel varW
 	return o.invertPriorityLevel(varWithPriorityLevel.prioLevel).Mul(varWithPriorityLevel.variable)
 }
 
-func (p *optimizationProblem) Solve() (assignments []computedAssignment, err error) {
+func (p *optimizationProblem) solve() (assignments []computedAssignment, err error) {
 	constrainBuilders := []constraintBuilder{
 		newExactlyOneCoursePerParticipantConstraint(p),
 		newMaximumCapacityConstraint(p),
