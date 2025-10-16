@@ -1,17 +1,28 @@
 package solve
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 
+	"golang.org/x/sync/semaphore"
 	"softbaer.dev/ass/internal/domain"
 	"softbaer.dev/ass/internal/z3"
 )
 
 var NotSolvable = errors.New("problem instance is not solvable")
 
+// rateLimit limits the number of assignment problems that can be solved in parallel.
+// Solving can be rather comput intensive. We limit parallelization to prevent CPU from being overbooked.
+var rateLimit = semaphore.NewWeighted(1)
+
 func computeOptimalAssignments(priorities []priorityConstraint) (assignments []computedAssignment, err error) {
+	if err = rateLimit.Acquire(context.Background(), 1); err != nil {
+		return nil, err
+	}
+	defer rateLimit.Release(1)
+
 	optimizationProblem := newOptimizationProblem(priorities)
 	defer optimizationProblem.Close()
 
