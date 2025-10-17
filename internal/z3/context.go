@@ -31,3 +31,8 @@ func (c *Context) Close() error {
 func (c *Context) Z3Value() C.Z3_context {
 	return c.raw
 }
+
+// Cancel interrupts the computation running for this Context.
+func (c *Context) Cancel() {
+	C.Z3_interrupt(c.raw)
+}

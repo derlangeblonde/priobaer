@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -18,7 +17,7 @@ func TestParticipantsAreUnassignedIntially(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedParticipant := model.RandomParticipant()
+	expectedParticipant := ui.RandomParticipant()
 
 	testClient.ParticipantsCreateAction(expectedParticipant, make([]int, 0), nil)
 
@@ -39,8 +38,8 @@ func TestAssignParticipant(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedParticipant := model.RandomParticipant()
-	expectedCourse := model.RandomCourse()
+	expectedParticipant := ui.RandomParticipant()
+	expectedCourse := ui.RandomCourse()
 
 	testClient.ParticipantsCreateAction(expectedParticipant, make([]int, 0), nil)
 	testClient.CoursesCreateAction(expectedCourse, nil)
@@ -111,9 +110,9 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	courseOld := testClient.CoursesCreateAction(model.RandomCourse(), nil)
-	courseNew := testClient.CoursesCreateAction(model.RandomCourse(), nil)
-	participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+	courseOld := testClient.CoursesCreateAction(ui.RandomCourse(), nil)
+	courseNew := testClient.CoursesCreateAction(ui.RandomCourse(), nil)
+	participant := testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 
 	testClient.InitialAssignAction(participant.ID, courseOld.ID)
 
@@ -185,10 +184,10 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+		participant = testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 	}
 
-	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
+	course := testClient.CoursesCreateAction(ui.RandomCourse(), nil)
 
 	// act
 	viewUpdate := testClient.InitialAssignAction(participant.ID, course.ID)
@@ -206,11 +205,11 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
+	course := testClient.CoursesCreateAction(ui.RandomCourse(), nil)
 
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+		participant = testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 		testClient.InitialAssignAction(participant.ID, course.ID)
 	}
 
@@ -230,11 +229,11 @@ func TestParticipantsGetUnassignedWhenTheirAssignedCourseIsDeleted(t *testing.T)
 
 	testClient := NewTestClient(t, localhost)
 
-	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
+	course := testClient.CoursesCreateAction(ui.RandomCourse(), nil)
 
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+		participant = testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 		testClient.InitialAssignAction(participant.ID, course.ID)
 	}
 

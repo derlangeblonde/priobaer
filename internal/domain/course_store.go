@@ -14,11 +14,20 @@ func FindSingleCourseData(db *gorm.DB, cid CourseID) (CourseData, error) {
 	return courseFromDbModel(model), nil
 }
 
+func findCourseDataById(db *gorm.DB, cids []CourseID) (result []CourseData, err error) {
+	var models []model.Course
+	if err := db.Where("id IN ?", cids).Find(&models).Error; err != nil {
+		return result, err
+	}
+
+	return coursesFromDbModels(models), nil
+}
+
 // DeleteCourse deletes the course with the specified id together with all existing associations.
 // I.e. participants assigned to that course will be unassigned and priorities to that courses will be deleted.
 // Prefer passing a transaction, so that partial changes will be rolled back in case of an error.
 func DeleteCourse(tx *gorm.DB, courseId int) error {
-	err := tx.Model(model.Participant{}).Where("course_id = ?", courseId).Update("course_id", nil).Error
+	err := tx.Model(model.EmptyParticipantPointer()).Where("course_id = ?", courseId).Update("course_id", nil).Error
 	if err != nil {
 		return err
 	}

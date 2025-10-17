@@ -1,6 +1,7 @@
 package solve
 
 import (
+	"context"
 	"testing"
 
 	"github.com/matryer/is"
@@ -102,7 +103,7 @@ func TestSolveAssignmentSolvesDifferentScenariosCorrectly(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			priorityConstraints := buildPriorityConstraints(tc.participantsPriosBuilders, tc.courseConstraints)
 
-			assignments, err := computeOptimalAssignments(priorityConstraints)
+			assignments, err := computeOptimalAssignments(context.Background(), priorityConstraints)
 
 			if tc.printInsteadOfAssert {
 				assignmentsMap := make(map[domain.ParticipantID]domain.CourseID)

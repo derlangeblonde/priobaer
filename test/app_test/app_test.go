@@ -16,7 +16,6 @@ import (
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/app/server"
-	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -45,10 +44,10 @@ func CoursesCreateActionConcurrent(requestCount int, outerWg *sync.WaitGroup, t 
 
 	testClient := NewTestClient(t, localhost)
 
-	var expectedCourses []model.Course
+	var expectedCourses []ui.Course
 
 	for i := 0; i < requestCount; i++ {
-		expectedCourses = append(expectedCourses, model.RandomCourse())
+		expectedCourses = append(expectedCourses, ui.RandomCourse())
 	}
 
 	for _, course := range expectedCourses {
@@ -112,7 +111,7 @@ func TestDataIsPersistedBetweenDeployments(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedCourse := model.RandomCourse()
+	expectedCourse := ui.RandomCourse()
 	testClient.CoursesCreateAction(expectedCourse, nil)
 
 	waitForTerminationDefault(cancel)
@@ -140,7 +139,7 @@ func TestCreateAndReadCourse(t *testing.T) {
 
 	ctx := NewTestClient(t, localhost)
 
-	expectedCourse := model.RandomCourse()
+	expectedCourse := ui.RandomCourse()
 	ctx.CoursesCreateAction(expectedCourse, nil)
 	courses := ctx.CoursesIndexAction()
 
@@ -158,10 +157,10 @@ func TestRoundtripViaSaveLoad(t *testing.T) {
 
 	var createdCourses []ui.Course
 	for range 3 {
-		createdCourses = append(createdCourses, client1.CoursesCreateAction(model.RandomCourse(), nil))
+		createdCourses = append(createdCourses, client1.CoursesCreateAction(ui.RandomCourse(), nil))
 	}
 	courseIDs := util.IDs(createdCourses)
-	wantParticipant := model.RandomParticipant()
+	wantParticipant := ui.RandomParticipant()
 	client1.ParticipantsCreateAction(wantParticipant, courseIDs, nil)
 
 	savedData := client1.DataSaveAction()

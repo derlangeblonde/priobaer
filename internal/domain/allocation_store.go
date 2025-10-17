@@ -7,14 +7,14 @@ import (
 
 func CountUnassigned(db *gorm.DB) (int, error) {
 	var count int64
-	err := db.Model(&model.Participant{}).Where("course_id is null").Count(&count).Error
+	err := db.Model(model.EmptyParticipantPointer()).Where("course_id is null").Count(&count).Error
 
 	return int(count), err
 }
 
 func CountAllocation(db *gorm.DB, cid CourseID) (int, error) {
 	var count int64
-	err := db.Model(&model.Participant{}).Where("course_id = ?", cid).Count(&count).Error
+	err := db.Model(model.EmptyParticipantPointer()).Where("course_id = ?", cid).Count(&count).Error
 
 	return int(count), err
 }

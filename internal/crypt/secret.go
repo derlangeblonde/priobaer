@@ -7,7 +7,7 @@ import (
 
 type Secret []byte
 
-func generateSecret() Secret {
+func GenerateSecret() Secret {
 	secret := make([]byte, 32)
 	n, err := rand.Reader.Read(secret)
 

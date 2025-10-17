@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"database/sql"
 	"errors"
 	"iter"
 	"slices"
@@ -157,8 +156,8 @@ func (s *Scenario) AllPrioLists() map[ParticipantID][]CourseData {
 	return util.Seq2ToMap(s.allPrioListsIter())
 }
 
-func (s *Scenario) AllPriorities() iter.Seq[Priority] {
-	return func(yield func(Priority) bool) {
+func (s *Scenario) AllPriorities() iter.Seq[PriorityData] {
+	return func(yield func(PriorityData) bool) {
 		for pid, courses := range s.priorityTable {
 			participant, ok := s.participant(pid)
 
@@ -167,7 +166,7 @@ func (s *Scenario) AllPriorities() iter.Seq[Priority] {
 			}
 
 			for i, course := range courses {
-				current := Priority{Level: PriorityLevel(i + 1), Participant: *participant, Course: *course}
+				current := PriorityData{Level: PriorityLevel(i + 1), ParticipantID: participant.ID, CourseID: course.ID}
 				if !yield(current) {
 					return
 				}
@@ -224,18 +223,24 @@ func (s *Scenario) allParticipantsAsDbModels(secret crypt.Secret) ([]model.Parti
 	result := make([]model.Participant, len(s.participants))
 	for i, p := range s.participants {
 		assignedCourse, ok := s.assignmentTable[p.ID]
-		var nullableAssignedId sql.NullInt64
+		var courseIdSetter model.ParticipantOption
 		if ok {
-			nullableAssignedId = sql.NullInt64{Valid: ok, Int64: int64(assignedCourse.ID)}
+			courseIdSetter = model.WithSomeCourseId(int64(assignedCourse.ID))
 		} else {
-			nullableAssignedId = sql.NullInt64{Valid: false}
+			courseIdSetter = model.WithNoCourseId()
 		}
 
-		encryptedName, err := p.ParticipantName.encrypt(secret)
+		var err error
+		result[i], err = model.NewParticipant(
+			p.Prename,
+			p.Surname,
+			secret,
+			courseIdSetter,
+			model.WithParticipantId(int(p.ID)),
+		)
 		if err != nil {
 			return result, err
 		}
-		result[i] = model.Participant{ID: int(p.ID), Prename: encryptedName.Prename, Surname: encryptedName.Surname, CourseID: nullableAssignedId}
 	}
 
 	return result, nil
