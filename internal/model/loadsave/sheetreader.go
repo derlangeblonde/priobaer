@@ -1,7 +1,6 @@
 package loadsave
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/xuri/excelize/v2"
@@ -11,6 +10,7 @@ type sheetReader struct {
 	file       *excelize.File
 	sheetName  string
 	currentRow int
+	cells      [][]string
 }
 
 func newSheetReader(file *excelize.File, sheetName string) (*sheetReader, error) {
@@ -24,22 +24,23 @@ func newSheetReader(file *excelize.File, sheetName string) (*sheetReader, error)
 		}
 	}
 
+	cells, err := file.GetRows(sheetName)
+	if err != nil {
+		return nil, err
+	}
 	return &sheetReader{
 		file:       file,
 		sheetName:  sheetName,
 		currentRow: 1,
+		cells:      cells,
 	}, nil
 }
 
 func (sr *sheetReader) read() ([]string, error) {
-	row, err := sr.file.GetRows(sr.sheetName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read rows from sheet: %w", err)
-	}
-	if sr.currentRow > len(row) {
+	if sr.currentRow > len(sr.cells) {
 		return nil, io.EOF
 	}
-	result := row[sr.currentRow-1]
+	result := sr.cells[sr.currentRow-1]
 	sr.currentRow++
 	return result, nil
 }
