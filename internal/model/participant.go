@@ -23,6 +23,8 @@ type Participant struct {
 
 type ParticipantOption func(*Participant)
 
+// NewParticipant creates a new participant model it will encrypt the names passed as arguments, so that they
+// will be stored in encrypted form on the db. To set anything other than the names use the opts.
 func NewParticipant(plainPrename, plainSurname string, secret crypt.Secret, opts ...ParticipantOption) (Participant, error) {
 	encryptedPrename, err := crypt.Encrypt(plainPrename, secret)
 	if err != nil {
