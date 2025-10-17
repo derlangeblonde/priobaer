@@ -1,21 +1,17 @@
 package domain
 
 import (
-	"iter"
-
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/model"
 )
 
 const batchSize = 100
 
-func savePriorities(db *gorm.DB, prios iter.Seq[Priority]) error {
-	var records []model.Priority
+func savePriorities(db *gorm.DB, prios []PriorityData) error {
+	records := make([]model.Priority, len(prios))
 
-	for prio := range prios {
-		record := model.Priority{Level: model.PriorityLevel(prio.Level), CourseID: int(prio.Course.ID), ParticipantID: int(prio.Participant.ID)}
-
-		records = append(records, record)
+	for i, prio := range prios {
+		records[i] = model.Priority{Level: model.PriorityLevel(prio.Level), CourseID: int(prio.CourseID), ParticipantID: int(prio.ParticipantID)}
 	}
 
 	return db.CreateInBatches(records, batchSize).Error

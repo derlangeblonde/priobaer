@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -16,10 +15,10 @@ func TestScenarioRemainsValidAfterCourseWithAssignmentsAndPriosWasDeleted(t *tes
 
 	testClient := NewTestClient(t, localhost)
 
-	initialCourses := []model.Course{
-		model.RandomCourse(model.WithCapacity(0, 2)),
-		model.RandomCourse(model.WithCapacity(0, 2)),
-		model.RandomCourse(model.WithCapacity(0, 2)),
+	initialCourses := []ui.Course{
+		ui.RandomCourse(ui.WithCapacity(0, 2)),
+		ui.RandomCourse(ui.WithCapacity(0, 2)),
+		ui.RandomCourse(ui.WithCapacity(0, 2)),
 	}
 
 	var createdCourses []ui.Course

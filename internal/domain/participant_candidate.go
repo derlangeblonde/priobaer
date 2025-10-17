@@ -3,7 +3,6 @@ package domain
 import (
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/crypt"
-	"softbaer.dev/ass/internal/domain/store"
 	"softbaer.dev/ass/internal/model"
 )
 
@@ -61,13 +60,12 @@ func (pc *ParticipantCandidate) Save(db *gorm.DB, secret crypt.Secret) (Particip
 		return Participant{}, err
 	}
 
-	// TODO: When SetPriories is part of domain, it can accpect the type CourseID instead of int
-	courseIds := make([]int, len(pc.prioritizedCourseIds))
+	priorities := make([]PriorityData, len(pc.prioritizedCourseIds))
 	for i, courseId := range pc.prioritizedCourseIds {
-		courseIds[i] = int(courseId)
+		priorities[i] = NewPriorityData(ParticipantID(dbModel.ID), courseId, PriorityLevel(i+1))
 	}
 
-	if err := store.SetPriorities(db, dbModel.ID, courseIds); err != nil {
+	if err := savePriorities(db, priorities); err != nil {
 		return Participant{}, err
 	}
 
@@ -80,13 +78,10 @@ func (pc *ParticipantCandidate) Save(db *gorm.DB, secret crypt.Secret) (Particip
 		ParticipantData: savedData,
 	}
 
-	courseRows, err := store.GetPriorities(db, dbModel.ID)
-
+	result.PrioritizedCourses, err = findCourseDataById(db, pc.prioritizedCourseIds)
 	if err != nil {
 		return Participant{}, err
 	}
-
-	result.PrioritizedCourses = coursesFromDbModels(courseRows)
 
 	if pc.isAssigned {
 		var assignedCourseRow model.Course

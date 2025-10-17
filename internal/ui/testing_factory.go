@@ -18,3 +18,39 @@ func RandomParticipants(n int) (result []Participant) {
 
 	return
 }
+
+type CourseOption func(*Course)
+
+func RandomCourse(options ...CourseOption) Course {
+	name := seededuuid.SeededUUID()
+
+	minCap := seededuuid.SeededRand.Intn(30)
+	maxCap := minCap + seededuuid.SeededRand.Intn(30)
+
+	c := Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
+
+	for _, option := range options {
+		option(&c)
+	}
+
+	return c
+}
+
+func WithCourseId(id int) CourseOption {
+	return func(c *Course) {
+		c.ID = id
+	}
+}
+
+func WithCourseName(name string) CourseOption {
+	return func(c *Course) {
+		c.Name = name
+	}
+}
+
+func WithCapacity(min, max int) CourseOption {
+	return func(c *Course) {
+		c.MinCapacity = min
+		c.MaxCapacity = max
+	}
+}

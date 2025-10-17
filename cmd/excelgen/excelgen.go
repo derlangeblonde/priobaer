@@ -39,8 +39,8 @@ func main() {
 
 	var courses []model.Course
 	var courseIds []int
-	for range nCourses {
-		course := model.RandomCourse(model.WithCapacity(minCap, maxCap))
+	for i := range nCourses {
+		course := model.Course{Name: fmt.Sprintf("Kurs%d", i), MinCapacity: minCap, MaxCapacity: maxCap}
 		if err := db.Create(&course).Error; err != nil {
 			panic(err)
 		}

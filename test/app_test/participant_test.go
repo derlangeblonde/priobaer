@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -32,13 +31,13 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 			var wantCourses []ui.Course
 			var wantPrioritizedCourseIds []int
 			for i := 0; i < tc.nPrioritizedCourses; i++ {
-				wantCourses = append(wantCourses, ctx.CoursesCreateAction(model.RandomCourse(
-					model.WithCourseName(strconv.Itoa(i+1)),
+				wantCourses = append(wantCourses, ctx.CoursesCreateAction(ui.RandomCourse(
+					ui.WithCourseName(strconv.Itoa(i+1)),
 				), nil))
 				wantPrioritizedCourseIds = append(wantPrioritizedCourseIds, wantCourses[i].ID)
 			}
 			for i := 0; i < tc.nOtherCourses; i++ {
-				ctx.CoursesCreateAction(model.RandomCourse(), nil)
+				ctx.CoursesCreateAction(ui.RandomCourse(), nil)
 			}
 
 			ctx.ParticipantsCreateAction(wantParticipant, wantPrioritizedCourseIds, nil)
@@ -85,13 +84,13 @@ func TestCreateParticipantWithAssignmentAndPriosCanBeDeleted(t *testing.T) {
 	var wantCourses []ui.Course
 	var wantPrioritizedCourseIds []int
 	for i := 0; i < nPrioritizedCourses; i++ {
-		wantCourses = append(wantCourses, client.CoursesCreateAction(model.RandomCourse(
-			model.WithCourseName(strconv.Itoa(i+1)),
+		wantCourses = append(wantCourses, client.CoursesCreateAction(ui.RandomCourse(
+			ui.WithCourseName(strconv.Itoa(i+1)),
 		), nil))
 		wantPrioritizedCourseIds = append(wantPrioritizedCourseIds, wantCourses[i].ID)
 	}
 	for i := 0; i < nOtherCourses; i++ {
-		client.CoursesCreateAction(model.RandomCourse(), nil)
+		client.CoursesCreateAction(ui.RandomCourse(), nil)
 	}
 
 	wantParticipant := client.ParticipantsCreateAction(ui.RandomParticipant(), wantPrioritizedCourseIds, nil)

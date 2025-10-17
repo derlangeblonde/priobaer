@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 )
 
@@ -126,7 +125,7 @@ func (c *TestClient) ParticipantsDeleteAction(participantId int) {
 	defer resp.Body.Close()
 }
 
-func (c *TestClient) CoursesCreateAction(course model.Course, finish *sync.WaitGroup) ui.Course {
+func (c *TestClient) CoursesCreateAction(course ui.Course, finish *sync.WaitGroup) ui.Course {
 	if finish != nil {
 		defer finish.Done()
 	}
@@ -305,7 +304,7 @@ func (c *TestClient) CreateCoursesWithAllocationsAction(expectedAllocations []in
 	courseIdToAssignedParticipantId := make(map[int][]int)
 
 	for _, expectedAlloc := range expectedAllocations {
-		course := c.CoursesCreateAction(model.RandomCourse(), nil)
+		course := c.CoursesCreateAction(ui.RandomCourse(), nil)
 		courseIdToAssignedParticipantId[course.ID] = make([]int, 0)
 
 		for i := 0; i < expectedAlloc; i++ {

@@ -156,8 +156,8 @@ func (s *Scenario) AllPrioLists() map[ParticipantID][]CourseData {
 	return util.Seq2ToMap(s.allPrioListsIter())
 }
 
-func (s *Scenario) AllPriorities() iter.Seq[Priority] {
-	return func(yield func(Priority) bool) {
+func (s *Scenario) AllPriorities() iter.Seq[PriorityData] {
+	return func(yield func(PriorityData) bool) {
 		for pid, courses := range s.priorityTable {
 			participant, ok := s.participant(pid)
 
@@ -166,7 +166,7 @@ func (s *Scenario) AllPriorities() iter.Seq[Priority] {
 			}
 
 			for i, course := range courses {
-				current := Priority{Level: PriorityLevel(i + 1), Participant: *participant, Course: *course}
+				current := PriorityData{Level: PriorityLevel(i + 1), ParticipantID: participant.ID, CourseID: course.ID}
 				if !yield(current) {
 					return
 				}

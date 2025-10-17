@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"softbaer.dev/ass/internal/model"
 	"softbaer.dev/ass/internal/ui"
 	"softbaer.dev/ass/internal/util"
 )
@@ -21,7 +20,7 @@ func TestSolveAssignmentDoesNotOverbookWhenAssignmentsAlreadyExist(t *testing.T)
 	maxCapacity := 2
 	var courseIds []int
 	for range courseCount {
-		course := testClient.CoursesCreateAction(model.RandomCourse(model.WithCapacity(0, maxCapacity)), nil)
+		course := testClient.CoursesCreateAction(ui.RandomCourse(ui.WithCapacity(0, maxCapacity)), nil)
 		courseIds = append(courseIds, course.ID)
 	}
 
@@ -57,7 +56,7 @@ func TestSolveAssignmentDontReassignParticipants(t *testing.T) {
 	coursesCount := 3
 	var courseIds []int
 	for range coursesCount {
-		course := testClient.CoursesCreateAction(model.RandomCourse(model.WithCapacity(0, 2)), nil)
+		course := testClient.CoursesCreateAction(ui.RandomCourse(ui.WithCapacity(0, 2)), nil)
 		courseIds = append(courseIds, course.ID)
 	}
 
@@ -97,10 +96,10 @@ func TestSolveAssignment(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	courses := []model.Course{
-		model.RandomCourse(model.WithCapacity(0, 2)),
-		model.RandomCourse(model.WithCapacity(0, 2)),
-		model.RandomCourse(model.WithCapacity(0, 2)),
+	courses := []ui.Course{
+		ui.RandomCourse(ui.WithCapacity(0, 2)),
+		ui.RandomCourse(ui.WithCapacity(0, 2)),
+		ui.RandomCourse(ui.WithCapacity(0, 2)),
 	}
 
 	for _, course := range courses {

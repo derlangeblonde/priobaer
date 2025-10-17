@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"slices"
+
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/model"
@@ -70,7 +72,7 @@ func OverwriteScenario(db *gorm.DB, scenario *Scenario, secret crypt.Secret) err
 
 	db.CreateInBatches(participantRecords, 100)
 
-	err = savePriorities(db, scenario.AllPriorities())
+	err = savePriorities(db, slices.Collect(scenario.AllPriorities()))
 	if err != nil {
 		return err
 	}
