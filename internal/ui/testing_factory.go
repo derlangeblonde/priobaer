@@ -11,14 +11,6 @@ func RandomParticipant() Participant {
 	return p
 }
 
-func RandomParticipants(n int) (result []Participant) {
-	for i := 0; i < n; i++ {
-		result = append(result, RandomParticipant())
-	}
-
-	return
-}
-
 type CourseOption func(*Course)
 
 func RandomCourse(options ...CourseOption) Course {
@@ -34,12 +26,6 @@ func RandomCourse(options ...CourseOption) Course {
 	}
 
 	return c
-}
-
-func WithCourseId(id int) CourseOption {
-	return func(c *Course) {
-		c.ID = id
-	}
 }
 
 func WithCourseName(name string) CourseOption {

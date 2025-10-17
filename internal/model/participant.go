@@ -132,10 +132,3 @@ func (p *Participant) MarshalRecord() []string {
 		courseIdMarshalled,
 	}
 }
-
-func ParticipantIds(ps []Participant) (result []int) {
-	for _, p := range ps {
-		result = append(result, p.ID)
-	}
-	return
-}
