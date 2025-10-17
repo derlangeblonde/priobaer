@@ -17,11 +17,21 @@ func SolveAssignments(c *gin.Context) {
 
 	err := db.Transaction(
 		func(tx *gorm.DB) error {
-			return solve.ComputeAndApplyOptimalAssignments(tx)
+			return solve.ComputeAndApplyOptimalAssignments(c.Request.Context(), tx)
 		},
 	)
 
-	if errors.Is(err, solve.NotSolvable) {
+	switch {
+	case errors.Is(err, solve.SolvingTookTooLong):
+		logger.Info("solve timed out", "err", err)
+		c.HTML(http.StatusOK, "dialogs/solve-timed-out", gin.H{})
+
+		return
+	case errors.Is(err, solve.UserCancelled):
+		// Client probably already closed connection, so does not matter too much what we return here.
+		c.AbortWithStatus(500)
+		return
+	case errors.Is(err, solve.NotSolvable):
 		logger.Info("Could not solve assignment", "err", err)
 		c.HTML(http.StatusOK, "dialogs/not-solvable", gin.H{})
 

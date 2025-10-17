@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"golang.org/x/sync/semaphore"
 	"softbaer.dev/ass/internal/domain"
@@ -12,21 +13,27 @@ import (
 )
 
 var NotSolvable = errors.New("problem instance is not solvable")
+var UserCancelled = errors.New("solving was cancelled by user")
+var SolvingTookTooLong = errors.New("solving was cancelled by timeout")
 
 // rateLimit limits the number of assignment problems that can be solved in parallel.
 // Solving can be rather comput intensive. We limit parallelization to prevent CPU from being overbooked.
 var rateLimit = semaphore.NewWeighted(1)
 
-func computeOptimalAssignments(priorities []priorityConstraint) (assignments []computedAssignment, err error) {
-	if err = rateLimit.Acquire(context.Background(), 1); err != nil {
+const solveTimeout = time.Minute * 15
+
+func computeOptimalAssignments(ctx context.Context, priorities []priorityConstraint) (assignments []computedAssignment, err error) {
+	if err = rateLimit.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
 	defer rateLimit.Release(1)
 
+	ctx, cancel := context.WithTimeout(ctx, solveTimeout)
+	defer cancel()
 	optimizationProblem := newOptimizationProblem(priorities)
 	defer optimizationProblem.Close()
 
-	return optimizationProblem.solve()
+	return optimizationProblem.solve(ctx)
 }
 
 type optimizationProblem struct {
@@ -178,7 +185,7 @@ func (o *maximizeHighPrioritiesObjective) weightedTerm(varWithPriorityLevel varW
 	return o.invertPriorityLevel(varWithPriorityLevel.prioLevel).Mul(varWithPriorityLevel.variable)
 }
 
-func (p *optimizationProblem) solve() (assignments []computedAssignment, err error) {
+func (p *optimizationProblem) solve(ctx context.Context) (assignments []computedAssignment, err error) {
 	constrainBuilders := []constraintBuilder{
 		newExactlyOneCoursePerParticipantConstraint(p),
 		newMaximumCapacityConstraint(p),
@@ -202,7 +209,29 @@ func (p *optimizationProblem) solve() (assignments []computedAssignment, err err
 		constraint.build()
 	}
 
-	if v := p.optimize.Check(); v != z3.True {
+	checkChan := make(chan z3.LBool)
+	go func() {
+		checkChan <- p.optimize.Check()
+	}()
+
+	checkResult := z3.False
+	select {
+	case checkResult = <-checkChan:
+		slog.Info("z3 finished solving")
+	case <-ctx.Done():
+		p.ctx.Cancel()
+		switch err := ctx.Err(); {
+		case errors.Is(err, context.Canceled):
+			return assignments, UserCancelled
+		case errors.Is(err, context.DeadlineExceeded):
+			return assignments, SolvingTookTooLong
+		default:
+			slog.Error("Context send a done signal but error was of unexpected type", "err", ctx.Err())
+			return assignments, UserCancelled
+		}
+	}
+
+	if checkResult != z3.True {
 		return assignments, NotSolvable
 	}
 

@@ -1,4 +1,4 @@
-package app 
+package app
 
 import (
 	"log/slog"
@@ -13,7 +13,6 @@ import (
 
 const sessionIdKey = "session_id"
 const dbKey = "db"
-
 
 func InjectDB(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 
@@ -50,7 +49,6 @@ func InjectDB(dbDirectory *dbdir.DbDirectory) gin.HandlerFunc {
 		}
 
 		c.Redirect(http.StatusSeeOther, "/sessions/new")
-
 	}
 
 }
