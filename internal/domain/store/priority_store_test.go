@@ -17,7 +17,7 @@ func setupTestDb(t *testing.T) *gorm.DB {
 	is.NoErr(err)
 	db.Exec("PRAGMA foreign_keys = ON;")
 
-	db.AutoMigrate(&model.Participant{}, &model.Course{}, &model.Priority{})
+	db.AutoMigrate(model.EmptyParticipantPointer(), &model.Course{}, &model.Priority{})
 
 	return db
 }
@@ -26,7 +26,7 @@ func TestCanAddPriorityOfParticipantToCourse(t *testing.T) {
 	is := is.New(t)
 	db := setupTestDb(t)
 
-	participant := model.Participant{Prename: "hans", Surname: "klein"}
+	participant := model.Participant{EncryptedPrename: "hans", EncryptedSurname: "klein"}
 	is.NoErr(db.Create(&participant).Error) // could not create a participant
 
 	course := model.Course{Name: "foo", MaxCapacity: 30, MinCapacity: 3}
@@ -47,7 +47,7 @@ func TestSetPrioritiesFailsWithTooManyPriorities(t *testing.T) {
 	is := is.New(t)
 	db := setupTestDb(t)
 
-	participant := model.Participant{Prename: "hans", Surname: "klein"}
+	participant := model.Participant{EncryptedPrename: "hans", EncryptedSurname: "klein"}
 	is.NoErr(db.Create(&participant).Error) // could not create a participant
 
 	courseIds := make([]int, model.MaxPriorityLevel+1)

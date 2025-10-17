@@ -1,29 +1,16 @@
 package model
 
 import (
-	"strconv"
-
-	"github.com/google/uuid"
-	"golang.org/x/exp/rand"
+	"softbaer.dev/ass/internal/seededuuid"
 )
 
-var namespace = uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
-var intSeed uint64 = 69420
-var SeededRand = rand.New(rand.NewSource(intSeed))
-
-func SeededUUID() uuid.UUID {
-	oneTimeSeedStr := strconv.Itoa(SeededRand.Int())
-	return uuid.NewMD5(namespace, []byte(oneTimeSeedStr))
-}
-
 type CourseOption func(*Course)
-type ParticipantOption func(*Participant)
 
 func RandomCourse(options ...CourseOption) Course {
-	name := SeededUUID()
+	name := seededuuid.SeededUUID()
 
-	minCap := SeededRand.Intn(30)
-	maxCap := minCap + SeededRand.Intn(30)
+	minCap := seededuuid.SeededRand.Intn(30)
+	maxCap := minCap + seededuuid.SeededRand.Intn(30)
 
 	c := Course{Name: name.String(), MinCapacity: minCap, MaxCapacity: maxCap}
 
@@ -54,10 +41,10 @@ func WithCapacity(min, max int) CourseOption {
 }
 
 func RandomParticipant(options ...ParticipantOption) Participant {
-	prename := SeededUUID()
-	surname := SeededUUID()
+	prename := seededuuid.SeededUUID()
+	surname := seededuuid.SeededUUID()
 
-	p := Participant{Prename: prename.String(), Surname: surname.String()}
+	p := Participant{EncryptedPrename: prename.String(), EncryptedSurname: surname.String()}
 
 	for _, option := range options {
 		option(&p)
@@ -66,23 +53,17 @@ func RandomParticipant(options ...ParticipantOption) Participant {
 	return p
 }
 
-func WithParticipantId(id int) ParticipantOption {
-	return func(p *Participant) {
-		p.ID = id
-	}
-}
-
-func RandomCourses(n int) (result []Course) {
+func RandomParticipants(n int) (result []Participant) {
 	for i := 0; i < n; i++ {
-		result = append(result, RandomCourse())
+		result = append(result, RandomParticipant())
 	}
 
 	return
 }
 
-func RandomParticipants(n int) (result []Participant) {
+func RandomCourses(n int) (result []Course) {
 	for i := 0; i < n; i++ {
-		result = append(result, RandomParticipant())
+		result = append(result, RandomCourse())
 	}
 
 	return

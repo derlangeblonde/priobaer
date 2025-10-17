@@ -50,7 +50,7 @@ func LoadScenario(db *gorm.DB, secret crypt.Secret) (scenario *Scenario, err err
 func OverwriteScenario(db *gorm.DB, scenario *Scenario, secret crypt.Secret) error {
 	tablesToDelete := []any{
 		&model.Priority{},
-		&model.Participant{},
+		model.EmptyParticipantPointer(),
 		&model.Course{},
 	}
 	for _, table := range tablesToDelete {

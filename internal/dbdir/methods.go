@@ -27,21 +27,15 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 
 	dbPath := d.path(dbId)
 
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
-
+	db, err := NewDb(dbPath, d.models)
 	if err != nil {
-		return nil, err
-	}
-
-	d.setEntry(dbId, &entry{conn: db})
-	if err := db.AutoMigrate(d.models...); err != nil {
 		return nil, err
 	}
 	if err := db.AutoMigrate(&Session{}); err != nil {
 		return nil, err
 	}
-	db.Exec("PRAGMA foreign_keys = ON;")
 
+	d.setEntry(dbId, &entry{conn: db})
 	var count int64
 	db.Model(&Session{}).Count(&count)
 
@@ -55,6 +49,20 @@ func (d *DbDirectory) Open(dbId string) (*gorm.DB, error) {
 
 	d.scheduleRemove(dbId)
 
+	return db, err
+}
+
+func NewDb(dbPath string, models []any) (*gorm.DB, error) {
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	db.Exec("PRAGMA foreign_keys = ON;")
+	if err := db.AutoMigrate(models...); err != nil {
+		return nil, err
+	}
 	return db, err
 }
 

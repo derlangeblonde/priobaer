@@ -16,7 +16,7 @@ var (
 
 func FindAssignedCourse(db *gorm.DB, pid ParticipantID) (CourseData, error) {
 	var courseID int64
-	if err := db.Model(&model.Participant{}).Where("id = ?", pid).Select("course_id").First(&courseID).Error; err != nil {
+	if err := db.Model(model.EmptyParticipantPointer()).Where("id = ?", pid).Select("course_id").First(&courseID).Error; err != nil {
 		return CourseData{}, err
 	}
 
@@ -24,7 +24,7 @@ func FindAssignedCourse(db *gorm.DB, pid ParticipantID) (CourseData, error) {
 }
 
 func InitialAssign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
-	result := tx.Model(model.Participant{}).Where("id = ?", pid).Update("course_id", cid)
+	result := tx.Model(model.EmptyParticipantPointer()).Where("id = ?", pid).Update("course_id", cid)
 
 	if result.Error != nil {
 		if strings.Contains(result.Error.Error(), "FOREIGN KEY constraint failed") {
@@ -42,7 +42,7 @@ func InitialAssign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
 }
 
 func Reassign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
-	result := tx.Model(model.Participant{}).Where("ID = ?", pid).Update("course_id", cid)
+	result := tx.Model(model.EmptyParticipantPointer()).Where("ID = ?", pid).Update("course_id", cid)
 
 	if result.Error != nil {
 		if strings.Contains(result.Error.Error(), "FOREIGN KEY constraint failed") {
@@ -60,7 +60,7 @@ func Reassign(tx *gorm.DB, pid ParticipantID, cid CourseID) error {
 }
 
 func Unassign(tx *gorm.DB, pid ParticipantID) error {
-	result := tx.Model(model.Participant{}).Where("ID = ?", pid).Update("course_id", nil)
+	result := tx.Model(model.EmptyParticipantPointer()).Where("ID = ?", pid).Update("course_id", nil)
 
 	if result.Error != nil {
 		return result.Error
@@ -80,7 +80,7 @@ func DeleteParticipant(tx *gorm.DB, ParticipantID ParticipantID) error {
 		return err
 	}
 
-	if err := tx.Unscoped().Where("id = ?", int(ParticipantID)).Delete(&model.Participant{}).Error; err != nil {
+	if err := tx.Unscoped().Where("id = ?", int(ParticipantID)).Delete(model.EmptyParticipantPointer()).Error; err != nil {
 		return err
 	}
 
@@ -89,8 +89,8 @@ func DeleteParticipant(tx *gorm.DB, ParticipantID ParticipantID) error {
 
 func participantDataFromDbModel(dbModel model.Participant, secret crypt.Secret) (ParticipantData, error) {
 	encryptName := encryptedParticipantName{
-		Prename: dbModel.Prename,
-		Surname: dbModel.Surname,
+		Prename: dbModel.EncryptedPrename,
+		Surname: dbModel.EncryptedSurname,
 	}
 	decryptedName, err := encryptName.decrypt(secret)
 	if err != nil {

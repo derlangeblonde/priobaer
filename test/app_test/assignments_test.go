@@ -18,7 +18,7 @@ func TestParticipantsAreUnassignedIntially(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedParticipant := model.RandomParticipant()
+	expectedParticipant := ui.RandomParticipant()
 
 	testClient.ParticipantsCreateAction(expectedParticipant, make([]int, 0), nil)
 
@@ -39,7 +39,7 @@ func TestAssignParticipant(t *testing.T) {
 
 	testClient := NewTestClient(t, localhost)
 
-	expectedParticipant := model.RandomParticipant()
+	expectedParticipant := ui.RandomParticipant()
 	expectedCourse := model.RandomCourse()
 
 	testClient.ParticipantsCreateAction(expectedParticipant, make([]int, 0), nil)
@@ -113,7 +113,7 @@ func TestUpdateAssignmentUpdatesCourseAllocations(t *testing.T) {
 
 	courseOld := testClient.CoursesCreateAction(model.RandomCourse(), nil)
 	courseNew := testClient.CoursesCreateAction(model.RandomCourse(), nil)
-	participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+	participant := testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 
 	testClient.InitialAssignAction(participant.ID, courseOld.ID)
 
@@ -185,7 +185,7 @@ func TestAssignmentUpdateInitialAssignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+		participant = testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 	}
 
 	course := testClient.CoursesCreateAction(model.RandomCourse(), nil)
@@ -210,7 +210,7 @@ func TestAssignmentUpdateUnassignUpdatesUnassignedCount(t *testing.T) {
 
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+		participant = testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 		testClient.InitialAssignAction(participant.ID, course.ID)
 	}
 
@@ -234,7 +234,7 @@ func TestParticipantsGetUnassignedWhenTheirAssignedCourseIsDeleted(t *testing.T)
 
 	var participant ui.Participant
 	for i := 0; i < 3; i++ {
-		participant = testClient.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+		participant = testClient.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 		testClient.InitialAssignAction(participant.ID, course.ID)
 	}
 

@@ -33,7 +33,7 @@ func TestScenarioRemainsValidAfterCourseWithAssignmentsAndPriosWasDeleted(t *tes
 	fixedPriorities := []int{1, 2, 3}
 	var createdParticipants []ui.Participant
 	for range participantCount {
-		participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), fixedPriorities, nil)
+		participant := testClient.ParticipantsCreateAction(ui.RandomParticipant(), fixedPriorities, nil)
 		createdParticipants = append(createdParticipants, participant)
 		testClient.InitialAssignAction(participant.ID, courseToDelete.ID)
 	}

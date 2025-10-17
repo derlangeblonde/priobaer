@@ -27,7 +27,7 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 
 			ctx := NewTestClient(t, localhost)
 
-			wantParticipant := model.RandomParticipant()
+			wantParticipant := ui.RandomParticipant()
 
 			var wantCourses []ui.Course
 			var wantPrioritizedCourseIds []int
@@ -44,7 +44,7 @@ func TestCreateAndReadParticpantWithPrios(t *testing.T) {
 			ctx.ParticipantsCreateAction(wantParticipant, wantPrioritizedCourseIds, nil)
 
 			for i := 0; i < tc.nBackgroundCharacters; i++ {
-				ctx.ParticipantsCreateAction(model.RandomParticipant(), make([]int, 0), nil)
+				ctx.ParticipantsCreateAction(ui.RandomParticipant(), make([]int, 0), nil)
 			}
 
 			_, renderedParticipants := ctx.AssignmentsIndexAction()
@@ -94,7 +94,7 @@ func TestCreateParticipantWithAssignmentAndPriosCanBeDeleted(t *testing.T) {
 		client.CoursesCreateAction(model.RandomCourse(), nil)
 	}
 
-	wantParticipant := client.ParticipantsCreateAction(model.RandomParticipant(), wantPrioritizedCourseIds, nil)
+	wantParticipant := client.ParticipantsCreateAction(ui.RandomParticipant(), wantPrioritizedCourseIds, nil)
 
 	client.InitialAssignAction(wantParticipant.ID, wantCourses[0].ID)
 

@@ -48,7 +48,7 @@ func Run(ctx context.Context, getenv func(string) string, clock clockwork.Clock)
 		},
 	)
 
-	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&model.Course{}, &model.Participant{}, &model.Priority{}})
+	dbDirectory, err := dbdir.New(config.DbRootDir, config.SessionMaxAge, clock, []any{&model.Course{}, model.EmptyParticipantPointer(), &model.Priority{}})
 
 	if err != nil {
 		panic(err)

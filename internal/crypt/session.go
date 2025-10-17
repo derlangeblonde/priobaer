@@ -25,7 +25,7 @@ func GetSecret(ctx *gin.Context) Secret {
 
 func SetNewSecret(ctx *gin.Context) {
 	session := sessions.Default(ctx)
-	secret := generateSecret()
+	secret := GenerateSecret()
 	secretInBase64 := base64.StdEncoding.EncodeToString(secret)
 	session.Set(userSecretKey, secretInBase64)
 }

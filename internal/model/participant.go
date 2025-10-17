@@ -9,31 +9,83 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/crypt"
 )
 
 type Participant struct {
 	gorm.Model
-	ID       int
-	Prename  string
-	Surname  string
-	CourseID sql.NullInt64
-	Course   Course `gorm:"constraint:OnDelete:SET NULL;"`
+	ID               int
+	EncryptedPrename string
+	EncryptedSurname string
+	CourseID         sql.NullInt64
+	Course           Course `gorm:"constraint:OnDelete:SET NULL;"`
+}
+
+type ParticipantOption func(*Participant)
+
+func NewParticipant(plainPrename, plainSurname string, secret crypt.Secret, opts ...ParticipantOption) (Participant, error) {
+	encryptedPrename, err := crypt.Encrypt(plainPrename, secret)
+	if err != nil {
+		return Participant{}, err
+	}
+	encryptedSurname, err := crypt.Encrypt(plainSurname, secret)
+	if err != nil {
+		return Participant{}, err
+	}
+
+	result := &Participant{EncryptedSurname: encryptedSurname, EncryptedPrename: encryptedPrename}
+
+	for _, opt := range opts {
+		opt(result)
+	}
+
+	return *result, nil
+}
+
+func WithParticipantId(id int) ParticipantOption {
+	return func(participant *Participant) {
+		participant.ID = id
+	}
+}
+
+func WithSomeCourseId(courseId int64) ParticipantOption {
+	return func(participant *Participant) {
+		participant.CourseID = sql.NullInt64{Valid: true, Int64: int64(courseId)}
+	}
+}
+
+func WithNoCourseId() ParticipantOption {
+	return func(participant *Participant) {
+		participant.CourseID = sql.NullInt64{Valid: false}
+	}
+}
+
+func EmptyParticipantPointer() *Participant {
+	return &Participant{}
 }
 
 func (p *Participant) Valid() map[string]string {
 	validationErrors := make(map[string]string)
 
-	validateNonEmpty(p.Surname, "surname", "Nachname darf nicht leer sein", validationErrors)
-	validateNonEmpty(p.Prename, "prename", "Vorname darf nicht leer sein", validationErrors)
+	validateNonEmpty(p.EncryptedSurname, "surname", "Nachname darf nicht leer sein", validationErrors)
+	validateNonEmpty(p.EncryptedPrename, "prename", "Vorname darf nicht leer sein", validationErrors)
 
 	p.TrimFields()
 
 	return validationErrors
 }
 
+func (p *Participant) Prename(secret crypt.Secret) (string, error) {
+	return crypt.Decrypt(p.EncryptedPrename, secret)
+}
+
+func (p *Participant) Surname(secret crypt.Secret) (string, error) {
+	return crypt.Decrypt(p.EncryptedSurname, secret)
+}
+
 func (p *Participant) TrimFields() {
-	p.Prename = strings.TrimSpace(p.Prename)
-	p.Surname = strings.TrimSpace(p.Surname)
+	p.EncryptedPrename = strings.TrimSpace(p.EncryptedPrename)
+	p.EncryptedSurname = strings.TrimSpace(p.EncryptedSurname)
 }
 
 func (p *Participant) UnmarshalRecord(record []string) error {
@@ -51,8 +103,8 @@ func (p *Participant) UnmarshalRecord(record []string) error {
 		return errors.New(fmt.Sprintf("Spalte: ID\n%s ist keine valide Zahl", record[0]))
 	}
 
-	p.Prename = record[1]
-	p.Surname = record[2]
+	p.EncryptedPrename = record[1]
+	p.EncryptedSurname = record[2]
 
 	if record[3] != "null" {
 		if courseId, err := strconv.Atoi(record[3]); err == nil {
@@ -73,8 +125,8 @@ func (p *Participant) MarshalRecord() []string {
 
 	return []string{
 		strconv.Itoa(p.ID),
-		p.Prename,
-		p.Surname,
+		p.EncryptedPrename,
+		p.EncryptedSurname,
 		courseIdMarshalled,
 	}
 }

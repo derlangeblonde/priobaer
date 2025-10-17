@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"database/sql"
-
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/domain/store"
@@ -45,15 +43,18 @@ func (pc *ParticipantCandidate) Valid() map[string]string {
 }
 
 func (pc *ParticipantCandidate) Save(db *gorm.DB, secret crypt.Secret) (Participant, error) {
-	encryptedName, err := pc.ParticipantName.encrypt(secret)
+	courseId := model.WithNoCourseId()
+	if pc.isAssigned {
+		courseId = model.WithSomeCourseId(int64(pc.assignedCourseId))
+	}
+	dbModel, err := model.NewParticipant(
+		pc.Prename,
+		pc.Surname,
+		secret,
+		courseId,
+	)
 	if err != nil {
 		return Participant{}, err
-	}
-
-	dbModel := model.Participant{
-		Prename:  encryptedName.Prename,
-		Surname:  encryptedName.Surname,
-		CourseID: sql.NullInt64{Valid: pc.isAssigned, Int64: int64(pc.assignedCourseId)},
 	}
 
 	if err := db.Create(&dbModel).Error; err != nil {

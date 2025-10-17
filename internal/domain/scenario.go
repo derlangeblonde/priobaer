@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"database/sql"
 	"errors"
 	"iter"
 	"slices"
@@ -224,18 +223,24 @@ func (s *Scenario) allParticipantsAsDbModels(secret crypt.Secret) ([]model.Parti
 	result := make([]model.Participant, len(s.participants))
 	for i, p := range s.participants {
 		assignedCourse, ok := s.assignmentTable[p.ID]
-		var nullableAssignedId sql.NullInt64
+		var courseIdSetter model.ParticipantOption
 		if ok {
-			nullableAssignedId = sql.NullInt64{Valid: ok, Int64: int64(assignedCourse.ID)}
+			courseIdSetter = model.WithSomeCourseId(int64(assignedCourse.ID))
 		} else {
-			nullableAssignedId = sql.NullInt64{Valid: false}
+			courseIdSetter = model.WithNoCourseId()
 		}
 
-		encryptedName, err := p.ParticipantName.encrypt(secret)
+		var err error
+		result[i], err = model.NewParticipant(
+			p.Prename,
+			p.Surname,
+			secret,
+			courseIdSetter,
+			model.WithParticipantId(int(p.ID)),
+		)
 		if err != nil {
 			return result, err
 		}
-		result[i] = model.Participant{ID: int(p.ID), Prename: encryptedName.Prename, Surname: encryptedName.Surname, CourseID: nullableAssignedId}
 	}
 
 	return result, nil

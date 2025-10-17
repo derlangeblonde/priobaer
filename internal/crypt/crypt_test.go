@@ -9,7 +9,7 @@ import (
 func TestEncryptDecryptRoundtripIsConsistent(t *testing.T) {
 	is := is.New(t)
 
-	secret := generateSecret()
+	secret := GenerateSecret()
 
 	testcases := []string{
 		"hallo",
@@ -28,7 +28,7 @@ func TestEncryptDecryptRoundtripIsConsistent(t *testing.T) {
 }
 
 func BenchmarkCryptRoundtrip(t *testing.B) {
-	secret := generateSecret()
+	secret := GenerateSecret()
 	plaintext := "einmittellangerstring"
 
 	for t.Loop() {

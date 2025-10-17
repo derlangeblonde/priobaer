@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/ui"
 )
 
 func TestThatParticipantsNamesAreStoredEncrypted(t *testing.T) {
@@ -18,7 +19,7 @@ func TestThatParticipantsNamesAreStoredEncrypted(t *testing.T) {
 
 	client := NewTestClient(t, localhost)
 
-	createdParticipant := model.RandomParticipant()
+	createdParticipant := ui.RandomParticipant()
 	client.ParticipantsCreateAction(createdParticipant, make([]int, 0), nil)
 
 	var sqlFiles []string
@@ -40,8 +41,8 @@ func TestThatParticipantsNamesAreStoredEncrypted(t *testing.T) {
 	is.NoErr(err) // Want to be able to open sql file without problems
 
 	var participants []model.Participant
-	is.NoErr(db.Find(&participants).Error)                         // Want querying against db to be successful
-	is.Equal(len(participants), 1)                                 // Want exactly one participant
-	is.True(participants[0].Prename != createdParticipant.Prename) // Want that Name stored in DB is not what we created via client (i.e. value in DB is encrypted)
-	is.True(participants[0].Surname != createdParticipant.Surname)
+	is.NoErr(db.Find(&participants).Error)                                  // Want querying against db to be successful
+	is.Equal(len(participants), 1)                                          // Want exactly one participant
+	is.True(participants[0].EncryptedPrename != createdParticipant.Prename) // Want that Name stored in DB is not what we created via client (i.e. value in DB is encrypted)
+	is.True(participants[0].EncryptedSurname != createdParticipant.Surname)
 }

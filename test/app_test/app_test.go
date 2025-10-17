@@ -161,7 +161,7 @@ func TestRoundtripViaSaveLoad(t *testing.T) {
 		createdCourses = append(createdCourses, client1.CoursesCreateAction(model.RandomCourse(), nil))
 	}
 	courseIDs := util.IDs(createdCourses)
-	wantParticipant := model.RandomParticipant()
+	wantParticipant := ui.RandomParticipant()
 	client1.ParticipantsCreateAction(wantParticipant, courseIDs, nil)
 
 	savedData := client1.DataSaveAction()

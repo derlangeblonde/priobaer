@@ -18,7 +18,7 @@ func FindSingleCourseData(db *gorm.DB, cid CourseID) (CourseData, error) {
 // I.e. participants assigned to that course will be unassigned and priorities to that courses will be deleted.
 // Prefer passing a transaction, so that partial changes will be rolled back in case of an error.
 func DeleteCourse(tx *gorm.DB, courseId int) error {
-	err := tx.Model(model.Participant{}).Where("course_id = ?", courseId).Update("course_id", nil).Error
+	err := tx.Model(model.EmptyParticipantPointer()).Where("course_id = ?", courseId).Update("course_id", nil).Error
 	if err != nil {
 		return err
 	}

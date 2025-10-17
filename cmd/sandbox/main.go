@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"softbaer.dev/ass/internal/crypt"
 	"softbaer.dev/ass/internal/model"
 )
 
@@ -15,9 +16,9 @@ func isNoErr(err error) {
 	}
 }
 
-const nCourses int = 5 
+const nCourses int = 5
 
-func main(){
+func main() {
 	dbPath := "asgalig.sqlite"
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	isNoErr(err)
@@ -28,13 +29,14 @@ func main(){
 		isNoErr(os.Remove(dbPath))
 	}()
 
-	db.AutoMigrate(&model.Course{}, &model.Participant{}, &model.Priority{})
+	db.AutoMigrate(&model.Course{}, model.EmptyParticipantPointer(), &model.Priority{})
 
 	courses := model.RandomCourses(nCourses)
 
 	isNoErr(db.CreateInBatches(&courses, 100).Error)
 
-	participant := model.Participant{Prename: "Prename", Surname: "Surname"}
+	participant, err := model.NewParticipant("Prename", "Surname", crypt.GenerateSecret())
+	isNoErr(err)
 	isNoErr(db.Create(&participant).Error)
 	prios := []model.Priority{{ParticipantID: participant.ID, CourseID: courses[0].ID, Level: 1}, {ParticipantID: participant.ID, CourseID: courses[2].ID, Level: 2}, {ParticipantID: participant.ID, CourseID: courses[1].ID, Level: 3}}
 	isNoErr(db.Preload("Courses").CreateInBatches(prios, 100).Error)

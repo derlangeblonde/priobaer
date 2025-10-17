@@ -7,6 +7,7 @@ import (
 
 	"github.com/matryer/is"
 	"softbaer.dev/ass/internal/model"
+	"softbaer.dev/ass/internal/ui"
 	"softbaer.dev/ass/internal/util"
 )
 
@@ -32,7 +33,7 @@ func TestSolveAssignmentDoesNotOverbookWhenAssignmentsAlreadyExist(t *testing.T)
 	}
 	var participantIds []int
 	for _, prios := range prioLists {
-		participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), prios, nil)
+		participant := testClient.ParticipantsCreateAction(ui.RandomParticipant(), prios, nil)
 		participantIds = append(participantIds, participant.ID)
 	}
 
@@ -70,7 +71,7 @@ func TestSolveAssignmentDontReassignParticipants(t *testing.T) {
 	}
 	var participantIds []int
 	for _, prios := range prioLists {
-		participant := testClient.ParticipantsCreateAction(model.RandomParticipant(), prios, nil)
+		participant := testClient.ParticipantsCreateAction(ui.RandomParticipant(), prios, nil)
 		participantIds = append(participantIds, participant.ID)
 	}
 
@@ -109,7 +110,7 @@ func TestSolveAssignment(t *testing.T) {
 	participantCount := 5
 	fixedPriorities := []int{1, 2, 3}
 	for range participantCount {
-		testClient.ParticipantsCreateAction(model.RandomParticipant(), fixedPriorities, nil)
+		testClient.ParticipantsCreateAction(ui.RandomParticipant(), fixedPriorities, nil)
 	}
 
 	expectedAllocations := []int{1, 2, 2}
