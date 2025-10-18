@@ -60,6 +60,8 @@ func NewDb(dbPath string, models []any) (*gorm.DB, error) {
 	}
 
 	db.Exec("PRAGMA foreign_keys = ON;")
+	db.Exec("PRAGMA journal_mode = WAL;")
+	db.Exec("PRAGMA busy_timeout = 5000;")
 	if err := db.AutoMigrate(models...); err != nil {
 		return nil, err
 	}
