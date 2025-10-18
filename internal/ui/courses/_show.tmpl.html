@@ -4,6 +4,6 @@
 	<input type="hidden" name="course-id" value="{{ .ID }}">
 	<b> {{ Field "Name" . }} </b> <br>
 		Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }}, Auslastung {{ Field "Allocation" . }} <br>
-		<a hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" hx-confirm="Möchten Sie diesen Kurs wirklich löschen? Zugeteilte Teilnehmer werden wieder 'Nicht Zugeteilt' zugeordnet." class="link">Löschen</a>
+		<a onclick="event.stopPropagation()" hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" hx-confirm="Möchten Sie diesen Kurs wirklich löschen? Zugeteilte Teilnehmer werden wieder 'Nicht Zugeteilt' zugeordnet." class="link">Löschen</a>
 		<hr>
 </div>

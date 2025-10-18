@@ -177,7 +177,7 @@ func (c *TestClient) CoursesDeleteAction(courseId int) {
 
 	resp, err := c.client.Do(req)
 	is.NoErr(err)
-	is.Equal(resp.StatusCode, 200)
+	is.Equal(resp.StatusCode, 204)
 }
 
 func (c *TestClient) AssignmentsIndexAction(queryParams ...string) ([]ui.Course, []ui.Participant) {

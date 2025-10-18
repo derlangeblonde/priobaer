@@ -100,7 +100,7 @@ func CoursesDelete() gin.HandlerFunc {
 			return
 		}
 
-		c.Data(http.StatusOK, "text/html", []byte(""))
+		c.Writer.WriteHeader(http.StatusNoContent)
 	}
 }
 
