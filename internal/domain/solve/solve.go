@@ -14,13 +14,13 @@ import (
 
 var NotSolvable = errors.New("problem instance is not solvable")
 var UserCancelled = errors.New("solving was cancelled by user")
-var SolvingTookTooLong = errors.New("solving was cancelled by timeout")
+var Timeout = errors.New("solving was cancelled by timeout")
 
 // rateLimit limits the number of assignment problems that can be solved in parallel.
 // Solving can be rather comput intensive. We limit parallelization to prevent CPU from being overbooked.
 var rateLimit = semaphore.NewWeighted(1)
 
-const solveTimeout = time.Minute * 15
+const solveTimeout = time.Minute * 10
 
 func computeOptimalAssignments(ctx context.Context, priorities []priorityConstraint) (assignments []computedAssignment, err error) {
 	if err = rateLimit.Acquire(ctx, 1); err != nil {
@@ -209,30 +209,30 @@ func (p *optimizationProblem) solve(ctx context.Context) (assignments []computed
 		constraint.build()
 	}
 
-	checkChan := make(chan z3.LBool)
+	var ctxErr error
 	go func() {
-		checkChan <- p.optimize.Check()
-	}()
-
-	checkResult := z3.False
-	select {
-	case checkResult = <-checkChan:
-		slog.Info("z3 finished solving")
-	case <-ctx.Done():
+		<-ctx.Done()
+		ctxErr = ctx.Err()
 		p.ctx.Cancel()
-		switch err := ctx.Err(); {
-		case errors.Is(err, context.Canceled):
+	}()
+	checkResult := p.optimize.Check()
+	if checkResult == z3.False {
+		return assignments, NotSolvable
+	}
+
+	if checkResult == z3.Undef {
+		switch {
+		case errors.Is(ctxErr, context.Canceled):
 			return assignments, UserCancelled
-		case errors.Is(err, context.DeadlineExceeded):
-			return assignments, SolvingTookTooLong
+		case errors.Is(ctxErr, context.DeadlineExceeded):
+			return assignments, Timeout
 		default:
-			slog.Error("Context send a done signal but error was of unexpected type", "err", ctx.Err())
-			return assignments, UserCancelled
+			return assignments, fmt.Errorf("z3 returned Undef but ctx.Err() is something unexpected: %w", ctxErr)
 		}
 	}
 
 	if checkResult != z3.True {
-		return assignments, NotSolvable
+		return assignments, fmt.Errorf("z3 returned sth that is neither False, True or Undef: %v", checkResult)
 	}
 
 	m := p.optimize.Model()
