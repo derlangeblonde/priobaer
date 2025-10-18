@@ -112,7 +112,6 @@ body {
 .loading-indicator{
     display:none;
 }
-.htmx-request .loading-indicator,
 .htmx-request.loading-indicator{
     display:flex;
 }
