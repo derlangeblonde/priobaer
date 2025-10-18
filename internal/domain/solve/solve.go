@@ -186,6 +186,12 @@ func (o *maximizeHighPrioritiesObjective) weightedTerm(varWithPriorityLevel varW
 }
 
 func (p *optimizationProblem) solve(ctx context.Context) (assignments []computedAssignment, err error) {
+	// The goroutine listening for ctx.Done should stop listening when this method finishes
+	finished := make(chan bool)
+	defer func() {
+		finished <- true
+	}()
+
 	constrainBuilders := []constraintBuilder{
 		newExactlyOneCoursePerParticipantConstraint(p),
 		newMaximumCapacityConstraint(p),
@@ -211,9 +217,13 @@ func (p *optimizationProblem) solve(ctx context.Context) (assignments []computed
 
 	var ctxErr error
 	go func() {
-		<-ctx.Done()
-		ctxErr = ctx.Err()
-		p.ctx.Cancel()
+		select {
+		// When this method terminate finished will send and we will stop listening for ctx.Done()
+		case <-ctx.Done():
+			ctxErr = ctx.Err()
+			p.ctx.Cancel()
+		case <-finished:
+		}
 	}()
 	checkResult := p.optimize.Check()
 	if checkResult == z3.False {
