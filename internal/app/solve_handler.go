@@ -22,7 +22,7 @@ func SolveAssignments(c *gin.Context) {
 	)
 
 	switch {
-	case errors.Is(err, solve.SolvingTookTooLong):
+	case errors.Is(err, solve.Timeout):
 		logger.Info("solve timed out", "err", err)
 		c.HTML(http.StatusOK, "dialogs/solve-timed-out", gin.H{})
 
