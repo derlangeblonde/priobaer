@@ -39,4 +39,7 @@ func RegisterRoutes(router *gin.Engine, dbDirectory *dbdir.DbDirectory) {
 
 	router.GET("/sessions/new", SessionNew)
 	router.POST("sessions", SessionCreate(dbDirectory))
+
+	router.GET("/help", Help)
+	router.GET("/data-protection", DataProtection)
 }

@@ -17,7 +17,9 @@
   </div>
   {{ end }}
 
+  {{ block "app-header" .}}
   <h1>🐻 Priobär</h1>
+  {{ end }}
   {{ template "general/loading-indicator" . }}
   {{ end }}
   <div class="row" id="scenario">
@@ -63,6 +65,14 @@
     </div>
 
   </div>
+
+  {{ block "footer" . }}
+  <footer class="row margin-t-20">
+    <a class="margin-lr" href="/help">Hilfe</a>
+    <a class="margin-lr" href="/data-protection">Datenschutz</a>
+  </footer>
+  {{ end }}
+
   {{ if .fullPage }}
 
 </body>
