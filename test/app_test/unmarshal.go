@@ -234,7 +234,7 @@ func getInnerTextData(node *html.Node) string {
 }
 
 func findEntityDivs(current *html.Node, idContains string) []*html.Node {
-	if current.Type == html.ElementNode && current.Data == "div" {
+	if current.Type == html.ElementNode && current.Data == "li" {
 		for _, attr := range current.Attr {
 			if attr.Key == "id" && strings.Contains(attr.Val, idContains) {
 				return []*html.Node{current}

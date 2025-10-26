@@ -12,7 +12,7 @@ gofmt:
 
 libz3.a: vendor/z3
 	cd vendor/z3 && python scripts/mk_make.py --staticlib
-	cd vendor/z3/build && ${MAKE}
+	cd vendor/z3/build && ${MAKE} -j 8
 	cp vendor/z3/build/libz3.a .
 
 vendor/z3:

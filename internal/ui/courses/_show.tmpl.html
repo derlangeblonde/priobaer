@@ -1,9 +1,12 @@
-<div id="course-{{ .ID }}" class="{{if .Selected }}selected{{ end }} clickable" hx-get="/scenario?selected-course={{ .ID }}"
-	hx-target="#scenario" hx-swap="outerHTML" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"
-	{{ if .AsOobSwap }} hx-swap-oob="outerHtml:#course-{{ .ID }}" {{ end }}>
-	<input type="hidden" name="course-id" value="{{ .ID }}">
-	<b> {{ Field "Name" . }} </b> <br>
-		Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }}, Auslastung {{ Field "Allocation" . }} <br>
-		<a onclick="event.stopPropagation()" hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML" hx-confirm="Möchten Sie diesen Kurs wirklich löschen? Zugeteilte Teilnehmer werden wieder 'Nicht Zugeteilt' zugeordnet." class="link">Löschen</a>
-		<hr>
-</div>
+<li id="course-{{ .ID }}" class="{{if .Selected }}selected{{ end }} clickable"
+  hx-get="/scenario?selected-course={{ .ID }}" hx-target="#scenario" hx-swap="outerHTML" ondragover="allowDrop(event)"
+  ondrop="drop(event)" ondragleave="dragLeave(event)" {{ if .AsOobSwap }} hx-swap-oob="outerHtml:#course-{{ .ID }}" {{
+  end }}>
+  <input type="hidden" name="course-id" value="{{ .ID }}">
+  <b> {{ Field "Name" . }} </b> <br>
+  Max: {{ Field "MaxCapacity" . }}, Min {{ Field "MinCapacity" . }}, Auslastung {{ Field "Allocation" . }} <br>
+  <a onclick="event.stopPropagation()" hx-delete="/courses/{{ .ID }}" hx-target="#course-{{ .ID }}" hx-swap="outerHTML"
+    hx-confirm="Möchten Sie diesen Kurs wirklich löschen? Zugeteilte Teilnehmer werden wieder 'Nicht Zugeteilt' zugeordnet."
+    class="link">Löschen</a>
+  <hr>
+</li>
