@@ -1,17 +1,17 @@
-<dialog open class="padding-b-10 box-shadow width-fifth">
-	<h1>Datei laden</h1>
+<dialog open class="padding-b-10 box-shadow width-fourth">
+  <h1>Datei laden</h1>
 
-	<i>Vorsicht: Beim Laden wird Ihr aktueller Stand überschrieben. Speichern vorher ungesicherte Daten.</i>
+  <i>Vorsicht: Beim Laden wird Ihr aktueller Stand überschrieben. Speichern vorher ungesicherte Daten.</i>
 
-	<form id='form' hx-encoding='multipart/form-data' hx-post='/load' hx-target="#scenario" hx-swap="outerHTML" class="margin-t-20">
-		<label for='file'>Datei auswählen</label>
-		<input id="file" type='file' name='file'>
-		<button>
-		   Laden 
-		</button>
-	</form>
-	<form method="dialog" class="row right-align margin-t-20">
-		<button>Schließen</button>
-	</form>
+  <form id='form' hx-encoding='multipart/form-data' hx-post='/load' hx-target="#scenario" hx-swap="outerHTML"
+    class="margin-t-20">
+    <label for='file'>Datei auswählen</label>
+    <input id="file" type='file' name='file'>
+    <button>
+      Laden
+    </button>
+  </form>
+  <form method="dialog" class="row right-align margin-t-20">
+    <button>Schließen</button>
+  </form>
 </dialog>
-
